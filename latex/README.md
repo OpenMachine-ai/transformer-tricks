@@ -3,7 +3,8 @@ This folder contains all files to generate the PDF of the Transformer Tricks pap
 2) Create file `foo.tex` and copy text from the Google doc.
     - For drawings, copy the drawings into a google drawings file and adjust the bounding box, and then "download" as PDF. This PDF is then used by latex.
     - For references, see the comments in file `references.bib`.
-3) Upload to arXiv:
+3) Type `./run foo` to create PDF.
+4) Submit to arXiv:
     - To submit `foo.tex`, type: `./submit foo`.
     - To double-check if everything works, run `pdflatex foo` two times (or sometimes three times) as follows:
       `cd foo_submit` and `pdflatex foo && pdflatex foo`.
