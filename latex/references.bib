@@ -1,0 +1,439 @@
+% How to add arXiv references:
+%  1) Go to https://www.bibtex.com/c/arxiv-to-bibtex-converter/
+%  2) manually add the url to the title field, add the note field,
+%     and you can delete the "abstract" field
+
+% Note: we don't use biblatex here, because using biblatex is tricky
+% when uploading to arXiv:
+% https://github.com/plk/biblatex/wiki/biblatex-and-the-arXiv
+
+% TODO: we could simplify adding the href in the title-fields below,
+% but this might require biblatex:
+% https://tex.stackexchange.com/questions/23832/biblatex-make-title-hyperlink-to-doi-url-if-available
+
+%----------------------------------------------------------------------
+% arXiv
+%----------------------------------------------------------------------
+@article{vanilla,
+  title = {\href{https://arxiv.org/abs/1706.03762}{Attention is all you need}},
+  author        = "Vaswani, Ashish and Shazeer, Noam and Parmar, Niki and
+                   Uszkoreit, Jakob and Jones, Llion and Gomez, Aidan N and
+                   Kaiser, Lukasz and Polosukhin, Illia",
+  month         =  jun,
+  year          =  2017,
+  archivePrefix = "arXiv",
+  primaryClass  = "cs.CL",
+  eprint        = "1706.03762",
+  note          = {\textit{arXiv:1706.03762}}
+}
+
+@article{RoPE,
+  title = {\href{https://arxiv.org/abs/2104.09864}
+          {{RoFormer}: Enhanced transformer with Rotary Position Embedding}},
+  author        = "Su, Jianlin and Lu, Yu and Pan, Shengfeng and Murtadha,
+                   Ahmed and Wen, Bo and Liu, Yunfeng",
+  month         =  apr,
+  year          =  2021,
+  archivePrefix = "arXiv",
+  primaryClass  = "cs.CL",
+  eprint        = "2104.09864",
+  note          = {\textit{arXiv:2104.09864}}
+}
+
+@article{pre-norm,
+  title = {\href{https://arxiv.org/abs/2002.04745}
+          {On Layer Normalization in the Transformer Architecture}},
+  author        = "Xiong, Ruibin and Yang, Yunchang and He, Di and Zheng, Kai
+                   and Zheng, Shuxin and Xing, Chen and Zhang, Huishuai and
+                   Lan, Yanyan and Wang, Liwei and Liu, Tie-Yan",
+  month         =  feb,
+  year          =  2020,
+  archivePrefix = "arXiv",
+  primaryClass  = "cs.LG",
+  eprint        = "2002.04745",
+  note          = {\textit{arXiv:2002.04745}}
+}
+
+@article{MQA,
+  title = {\href{https://arxiv.org/abs/1911.02150}
+          {Fast Transformer Decoding: One Write-Head is All You Need}},
+  author        = "Shazeer, Noam",
+  month         =  nov,
+  year          =  2019,
+  archivePrefix = "arXiv",
+  primaryClass  = "cs.NE",
+  eprint        = "1911.02150",
+  note          = {\textit{arXiv:1911.02150}}
+}
+
+@article{GQA,
+  title = {\href{https://arxiv.org/abs/2305.13245}
+          {{GQA}: Training generalized multi-query transformer models from multi-head checkpoints}},
+  author        = "Ainslie, Joshua and Lee-Thorp, James and de Jong, Michiel
+                   and Zemlyanskiy, Yury and Lebr{\'o}n, Federico and Sanghai,
+                   Sumit",
+  month         =  may,
+  year          =  2023,
+  archivePrefix = "arXiv",
+  primaryClass  = "cs.CL",
+  eprint        = "2305.13245",
+  note          = {\textit{arXiv:2305.13245}}
+}
+
+@article{GLU,
+  title = {\href{https://arxiv.org/abs/2002.05202}
+          {{GLU} Variants Improve Transformer}},
+  author        = "Shazeer, Noam",
+  month         =  feb,
+  year          =  2020,
+  copyright     = "http://arxiv.org/licenses/nonexclusive-distrib/1.0/",
+  archivePrefix = "arXiv",
+  primaryClass  = "cs.LG",
+  eprint        = "2002.05202",
+  note          = {\textit{arXiv:2002.05202}}
+}
+
+@article{linear,
+  title = {\href{https://arxiv.org/abs/2006.16236}
+          {Transformers are {RNNs}: Fast autoregressive transformers with linear attention}},
+  author        = "Katharopoulos, Angelos and Vyas, Apoorv and Pappas, Nikolaos
+                   and Fleuret, Fran{\c c}ois",
+  month         =  jun,
+  year          =  2020,
+  archivePrefix = "arXiv",
+  primaryClass  = "cs.LG",
+  eprint        = "2006.16236",
+  note          = "\textit{arXiv:2006.16236}. And \href{https://linear-transformers.com/}{code}"
+}
+
+@article{longformer,
+  title = {\href{https://arxiv.org/abs/2004.05150}
+          {Longformer: The {Long-Document} Transformer}},
+  author        = "Beltagy, Iz and Peters, Matthew E and Cohan, Arman",
+  month         =  apr,
+  year          =  2020,
+  archivePrefix = "arXiv",
+  primaryClass  = "cs.CL",
+  eprint        = "2004.05150",
+  note          = {\textit{arXiv:2004.05150}}
+}
+
+@article{flash-attention,
+  title = {\href{https://arxiv.org/abs/2205.14135}
+          {{FlashAttention}: Fast and memory-efficient exact attention with {IO-awareness}}},
+  author        = "Dao, Tri and Fu, Daniel Y and Ermon, Stefano and Rudra, Atri
+                   and R{\'e}, Christopher",
+  month         =  may,
+  year          =  2022,
+  archivePrefix = "arXiv",
+  primaryClass  = "cs.LG",
+  eprint        = "2205.14135",
+  note          = {\textit{arXiv:2205.14135}}
+}
+
+@article{quantizable,
+  title = {\href{https://arxiv.org/abs/2306.12929}
+          {Quantizable transformers: Removing outliers by helping attention heads do nothing}},
+  author        = "Bondarenko, Yelysei and Nagel, Markus and Blankevoort,
+                   Tijmen",
+  month         =  jun,
+  year          =  2023,
+  archivePrefix = "arXiv",
+  primaryClass  = "cs.LG",
+  eprint        = "2306.12929",
+  note          = {\textit{arXiv:2306.12929}}
+}
+
+@article{simplified,
+  title = {\href{https://arxiv.org/abs/2311.01906}{Simplifying Transformer Blocks}},
+  author        = "He, Bobby and Hofmann, Thomas",
+  month         =  nov,
+  year          =  2023,
+  archivePrefix = "arXiv",
+  primaryClass  = "cs.LG",
+  eprint        = "2311.01906",
+  note          = {\textit{arXiv:2311.01906}}
+}
+
+@article{skipless,
+  title = {\href{https://arxiv.org/abs/2302.10322}
+          {Deep transformers without shortcuts: Modifying self-attention for faithful signal propagation}},
+  author        = "He, Bobby and Martens, James and Zhang, Guodong and Botev,
+                   Aleksandar and Brock, Andrew and Smith, Samuel L and Teh,
+                   Yee Whye",
+  month         =  feb,
+  year          =  2023,
+  archivePrefix = "arXiv",
+  primaryClass  = "cs.LG",
+  eprint        = "2302.10322",
+  note          = "\textit{arXiv:2302.10322}. And \href{https://openreview.net/pdf?id=NPrsUQgMjKK}{ICLR 2023}"
+}
+
+@article{PaLM,
+  title = {\href{https://arxiv.org/abs/2204.02311}
+          {{PaLM}: Scaling language modeling with Pathways}},
+  author        = "Chowdhery, Aakanksha and Narang, Sharan and Devlin, Jacob
+                   and Bosma, Maarten and Mishra, Gaurav and Roberts, Adam and
+                   Barham, Paul and Chung, Hyung Won and Sutton, Charles and
+                   Gehrmann, Sebastian and Schuh, Parker and Shi, Kensen and
+                   Tsvyashchenko, Sasha and Maynez, Joshua and Rao, Abhishek
+                   and Barnes, Parker and Tay, Yi and Shazeer, Noam and
+                   Prabhakaran, Vinodkumar and Reif, Emily and Du, Nan and
+                   Hutchinson, Ben and Pope, Reiner and Bradbury, James and
+                   Austin, Jacob and Isard, Michael and Gur-Ari, Guy and Yin,
+                   Pengcheng and Duke, Toju and Levskaya, Anselm and Ghemawat,
+                   Sanjay and Dev, Sunipa and Michalewski, Henryk and Garcia,
+                   Xavier and Misra, Vedant and Robinson, Kevin and Fedus, Liam
+                   and Zhou, Denny and Ippolito, Daphne and Luan, David and
+                   Lim, Hyeontaek and Zoph, Barret and Spiridonov, Alexander
+                   and Sepassi, Ryan and Dohan, David and Agrawal, Shivani and
+                   Omernick, Mark and Dai, Andrew M and Pillai, Thanumalayan
+                   Sankaranarayana and Pellat, Marie and Lewkowycz, Aitor and
+                   Moreira, Erica and Child, Rewon and Polozov, Oleksandr and
+                   Lee, Katherine and Zhou, Zongwei and Wang, Xuezhi and Saeta,
+                   Brennan and Diaz, Mark and Firat, Orhan and Catasta, Michele
+                   and Wei, Jason and Meier-Hellstern, Kathy and Eck, Douglas
+                   and Dean, Jeff and Petrov, Slav and Fiedel, Noah",
+  month         =  apr,
+  year          =  2022,
+  archivePrefix = "arXiv",
+  primaryClass  = "cs.CL",
+  eprint        = "2204.02311",
+  note          = {\textit{arXiv:2204.02311}}
+}
+
+@article{LLaMA,
+  title = {\href{https://arxiv.org/abs/2302.13971}
+          {{LLaMA}: Open and efficient foundation language models}},
+  author        = "Touvron, Hugo and Lavril, Thibaut and Izacard, Gautier and
+                   Martinet, Xavier and Lachaux, Marie-Anne and Lacroix,
+                   Timoth{\'e}e and Rozi{\`e}re, Baptiste and Goyal, Naman and
+                   Hambro, Eric and Azhar, Faisal and Rodriguez, Aurelien and
+                   Joulin, Armand and Grave, Edouard and Lample, Guillaume",
+  month         =  feb,
+  year          =  2023,
+  archivePrefix = "arXiv",
+  primaryClass  = "cs.CL",
+  eprint        = "2302.13971",
+  note          = {\textit{arXiv:2302.13971}}
+}
+
+@article{Llama2,
+  title = {\href{https://arxiv.org/abs/2307.09288}
+          {Llama 2: Open foundation and fine-tuned chat models}},
+  author        = "Touvron, Hugo and Martin, Louis and Stone, Kevin and Albert,
+                   Peter and Almahairi, Amjad and Babaei, Yasmine and
+                   Bashlykov, Nikolay and Batra, Soumya and Bhargava, Prajjwal
+                   and Bhosale, Shruti and Bikel, Dan and Blecher, Lukas and
+                   Ferrer, Cristian Canton and Chen, Moya and Cucurull, Guillem
+                   and Esiobu, David and Fernandes, Jude and Fu, Jeremy and Fu,
+                   Wenyin and Fuller, Brian and Gao, Cynthia and Goswami,
+                   Vedanuj and Goyal, Naman and Hartshorn, Anthony and
+                   Hosseini, Saghar and Hou, Rui and Inan, Hakan and Kardas,
+                   Marcin and Kerkez, Viktor and Khabsa, Madian and Kloumann,
+                   Isabel and Korenev, Artem and Koura, Punit Singh and
+                   Lachaux, Marie-Anne and Lavril, Thibaut and Lee, Jenya and
+                   Liskovich, Diana and Lu, Yinghai and Mao, Yuning and
+                   Martinet, Xavier and Mihaylov, Todor and Mishra, Pushkar and
+                   Molybog, Igor and Nie, Yixin and Poulton, Andrew and
+                   Reizenstein, Jeremy and Rungta, Rashi and Saladi, Kalyan and
+                   Schelten, Alan and Silva, Ruan and Smith, Eric Michael and
+                   Subramanian, Ranjan and Tan, Xiaoqing Ellen and Tang, Binh
+                   and Taylor, Ross and Williams, Adina and Kuan, Jian Xiang
+                   and Xu, Puxin and Yan, Zheng and Zarov, Iliyan and Zhang,
+                   Yuchen and Fan, Angela and Kambadur, Melanie and Narang,
+                   Sharan and Rodriguez, Aurelien and Stojnic, Robert and
+                   Edunov, Sergey and Scialom, Thomas",
+  month         =  jul,
+  year          =  2023,
+  archivePrefix = "arXiv",
+  primaryClass  = "cs.CL",
+  eprint        = "2307.09288",
+  note          = {\textit{arXiv:2307.09288}}
+}
+
+@article{Mistral,
+  title = {\href{https://arxiv.org/abs/2310.06825}{Mistral {7B}}},
+  author        = "Jiang, Albert Q and Sablayrolles, Alexandre and Mensch,
+                   Arthur and Bamford, Chris and Chaplot, Devendra Singh and
+                   Casas, Diego de las and Bressand, Florian and Lengyel,
+                   Gianna and Lample, Guillaume and Saulnier, Lucile and
+                   Lavaud, L{\'e}lio Renard and Lachaux, Marie-Anne and Stock,
+                   Pierre and Scao, Teven Le and Lavril, Thibaut and Wang,
+                   Thomas and Lacroix, Timoth{\'e}e and Sayed, William El",
+  month         =  oct,
+  year          =  2023,
+  archivePrefix = "arXiv",
+  primaryClass  = "cs.CL",
+  eprint        = "2310.06825",
+  note          = {\textit{arXiv:2310.06825}}
+}
+
+@article{Mixtral,
+  title = {\href{https://arxiv.org/abs/2401.04088}{Mixtral of Experts}},
+  author        = "Jiang, Albert Q and Sablayrolles, Alexandre and Roux,
+                   Antoine and Mensch, Arthur and Savary, Blanche and Bamford,
+                   Chris and Chaplot, Devendra Singh and Casas, Diego de las
+                   and Hanna, Emma Bou and Bressand, Florian and Lengyel,
+                   Gianna and Bour, Guillaume and Lample, Guillaume and Lavaud,
+                   L{\'e}lio Renard and Saulnier, Lucile and Lachaux,
+                   Marie-Anne and Stock, Pierre and Subramanian, Sandeep and
+                   Yang, Sophia and Antoniak, Szymon and Scao, Teven Le and
+                   Gervet, Th{\'e}ophile and Lavril, Thibaut and Wang, Thomas
+                   and Lacroix, Timoth{\'e}e and Sayed, William El",
+  month         =  jan,
+  year          =  2024,
+  archivePrefix = "arXiv",
+  primaryClass  = "cs.LG",
+  eprint        = "2401.04088",
+  note          = {\textit{arXiv:2401.04088}}
+}
+
+@article{Pythia,
+  title = {\href{https://arxiv.org/abs/2304.01373}
+          {Pythia: A suite for analyzing large language models across training and scaling}},
+  author        = "Biderman, Stella and Schoelkopf, Hailey and Anthony, Quentin
+                   and Bradley, Herbie and O'Brien, Kyle and Hallahan, Eric and
+                   Khan, Mohammad Aflah and Purohit, Shivanshu and Prashanth,
+                   Usvsn Sai and Raff, Edward and Skowron, Aviya and Sutawika,
+                   Lintang and van der Wal, Oskar",
+  month         =  apr,
+  year          =  2023,
+  archivePrefix = "arXiv",
+  primaryClass  = "cs.CL",
+  eprint        = "2304.01373",
+  note          = {\textit{arXiv:2304.01373}}
+}
+
+@article{whisper,
+  title = {\href{https://arxiv.org/abs/2212.04356}
+          {Robust speech recognition via large-scale weak supervision}},
+  author        = "Radford, Alec and Kim, Jong Wook and Xu, Tao and Brockman,
+                   Greg and McLeavey, Christine and Sutskever, Ilya",
+  month         =  dec,
+  year          =  2022,
+  archivePrefix = "arXiv",
+  primaryClass  = "eess.AS",
+  eprint        = "2212.04356",
+  note          = {\textit{arXiv:2212.04356}}
+}
+
+@article{micro-paper,
+  title = {\href{https://arxiv.org/abs/2302.12854}
+          {The {Micro-Paper}: Towards cheaper, citable research ideas and conversations}},
+  author        = "Elavsky, Frank",
+  month         =  feb,
+  year          =  2023,
+  archivePrefix = "arXiv",
+  primaryClass  = "cs.DL",
+  eprint        = "2302.12854",
+  note          = {\textit{arXiv:2302.12854}}
+}
+
+@article{precompute,
+  title = {\href{https://arxiv.org/abs/2402.13388}
+          {Transformer tricks: Precomputing the first layer}},
+  author        = "Graef, Nils",
+  month         =  feb,
+  year          =  2024,
+  copyright     = "http://creativecommons.org/licenses/by-nc-nd/4.0/",
+  archivePrefix = "arXiv",
+  primaryClass  = "cs.LG",
+  eprint        = "2402.13388",
+  note          = {\textit{arXiv:2402.13388}}
+}
+
+@article{griffin,
+  title = {\href{https://arxiv.org/abs/2402.19427}
+          {Griffin: Mixing gated linear recurrences with local attention for efficient language models}},
+  author        = "De, Soham and Smith, Samuel L and Fernando, Anushan and
+                   Botev, Aleksandar and Cristian-Muraru, George and Gu, Albert
+                   and Haroun, Ruba and Berrada, Leonard and Chen, Yutian and
+                   Srinivasan, Srivatsan and Desjardins, Guillaume and Doucet,
+                   Arnaud and Budden, David and Teh, Yee Whye and Pascanu,
+                   Razvan and De Freitas, Nando and Gulcehre, Caglar",
+  month         =  feb,
+  year          =  2024,
+  copyright     = "http://creativecommons.org/licenses/by/4.0/",
+  archivePrefix = "arXiv",
+  primaryClass  = "cs.LG",
+  eprint        = "2402.19427",
+  note          = {\textit{arXiv:2402.19427}}
+}
+
+%----------------------------------------------------------------------
+% wikipedia
+%----------------------------------------------------------------------
+@misc{chebyshev,
+  author = "{Wikipedia}",
+  title  = {\href{https://en.wikipedia.org/wiki/Chebyshev_polynomials}
+           {Chebyshev polynomials}},
+  year   = "2024",
+  note   = "Accessed Feb-2024"
+}
+
+@misc{minimax,
+  author = "{Wikipedia}",
+  title  = {\href{https://en.wikipedia.org/wiki/Minimax_approximation_algorithm}
+           {Minimax approximation algorithm}},
+  year   = "2024",
+  note   = "Accessed Feb-2024"
+ }
+
+@misc{multinomial,
+  author = "{Wikipedia}",
+  title  = {\href{https://en.wikipedia.org/wiki/Multinomial_theorem}
+           {Multinomial theorem}},
+  year   = "2024",
+  note   = "Accessed Feb-2024"
+}
+
+@misc{invertible,
+  author = "{Wikipedia}",
+  title  = {\href{https://en.wikipedia.org/wiki/Invertible_matrix}
+           {Invertible matrix}},
+  year   = "2024",
+  note   = "Accessed Mar-2024"
+}
+
+%----------------------------------------------------------------------
+% misc.
+%----------------------------------------------------------------------
+@article{parallel,
+  title  = {\href{https://github.com/kingoflolz/mesh-transformer-jax}
+           {{GPT-J-6B}: A 6 billion parameter autoregressive language model}},
+  author = "Wang, Ben and Komatsuzaki, Aran",
+  year   =  2021,
+  note   = {\textit{Github repo}}
+}
+
+@article{gemma,
+  title  = {\href{https://storage.googleapis.com/deepmind-media/gemma/gemma-report.pdf}
+           {Gemma: Open Models Based on Gemini Research and Technology}},
+  author = "{Gemma Team, Google DeepMind}",
+  year   =  2024,
+}
+
+@article{MoE,
+  title  = {\href{https://huggingface.co/blog/moe}{Mixture of Experts Explained}},
+  author = "Sanseviero, Omar and Tunstall, Lewis and Schmid, Philipp and
+            Mangrulkar, Sourab and Belkada, Younes and Cuenca, Pedro",
+  month  =  dec,
+  year   =  2023,
+  note   = {\textit{HuggingFace blog}}
+}
+
+@article{exp.c,
+  title  = {\href{https://netlib.org/fdlibm/e_exp.c}{exp.c library}},
+  author = "Sun Microsystems",
+  year   =  2004,
+  url    = "https://netlib.org/fdlibm/e_exp.c"
+}
+
+@article{tricks,
+  title  = {\href{https://github.com/OpenMachine-ai/transformer-tricks}
+           {Transformer tricks}},
+  author = "OpenMachine",
+  year   =  2024,
+  note   = {\textit{Github repository}}
+}

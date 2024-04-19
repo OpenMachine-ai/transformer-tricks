@@ -1,0 +1,15 @@
+#!/bin/bash
+
+# script to convert foo.tex to PDF
+# usage: ./run foo
+# above generates foo.pdf and other files
+
+./clean
+pdflatex "$1"
+bibtex   "$1"
+pdflatex "$1"
+pdflatex "$1"
+pdflatex "$1"  # we sometimes need to run pdflatex 3 times
+
+echo "--------------------------------------------------------------------------------"
+grep Warning "$1".log
