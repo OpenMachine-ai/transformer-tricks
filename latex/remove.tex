@@ -76,11 +76,11 @@ Table \ref{tab1} specifies how the new weight matrices ($\M^*, \Q^*, \K^*, \V^*,
 \begingroup \begin{table} [h!] \centering  % the [h!] tries to place the picture right here
 \renewcommand{\arraystretch}{1.3}  % increase table row height by 1.3x
 \begin{tabular}{c|c|c|c}
-         & Figure 1(b) & Figure 1(c) & Figure 1(d) \\ \hline
-  $\O^*$ & $\O \Q$         & $\O \K$          & $\O \V$        \\ \hline
-  $\Q^*$ & 1 (eliminated)  & $\K^{-1} \Q$      & $\V^{-1} \Q$    \\ \hline
-  $\K^*$ & $\Q^{-1} \K$     & 1 (eliminated)   & $\V^{-1} \K$    \\ \hline
-  $\V^*$ & $\Q^{-1} \V$     & $\K^{-1} \V$      & 1 (eliminated) \\ \hline
+         & Figure 1(b) & Figure 1(c) & Figure 1(d)            \\ \hline
+  $\O^*$ & $\O \Q$         & $\O \K$         & $\O \V$        \\ \hline
+  $\Q^*$ & 1 (eliminated)  & $\K^{-1} \Q$    & $\V^{-1} \Q$   \\ \hline
+  $\K^*$ & $\Q^{-1} \K$    & 1 (eliminated)  & $\V^{-1} \K$   \\ \hline
+  $\V^*$ & $\Q^{-1} \V$    & $\K^{-1} \V$    & 1 (eliminated) \\ \hline
   $\M^*$ & \multicolumn{3}{c}{$\P \M$}
 \end{tabular}
 \caption{How to calculate the new weight matrices from the original ones for Figure \ref{fig1}.}
@@ -101,27 +101,27 @@ The table below lists the configurations and weight counts for Pythia-6.9B and M
 
 \begingroup
 \renewcommand{\arraystretch}{1.5} % increase table row height by 1.5x
-\begin{center} \begin{tabular}{|l|c|c|l|} \hline
-  \textbf{Parameter} & \textbf{Pythia-6.9B} & \textbf{Mistral-7B} & \textbf{Notes}       \\ \hline
-  Parallel attention/FFN? & parallel     & serial          & \cite{parallel}             \\ \hline
-  MHA, MQA, or GQA?       & MHA          & GQA             & \cite{vanilla, MQA, GQA}    \\ \hline
-  \verb+dim+ (aka $d$)    & \multicolumn{2}{c|}{4,096}     & embedding dimension         \\ \hline
-  \verb+n_layers+         & \multicolumn{2}{c|}{32}        & number of layers            \\ \hline
-  \verb+n_heads+          & \multicolumn{2}{c|}{32}        & number of heads             \\ \hline
-  \verb+n_kv_heads+       & 32           & 8               & number of KV-heads          \\ \hline
-  \verb+e+ (output dim. of K, V) & 4,096 & 1,024           & \verb+e = d * n_kv_heads / n_heads+ \\ \hline
-  FFN type                & MLP          & MLP with SwiGLU & \cite{GLU} \\ \hline
-  FFN \verb+hidden_dim+   & 16,384       & 14,336          & FFN hidden dimension        \\ \hline
-  \verb+vocab_size+       & 50,400       & 32,000          & vocabulary size             \\ \hline
+\begin{center} \begin{tabular}{|l|c|c|l|}                                                                      \hline
+  \textbf{Parameter} & \textbf{Pythia-6.9B} & \textbf{Mistral-7B} & \textbf{Notes}                          \\ \hline
+  Parallel attention/FFN? & parallel     & serial           & \cite{parallel}                               \\ \hline
+  MHA, MQA, or GQA?       & MHA          & GQA              & \cite{vanilla, MQA, GQA}                      \\ \hline
+  \verb+dim+ (aka $d$)    & \multicolumn{2}{c|}{4,096}      & embedding dimension                           \\ \hline
+  \verb+n_layers+         & \multicolumn{2}{c|}{32}         & number of layers                              \\ \hline
+  \verb+n_heads+          & \multicolumn{2}{c|}{32}         & number of heads                               \\ \hline
+  \verb+n_kv_heads+       & 32           & 8                & number of KV-heads                            \\ \hline
+  \verb+e+ (output dim. of K, V) & 4,096 & 1,024            & \verb+e = d * n_kv_heads / n_heads+           \\ \hline
+  FFN type                & MLP          & MLP with SwiGLU  & \cite{GLU}                                    \\ \hline
+  FFN \verb+hidden_dim+   & 16,384       & 14,336           & FFN hidden dimension                          \\ \hline
+  \verb+vocab_size+       & 50,400       & 32,000           & vocabulary size                               \\ \hline
 
-  \multicolumn{4}{|l|}{\textbf{Number of weights (calculated from above parameters):}}             \\ \hline
-  Q+P weights per layer & \multicolumn{2}{c|}{33,554,432} & \verb+2 * dim * dim+                   \\ \hline
-  K+V weights per layer & 33,554,432  &   8,388,608  & \verb+2 * dim * dim / n_heads * n_kv_heads+ \\ \hline
-  FFN weights per layer & 134,217,728 & 176,160,768  & \verb+(2 or 3) * dim * hidden_dim+          \\ \hline
-  Input+output embed.   & 412,876,800 & 262,144,000  & \verb+2 * dim * vocab_size+                 \\ \hline
-  \multicolumn{1}{|r|}{\textbf{Total weights:}} & 6.9B & 7.2B &                                    \\ \hline
+  \multicolumn{4}{|l|}{\textbf{Number of weights (calculated from above parameters):}}                      \\ \hline
+  Q+P weights per layer   & \multicolumn{2}{c|}{33,554,432} & \verb+2 * dim * dim+                          \\ \hline
+  K+V weights per layer   & 33,554,432   &   8,388,608      & \verb+2 * dim * dim / n_heads * n_kv_heads+   \\ \hline
+  FFN weights per layer   & 134,217,728  & 176,160,768      & \verb+(2 or 3) * dim * hidden_dim+            \\ \hline
+  Input+output embed.     & 412,876,800  & 262,144,000      & \verb+2 * dim * vocab_size+                   \\ \hline
+  \multicolumn{1}{|r|}{\textbf{Total weights:}} & 6.9B & 7.2B &                                             \\ \hline
 
-  \multicolumn{4}{|l|}{\textbf{Weight savings and speedup after removing Q and P:}} \\ \hline
+  \multicolumn{4}{|l|}{\textbf{Weight savings and speedup after removing Q and P:}}                         \\ \hline
   Total w/o Q+P weights:                           & 5.8B           & 6.2B   & total after removing Q and P \\ \hline
   \multicolumn{1}{|r|}{\textbf{Weight savings:}}   & \textbf{16\%}  & \textbf{15\%}  &                      \\ \hline
   \multicolumn{1}{|r|}{\textbf{Possible speedup:}} & \textbf{1.19x} & \textbf{1.17x} & assumes batch size 1 \\ \hline
