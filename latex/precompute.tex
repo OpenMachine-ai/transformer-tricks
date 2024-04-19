@@ -23,7 +23,7 @@ Figure \ref{fig1}(a) shows the first layer of a transformer with RoPE and parall
 \begin{figure}[h!] \centering  % the [h!] tries to place the picture right here
   \includegraphics[scale=0.86]{figs/precompute_fig1.pdf}
   \caption{First layer of parallel transformer (a) without precompute; and (b) with precompute of FFN and linear layers Q, K, and V.}
- \label{fig1} \end{figure}
+\label{fig1} \end{figure}
 
 Figure \ref{fig1} uses the following dimensions, based on the type of attention such as multi-head attention (MHA) \citep{vanilla}, multi-query attention (MQA) \citep{MQA}, and grouped-query attention (GQA) \citep{GQA}:
 
@@ -51,8 +51,7 @@ The benefits of precompute include:
     & \makecell[l]{For each token, read $2(d+e)$ \\  precomputed values} \\ \hline
   \makecell[l]{Reads per batch: \\ ($B$ is batch-size)} & $B \cdot d + \verb+num_weights_Q_K_V_FFN+$ & $B \cdot 2(d+e)$
 \end{tabular} \end{center} \endgroup
-% TODO
-% https://stackoverflow.com/questions/56197968/how-can-i-make-a-list-with-itemize-in-a-cell-of-table
+% TODO: https://stackoverflow.com/questions/56197968/how-can-i-make-a-list-with-itemize-in-a-cell-of-table
 
 Notes on batch size:
 \begin{itemize}[topsep=-1pt, itemsep=-1pt]
@@ -75,7 +74,7 @@ Transformers without the parallel attention/FFN scheme can also benefit from pre
 \begin{figure} \centering
   \includegraphics[scale=0.86]{figs/precompute_fig2.pdf}
   \caption{First transformer layer. (a) Vanilla with pre-normalization and vanilla PE; (b) Vanilla with RoPE; (c) Precomputing linear layers Q, K, V.}
- \label{fig2} \end{figure}
+\label{fig2} \end{figure}
 
 \section{Examples} \label{sec:examples}
 
@@ -110,17 +109,17 @@ The table above compares the configurations and number of weights of Pythia-6.9B
 \renewcommand{\arraystretch}{1.4} % increase table row height by 1.4x
 \begin{center} \begin{tabular}{|l|c|c|>{\centering\arraybackslash}m{7.8em}|} \hline
   & \textbf{Pythia-6.9B} & \textbf{Mistral-7B} & \textbf{Hypothetical Mixtral-8x7B with parallel attn./FFN} \\ \hline
-  Number of weights that can be eliminated    & 184,549,376 & 25,165,824 & 1,434,451,968 \\ \hline
-  Number of reads w/o precompute for batch 1  & 184,553,472 & 25,169,920 & 1,434,456,064 \\ \hline
-  Number of reads with precompute for batch 1 & 16,384      & 10,240     & 10,240      \\ \hline
+  Number of weights that can be eliminated     & 184,549,376 & 25,165,824 & 1,434,451,968 \\ \hline
+  Number of reads w/o precompute for batch 1   & 184,553,472 & 25,169,920 & 1,434,456,064 \\ \hline
+  Number of reads with precompute for batch 1  & 16,384      & 10,240     & 10,240        \\ \hline
   \multicolumn{1}{|r|}{\textbf{First layer reduction factor for batch size 1:}} & \textbf{11,264x} & \textbf{2,458x} & \textbf{140,084x} \\ \hline
-  \multicolumn{1}{|r|}{\textbf{First layer reduction factor for batch size 16:}}    & 704x    & 154x   & 8,756x     \\ \hline
-  \multicolumn{1}{|r|}{\textbf{First layer reduction factor for batch size 256:}}   & 44x     & 10x    & 548x        \\ \hline
-  \multicolumn{1}{|r|}{\textbf{First layer reduction factor for batch size 1,024:}} & 11x     & 3x     & 137x         \\ \hline
+  \multicolumn{1}{|r|}{\textbf{First layer reduction factor for batch size 16:}}    & 704x    & 154x   & 8,756x    \\ \hline
+  \multicolumn{1}{|r|}{\textbf{First layer reduction factor for batch size 256:}}   & 44x     & 10x    & 548x      \\ \hline
+  \multicolumn{1}{|r|}{\textbf{First layer reduction factor for batch size 1,024:}} & 11x     & 3x     & 137x      \\ \hline
 
   \multicolumn{4}{|l|}{\textbf{Increase (or decrease) of total weight memory size:}}                               \\ \hline
   Increase embedding memory by $(2e + d) \cdot \verb+vocab_size+$ & 619,315,200 & \multicolumn{2}{c|}{196,608,000} \\ \hline
-  Memory decrease due to elimination of weights & –184,549,376 &  –25,165,824   & -1,434,451,968                    \\ \hline
+  Memory decrease due to elimination of weights & –184,549,376 &  –25,165,824   & -1,434,451,968                   \\ \hline
   \multicolumn{1}{|r|}{\textbf{Total absolute memory increase (or decrease):}}  &  434,765,824 & 171,442,176 & \textbf{-1,237,843,968}  \\ \hline
   \multicolumn{1}{|r|}{\textbf{Total relative memory increase (or decrease):}}  & 6\%          & \textbf{2\%}         & \textbf{–3\%} \\ \hline
 \end{tabular} \end{center}
