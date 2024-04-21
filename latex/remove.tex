@@ -21,7 +21,6 @@
 %\title{Transformer tricks: Removing weights from skipless transformers}
 %\title{Transformer tricks: Reducing weights for skipless transformers}
 %\title{Transformer tricks: Merging linear layers for skipless transformers}
-%\title{Transformer tricks: Merging linear layers}
 %\title{Transformer tricks: Eliminating linear layers}
 
 \author{Nils Graef \\ \href{https://openmachine.ai}{OpenMachine},
@@ -76,7 +75,7 @@ Table \ref{tab1} specifies how the new weight matrices ($\M^*, \Q^*, \K^*, \V^*,
 \begingroup \begin{table} [h!] \centering  % the [h!] tries to place the picture right here
 \renewcommand{\arraystretch}{1.3}  % increase table row height by 1.3x
 \begin{tabular}{c|c|c|c}
-         & Figure 1(b) & Figure 1(c) & Figure 1(d)            \\ \hline
+         & Figure 1(b)     & Figure 1(c)     & Figure 1(d)    \\ \hline
   $\O^*$ & $\O \Q$         & $\O \K$         & $\O \V$        \\ \hline
   $\Q^*$ & 1 (eliminated)  & $\K^{-1} \Q$    & $\V^{-1} \Q$   \\ \hline
   $\K^*$ & $\Q^{-1} \K$    & 1 (eliminated)  & $\V^{-1} \K$   \\ \hline
