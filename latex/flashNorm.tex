@@ -35,11 +35,11 @@ RMSNorm \citep{rms} normalizes the elements  $a_i$ of vector $\a$ as $y_i = \fra
 \end{itemize}
 
 \begin{figure}[h!] \centering  % the [h!] tries to place the picture right here
-  \includegraphics[scale=1.0]{figs/flash_fig1.pdf}
+  \includegraphics[scale=0.9]{figs/flash_fig1.pdf}
   \caption{Mathematically identical implementations of RMSNorm followed by a bias-free linear layer: (a) unoptimized version with weight matrix $\mat{W}$; (b) optimized version with normalization weights $g_i$ merged into the linear layer with new weights $\W*$; (c) optimized version with deferred normalization.}
 \label{fig1} \end{figure}
 
-In summary, FlashNorm eliminates the normalization weights and defers the normalization to the output of the linear layer, which removes the bottleneck described at the end of this paper. Deferring the normalization is similar to Flash Attention \citep{flash-attention}, where the normalization by the softmax denominator is done \emph{after} the multiplication of softmax arguments with value projections (V) (so that keys and values can be processd in \emph{parallel}). Therefore, we call our implementation \emph{flash} normalization (or FlashNorm), which allows us to compute the linear layer and $\rms$ in \emph{parallel}.
+In summary, FlashNorm eliminates the normalization weights and defers the normalization to the output of the linear layer, which removes the bottleneck described at the end of this paper. Deferring the normalization is similar to Flash Attention \citep{flash-attention}, where the normalization by the softmax denominator is done after the multiplication of softmax arguments with value projections (V) (so that keys and values can be processd in \emph{parallel}). Therefore, we call our implementation \emph{flash} normalization (or FlashNorm), which allows us to compute the linear layer and $\rms$ in \emph{parallel}.
 
 \citeauthor{openelm} report significant changes in the overall tokens-per-second throughput when they modify the layer normalization implementation, which they attribute to a lack of kernel fusion for the underlying GPU. The simplifications presented here reduce the number of operations and thus the number of the individual kernel launches mentioned in \citep{openelm}.
 
@@ -50,7 +50,7 @@ For the feed-forward networks (FFN) of LLMs, the linear layers at the FFN input 
 Even though ReLU is a nonlinear function, multiplying its argument by a non-negative scaling factor $s$ is the same as scaling its output by $s$, i.e. $\text{ReLU}(s \cdot \a) = s \cdot \text{ReLU}(\a)$ for $s \ge 0$ \citep{ReLU}. Because of this scale-invariance, we can defer the normalization to the output of the FFN as illustrated in Fig. \ref{fig2}(b), which saves $f - n$ multipliers.
 
 \begin{figure}[h!] \centering
-  \includegraphics[scale=1.0]{figs/flash_fig2.pdf}
+  \includegraphics[scale=0.9]{figs/flash_fig2.pdf}
   \caption{FFN with ReLU and preceding flash normalization: (a) unoptimized version; (b) optimized version where the normalization is deferred to the output of the FFN. Up and Down denote the linear layers for up and down projections.}
 \label{fig2} \end{figure}
 
@@ -58,7 +58,7 @@ Even though ReLU is a nonlinear function, multiplying its argument by a non-nega
 Fig. \ref{fig3}(a) shows an FFN with a GLU variant \citep{GLU} and flash normalization at its input. The flash normalization requires two sets of $f$ multipliers at the outputs of the Gate and Up linear layers in Fig. \ref{fig3}(a). One set can be deferred to the FFN output in Fig. \ref{fig3}(b), which saves $f - n$ multipliers.
 
 \begin{figure}[h!] \centering
-  \includegraphics[scale=1.0]{figs/flash_fig3.pdf}
+  \includegraphics[scale=0.9]{figs/flash_fig3.pdf}
   \caption{FFN with GLU variant and preceding flash normalization: (a) unoptimized version; (b) optimized version with fewer scaling multipliers. Gate, Up, and Down denote the linear layers for gate, up, and down projections.}
 \label{fig3} \end{figure}
 
@@ -69,13 +69,13 @@ Fig. \ref{fig3}(a) shows an FFN with a GLU variant \citep{GLU} and flash normali
 \end{equation*}
 
 \begin{figure}[h!] \centering
-  \includegraphics[scale=1.0]{figs/flash_fig4.pdf}
+  \includegraphics[scale=0.9]{figs/flash_fig4.pdf}
   \caption{FFN with ReGLU (or bilinear GLU) and preceding flash normalization: (a) unoptimized version; (b) optimized version with fewer scaling multipliers.}
 \label{fig4} \end{figure}
 
 \section{Flash normalization for attention with RoPE}
 \begin{figure}[h!] \centering
-  \includegraphics[scale=1.0]{figs/flash_fig5.pdf}
+  \includegraphics[scale=0.9]{figs/flash_fig5.pdf}
   \caption{Flash normalization for scaled dot-product attention with RoPE: (a) unoptimized version; (b) optimized version where the normalization is fused with RoPE.}
 \label{fig5} \end{figure}
 
@@ -112,7 +112,7 @@ Fig. \ref{fig6}(a) shows a linear layer with flash normalization followed by QK-
 \end{itemize}
 
 \begin{figure}[h!] \centering
-  \includegraphics[scale=1.0]{figs/flash_fig6.pdf}
+  \includegraphics[scale=0.9]{figs/flash_fig6.pdf}
   \caption{Linear layer with flash normalization followed by another normalization: (a) unoptimized version; (b) optimized version.}
 \label{fig6} \end{figure}
 
@@ -122,19 +122,19 @@ The scale-invariance property of $\rms$ doesn’t hold exactly true for RMS with
 Fig. \ref{fig7}(a) illustrates QK-normalization with RoPE. If the QK-normalization weights are the same for all heads of a layer, as is the case for OpenELM \citep{openelm}, then we can fuse them with RoPE: multiply the RoPE scaling vector with the normalization weights and then share the fused scaling vectors across all heads of the LLM layer as shown in Fig. \ref{fig7}(b).
 
 \begin{figure}[h!] \centering
-  \includegraphics[scale=1.0]{figs/flash_fig7.pdf}
+  \includegraphics[scale=0.9]{figs/flash_fig7.pdf}
   \caption{QK-normalization with RoPE: (a) unoptimized version; (b) optimized version.}
 \label{fig7} \end{figure}
 
 \section{Bottleneck of RMS normalization for batch 1}
-This section describes the compute bottleneck of RMS normalization that exists for batch size 1. This bottleneck is different from the bottleneck detailed in \citep{openelm}. Let’s consider a processor that has one vector unit and one matrix unit:
+This section describes the compute bottleneck of RMS normalization that exists for batch size 1. This bottleneck is different from the bottleneck detailed in \citep{openelm}. Let’s consider a processor with one vector unit and one matrix unit:
 
 \begin{itemize}[topsep=-1pt, itemsep=-1pt]
   \item The matrix multiplications of the linear layers are performed by the matrix unit, while the vector unit performs vector-wise operations such as RMSNorm and FlashNorm.
   \item Let’s assume that the vector unit can perform $m$ operations per cycle and the matrix unit can perform $m^2$ operations per cycle, where $m$ is the processor width. Specifically:
   \begin{itemize}[topsep=-1pt, itemsep=-1pt]
     \item Multiplying an $n$-element vector with an $n \times n$ matrix takes $n^2$ MAD (multiply-add) operations, which takes $n^2/m^2$ cycles with our matrix unit.
-    \item Calculating $1/\rms$ takes $n$ MAD operations (for squaring and adding) plus 3 scalar operations (for $1 / \sqrt{x/n}$), which takes $n/m$ cycles with our vector unit if we ignore the 3 scalar operations for simplicity.
+    \item Calculating $1/\rms$ takes $n$ MAD operations (for squaring and adding) plus 3 scalar operations (for $1 / \sqrt{x/n}$), which takes $n/m$ cycles with our vector unit if we ignore the 3 scalar operations.
     \item Scaling an $n$-element vector by a scaling factor takes $n$ multiply operations, which takes $n/m$ cycles.
   \end{itemize}
 \end{itemize}
@@ -147,12 +147,13 @@ For the example $n = 512, m = 128$ and batch 1, Fig. \ref{fig8} shows timing dia
 \end{itemize}
 
 \begin{figure}[h!] \centering
-  \includegraphics[scale=1.0]{figs/flash_fig8.pdf}
-  \caption{Timing diagrams for $n = 512, m = 128$: (a) without deferred normalization; (b) with interleaved normalization and vector-matrix multiplication; (c) with deferred normalization.}
+  \includegraphics[scale=0.9]{figs/flash_fig8.pdf}
+  \caption{Timing diagrams for $n = 512, m = 128$: (a) without deferred normalization; (b) with interleaved scaling and vector-matrix multiplication; (c) with deferred normalization.}
 \label{fig8} \end{figure}
 
 \section{Experiments}
 Refer to \cite{tricks} for Python code that demonstrates the mathematical equivalency of the optimizations presented in this paper.
+
 TODO: Modify OpenELM and/or Llama and show the speedup, add a TPS report (tokens-per-second).
 
 \section{Future work}
