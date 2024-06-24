@@ -10,8 +10,8 @@
 \newcommand{\RMS}[1]{\text{RMS}(#1)}  % shortcut for RMS(x)
 \def\rms{\text{RMS}(\vec{a})}         % RMS(a)
 \def\f1n{\frac{1}{n}}                 % 1/n
-\def\sas{\sum_{i=1}^n a_i^2}           % sum over a_i squared
-\def\W*{\mat{W}^\ast}                  % matrix W*
+\def\sas{\sum_{i=1}^n a_i^2}          % sum over a_i squared
+\def\W*{\mat{W}^\ast}                 % matrix W*
 \def\a{\vec{a}}                       % vector a
 \def\b{\vec{b}}                       % vector b
 \def\c{\vec{c}}                       % vector c
@@ -164,7 +164,7 @@ Future work should investigate which of the presented optimizations are applicab
 \section*{Appendix}
 
 \subsection*{RMS with epsilon}
-In many implementations, a small epsilon $\epsilon$ is added to the RMS value to limit the resulting scaling factor $1/\rms$ and to avoid division by 0 as follows:
+Many implementations add a small epsilon $\epsilon$ to the RMS value to limit the resulting scaling factor $1/\rms$ and to avoid division by 0 as follows:
 \begin{equation*}
  \text{RMSe}(\a) = \sqrt{\epsilon + \f1n \sas} = \sqrt{\epsilon + \left( \rms \right)^2}
 \end{equation*}
