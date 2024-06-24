@@ -1,4 +1,4 @@
-This repo contains code and the latex source code for the Transformer Tricks papers.
+This repo contains code and latex files for the Transformer Tricks papers.
 
 * **Precomputing the first layer:**
   * arXiv paper: https://arxiv.org/abs/2402.13388
