@@ -2,6 +2,8 @@ This repo contains code and latex files for the Transformer Tricks papers.
 
 * **Flash normalization [work in progress]:**
   * [PDF here](flashNorm.pdf)
+  * Notebook:
+<a href="https://colab.research.google.com/github/OpenMachine-ai/transformer-tricks/blob/main/flash_normalization.ipynb"> <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Colab" height="20"> </a>
 
 * **Approximate attention [work in progress]:**
   * [PDF here](approximate.pdf)
