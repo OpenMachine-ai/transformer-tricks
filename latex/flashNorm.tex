@@ -74,6 +74,7 @@ Fig. \ref{fig3}(a) shows an FFN with a GLU variant \citep{GLU} and flash normali
 \label{fig4} \end{figure}
 
 \section{Flash normalization for attention with RoPE}
+TODO: fix text and figures with RoPE: RoPE is not just scaling the channels with twiddle factors, but there is also an add operation after the scaling such as $y_1 = x_1 \cos(\alpha) - x_2 \sin(\alpha)$ and $y_2 = x_1 \sin(\alpha) + x_2 \cos(\alpha)$. So we would fuse the normalization scaling with these twiddle factors and then perform the multiply and add operations.
 \begin{figure}[h!] \centering
   \includegraphics[scale=0.9]{figs/flash_fig5.pdf}
   \caption{Flash normalization for scaled dot-product attention with RoPE: (a) unoptimized version; (b) optimized version where the normalization is fused with RoPE.}
@@ -158,6 +159,9 @@ TODO: Modify OpenELM and/or Llama and show the speedup, add a TPS report (tokens
 
 \section{Future work}
 Future work should investigate which of the presented optimizations are applicable for speeding up training of LLMs.
+
+\section*{Acknowledgements}
+We would like to thank Dmitry Belenko for helpful feedback on this work.
 
 \bibliographystyle{unsrtnat}
 \bibliography{references}
