@@ -16,22 +16,24 @@
 \def\b{\vec{b}}                       % vector b
 \def\c{\vec{c}}                       % vector c
 
-\title{Transformer tricks: Flash normalization [work in progress]}
+\title{Flash normalization: simplified RMSNorm for LLMs}
+%\title{Transformer tricks: Flash normalization [work in progress]}
 
-\author{Nils Graef, Matthew Clapp, TBD \\
+\author{Nils Graef, Matthew Clapp, Andrew Wasielewski \\
   \href{https://openmachine.ai}{OpenMachine}, San Francisco Bay Area, \texttt{info@openmachine.ai}}
 
 \begin{document} \maketitle
 
 \begin{abstract}
-RMSNorm \citep{rms} is used by many LLMs such as Llama, Mistral, and Gemma \citep{LLaMA, mistral, gemma}. As noted in \citep{openelm}, RMSNorm can be a bottleneck. Therefore, this paper details FlashNorm, which is an exact but faster implementation of RMSNorm followed by linear layers. See \citep{tricks, remove, precompute} for code and more transformer tricks.
+RMSNorm \citep{rms} is used by many LLMs such as Llama, Mistral, and OpenELM \citep{LLaMA, mistral, openelm}.
+This paper details FlashNorm, which is an exact but simpler implementation of RMSNorm followed by linear layers. See \citep{tricks, remove, precompute} for code and more transformer tricks.
 \end{abstract}
 
 \section{Flash normalization}
 RMSNorm \citep{rms} normalizes the elements  $a_i$ of vector $\a$ as $y_i = \frac{a_i}{\rms} \cdot g_i$ with $\rms = \sqrt{\f1n \sas}$ and normalization weights $g_i$. In transformer \citep{vanilla} and other neural networks, RMSNorm is often followed by a linear layers as illustrated in Fig. \ref{fig1}(a), which we optimize as follows:
 \begin{itemize}[topsep=-1pt, itemsep=-1pt]
   \item \textbf{Weightless normalization}: We merge the normalization weights $g_i$ into the linear layer with weights $\mat{W}$, resulting in a modified weight matrix $\W*$ with $W_{i,j}^\ast = g_i \cdot W_{i,j}$ as illustrated in Fig. \ref{fig1}(b). This works for linear layers with and without bias.
-  \item \textbf{Deferred normalization}: Instead of normalizing before the linear layer, we normalize after the linear layer, as shown in Fig. \ref{fig1}(c). This only works if the linear layer is bias-free, which is the case for many LLMs such as Llama, Mistral, and Gemma.
+  \item \textbf{Deferred normalization}: Instead of normalizing before the linear layer, we normalize after the linear layer, as shown in Fig. \ref{fig1}(c). This only works if the linear layer is bias-free, which is the case for many LLMs such as Llama, Mistral, and OpenELM.
 \end{itemize}
 
 \begin{figure}[h!] \centering  % the [h!] tries to place the picture right here
@@ -102,7 +104,7 @@ Unfortunately, FlashNorm can't be applied for QK-normalization. But for the type
 \end{enumerate}
 
 \subsection{Eliminate RMS calculation before QK linear layers}
-Fig. \ref{fig6}(a) shows a linear layer with flash normalization followed by QK-normalization. The weights of the first normalization are already merged into the linear layer weights $\W*$. Note that $\RMS{s \cdot \a} = s \cdot \rms$ where $s$ is scalar and $\a$ is a vector. Due to this scale-invariance of the RMS function, the second multiplier (scaler $s_c$) in the pipeline of Fig. \ref{fig6}(a) cancels out the first multiplier (scaler $s_b$). Fig. \ref{fig6}(b) takes advantage of this property. We can express this by using the vectors $\a, \b, \c$ along the datapath in Fig. \ref{fig6} as follows:
+Fig. \ref{fig6}(a) shows a linear layer with flash normalization followed by QK-normalization. The weights of the first normalization are already merged into the linear layer weights $\W*$. Note that $\RMS{s \cdot \a} = s \cdot \rms$ where $s$ is scalar and $\a$ is a vector. Due to this scale-invariance of the RMS function, the second multiplier (scaler $s_c$) in the pipeline of Fig. \ref{fig6}(a) cancels out the first multiplier (scaler $s_a$). Fig. \ref{fig6}(b) takes advantage of this property. We can express this by using the vectors $\a, \b, \c$ along the datapath in Fig. \ref{fig6} as follows:
 \begin{itemize}[topsep=-1pt, itemsep=-1pt]
   \item Note that $s_c = \frac{1}{\RMS{\c}} = \frac{1}{\RMS{\b \cdot s_a}} = \frac{1}{s_a \cdot \RMS{\b}} = \frac{s_b}{s_a}$.
   \item With above, we can show that the $y$ outputs of figures \ref{fig6}(a) and \ref{fig6}(b) are identical:
@@ -152,13 +154,15 @@ For the example $n = 512, m = 128$ and batch 1, Fig. \ref{fig8} shows timing dia
   \caption{Timing diagrams for $n = 512, m = 128$: (a) without deferred normalization; (b) with interleaved scaling and vector-matrix multiplication; (c) with deferred normalization.}
 \label{fig8} \end{figure}
 
-\section{Experiments}
-Refer to \cite{tricks} for Python code that demonstrates the mathematical equivalency of the optimizations presented in this paper.
+\section{Experiments and conclusions}
+Refer to \citep{tricks} for Python code that demonstrates the mathematical equivalency of the optimizations presented in this paper. The speedup of FlashNorm is modest: We measured a throughput of 204 tokens per second for OpenELM-270M with 4-bit weight quantization using the MLX framework on an M1 MacBook Air. This throughput increases to only 225 tokens per second when we remove RMSNorm entirely. Therefore, the maximum possible speedup of any RMSNorm optimization is $\leq$ 10\% for this model.
 
-TODO: Modify OpenELM and/or Llama and show the speedup, add a TPS report (tokens-per-second).
+For many applications, the main advantage of FlashNorm is simplification. This is similar to the simplifications we get from using RMSNorm over LayerNorm \citep{layerNorm}, and from Llama's removal of biases from all linear layers.
 
-\section{Future work}
-Future work should investigate which of the presented optimizations are applicable for speeding up training of LLMs.
+Future work should investigate which of the presented optimizations are applicable for training of LLMs.
+
+%\section{Future work}
+%Future work should investigate which of the presented optimizations are applicable for speeding up training of LLMs.
 
 \section*{Acknowledgements}
 We would like to thank Dmitry Belenko for helpful feedback on this work.
