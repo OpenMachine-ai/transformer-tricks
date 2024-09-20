@@ -1,0 +1,12 @@
+transformers==4.41.2
+datasets==2.19.2
+torch>=2.4.1
+tqdm>=4.64.1
+
+# other transformer versions to try
+# 4.44.2  -- TODO: fix the warnings
+# 4.42.4  -- TODO: fix the warnings
+# 4.41.2
+# 4.40.2
+# 4.39.3
+# 4.38.2
