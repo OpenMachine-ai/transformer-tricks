@@ -8,7 +8,7 @@
 #        python3 flashify.py HuggingFaceTB/SmolLM-135M --out foo
 
 from transformers import AutoTokenizer, AutoModelForCausalLM
-import transformerTricks as tt
+import transformer_tricks as tt
 import torch, argparse, os
 
 torch.set_grad_enabled(False)  # speed up PyTorch

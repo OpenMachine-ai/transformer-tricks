@@ -10,3 +10,8 @@ tqdm>=4.64.1
 # 4.40.2
 # 4.39.3
 # 4.38.2
+#
+# pip list  # see all versions
+#
+# Phi-3 needs flash-attn, but this requires CUDA
+# flash-attn==2.5.8

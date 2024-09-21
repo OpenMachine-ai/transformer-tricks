@@ -26,21 +26,30 @@ def flashify(model):
     # copy the model's state_dict
     param = model.state_dict()
 
+    # check if model uses fused projections as Phi-3
+    fused_proj = 'model.layers.0.self_attn.qkv_proj.weight' in param
+
     # perform flashNorm merging for all layers
     for layer in range(model.config.num_hidden_layers):
       prefix = 'model.layers.' + str(layer) + '.'
 
       # merge input-layernorm into QKV projections
       norm = prefix + 'input_layernorm.weight'
-      param = merge_norm_proj(param, norm, prefix + 'self_attn.q_proj.weight')
-      param = merge_norm_proj(param, norm, prefix + 'self_attn.k_proj.weight')
-      param = merge_norm_proj(param, norm, prefix + 'self_attn.v_proj.weight')
+      if fused_proj:
+        param = merge_norm_proj(param, norm, prefix + 'self_attn.qkv_proj.weight')
+      else:
+        param = merge_norm_proj(param, norm, prefix + 'self_attn.q_proj.weight')
+        param = merge_norm_proj(param, norm, prefix + 'self_attn.k_proj.weight')
+        param = merge_norm_proj(param, norm, prefix + 'self_attn.v_proj.weight')
       param = set_norm_one(param, norm)
 
       # merge post-attention layernorm into Gate and Up projections
       norm = prefix + 'post_attention_layernorm.weight'
-      param = merge_norm_proj(param, norm, prefix + 'mlp.gate_proj.weight')
-      param = merge_norm_proj(param, norm, prefix + 'mlp.up_proj.weight')
+      if fused_proj:
+        param = merge_norm_proj(param, norm, prefix + 'mlp.gate_up_proj.weight')
+      else:
+        param = merge_norm_proj(param, norm, prefix + 'mlp.gate_proj.weight')
+        param = merge_norm_proj(param, norm, prefix + 'mlp.up_proj.weight')
       param = set_norm_one(param, norm)
 
     # if the model has untied embeddings, then merge 'model.norm' into 'lm_head'
@@ -48,9 +57,9 @@ def flashify(model):
     # the code below doesn't work currently, see also
     # see also https://huggingface.co/HuggingFaceTB/SmolLM-135M/discussions/15
     #if 'lm_head.weight' in param:
-    #  param = merge_norm_proj(param, 'model.norm.weight', 'lm_head.weight')
-    #  param = set_norm_one(param, 'model.norm.weight')
-    #  #model.config.tie_word_embeddings = False  # set 'tied' to False
+    if model.config.tie_word_embeddings == False:
+      param = merge_norm_proj(param, 'model.norm.weight', 'lm_head.weight')
+      param = set_norm_one(param, 'model.norm.weight')
 
     # load the modified state_dict back into the model
     model.load_state_dict(param)
