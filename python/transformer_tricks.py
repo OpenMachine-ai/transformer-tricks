@@ -53,10 +53,7 @@ def flashify(model):
       param = set_norm_one(param, norm)
 
     # if the model has untied embeddings, then merge 'model.norm' into 'lm_head'
-    # TODO: test below code on a model with untied embeddings (such as llama)
-    # the code below doesn't work currently, see also
     # see also https://huggingface.co/HuggingFaceTB/SmolLM-135M/discussions/15
-    #if 'lm_head.weight' in param:
     if model.config.tie_word_embeddings == False:
       param = merge_norm_proj(param, 'model.norm.weight', 'lm_head.weight')
       param = set_norm_one(param, 'model.norm.weight')
