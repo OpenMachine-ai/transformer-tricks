@@ -7,7 +7,7 @@ This repo contains code and latex files for the Transformer Tricks papers.
   * [HuggingFace repo](https://huggingface.co/open-machine/FlashNorm)
 
 * **Approximate attention [work in progress]:**
-  * [PDF here](approximate.pdf)
+  * [PDF here](pdf/approximate.pdf)
 
 * **Removing weights for skipless transformers:**
   * arXiv paper: https://arxiv.org/abs/2404.12362
