@@ -19,8 +19,42 @@ Above will ask you for the hf_token, which is the same you use e.g. in colab
 ```
 python3 test_flashNorm.py
 ```
+Above should return the following:
+```
+Once upon a time there was a curious little girl
+Once upon a time there was a curious little girl
+Once upon a time there was a little girl named
+Once upon a time there was a little girl named
+ppl: tensor(16.0831)
+ppl: tensor(16.0831)
+ppl: tensor(12.0864)
+ppl: tensor(12.0864)
+```
 
 ### Use the transformer-tricks package
 ```python
 import transformer_tricks.tricks as tt
+```
+### Example
+Below example converts the model SmolLM-135M to FlashNorm and measures perplexity of the original and the modified model.
+```python
+import transformer_tricks.tricks as tt
+
+# convert model to flashNorm
+tt.flashify_repo('HuggingFaceTB/SmolLM-135M')
+
+# run example inference of original and modified model
+tt.hello_world('HuggingFaceTB/SmolLM-135M')
+tt.hello_world('SmolLM-135M_flashNorm')
+
+# measure perplexity of original and modified model
+tt.perplexity('HuggingFaceTB/SmolLM-135M', speedup=16)
+tt.perplexity('SmolLM-135M_flashNorm', speedup=16)
+```
+Above should return the following:
+```
+Once upon a time there was a curious little girl
+Once upon a time there was a curious little girl
+ppl: tensor(16.0831)
+ppl: tensor(16.0831)
 ```
