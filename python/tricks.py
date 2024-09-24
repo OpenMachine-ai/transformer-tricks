@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 
 #-------------------------------------------------------------------------------------
-# defs for flashNorm, see paper https://arxiv.org/abs/2407.09577
+# functions for flashNorm, see paper https://arxiv.org/abs/2407.09577
 #-------------------------------------------------------------------------------------
 def merge_norm_proj(param, norm, proj):
   """merge norm weights into projection weights"""
@@ -63,7 +63,7 @@ def flashify(model):
   return model
 
 #-------------------------------------------------------------------------------------
-# TODOs: add more defs
+# TODOs: add more functions
 #-------------------------------------------------------------------------------------
 # e.g. add a def to compare or diff two models / safetensors. See here:
 #   - https://gist.github.com/so298/b5fc4127f161dbd65429f5756d771d88

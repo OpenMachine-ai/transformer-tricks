@@ -23,3 +23,6 @@ prompt = 'Once upon a time there was'
 inp = tokenizer.encode(prompt, return_tensors='pt').to('cpu')
 out = model.generate(inp, pad_token_id=0, max_new_tokens=4).ravel()
 print(tokenizer.decode(out))
+
+# TODO: especially for Phi-3, set verbosity to quiet as follows
+#  transformers.logging.set_verbosity_error()
