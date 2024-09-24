@@ -82,7 +82,7 @@ def flashify_repo(repo, out_dir=None):
 #-------------------------------------------------------------------------------------
 # functions for testing
 #-------------------------------------------------------------------------------------
-def hello_world(repo):
+def hello_world(repo, max_new_tok=4):
   """run example inference of an LLM from HuggingFace repo or local directory"""
   tok = AutoTokenizer.from_pretrained(repo)
   model = AutoModelForCausalLM.from_pretrained(repo)
@@ -91,16 +91,16 @@ def hello_world(repo):
 
   prompt = 'Once upon a time there was'
   inp = tok.encode(prompt, return_tensors='pt').to('cpu')
-  out = model.generate(inp, pad_token_id=0, max_new_tokens=4).ravel()
+  out = model.generate(inp, pad_token_id=0, max_new_tokens=max_new_tok).ravel()
   print(tok.decode(out))
   # TODO: especially for Phi-3, set verbosity to quiet as follows
   #  transformers.logging.set_verbosity_error()
 
-def perplexity(repo, speedup=1, no_bars=False):
+def perplexity(repo, speedup=1, bars=False):
   """calculate perplexity of an LLM with wikitext2
   this def is copied from https://huggingface.co/docs/transformers/perplexity
   I made the following changes to adapt it for SmolLM (was GPT2 before):
-    - changed 'model' and 'tokenizer'
+    - changed model and tokenizer
     - changed 'from transformers import' to point to 'Auto*' (was 'GTP2*' before)
     - changed 'max_length' to 'config.max_position_embeddings'
     - changed 'device' from 'cuda' to 'cpu'
@@ -125,7 +125,7 @@ def perplexity(repo, speedup=1, no_bars=False):
 
   nlls = []
   prev_end_loc = 0
-  for begin_loc in tqdm(range(0, seq_len, stride), disable=no_bars):
+  for begin_loc in tqdm(range(0, seq_len, stride), disable=not bars):
     end_loc = min(begin_loc + max_length, seq_len)
     trg_len = end_loc - prev_end_loc  # may be different from stride on last loop
     input_ids = encodings.input_ids[:, begin_loc:end_loc].to('cpu')

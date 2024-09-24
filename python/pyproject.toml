@@ -10,7 +10,7 @@ build-backend = "hatchling.build"
 [project]
 name = "transformer-tricks"
 # version numbering A.B.C: A is major version, B is minor version, and C is patch
-version = "0.1.2"
+version = "0.1.3"
 authors = [
   {name="Open Machine", email="info@openmachine.ai"},
 ]
