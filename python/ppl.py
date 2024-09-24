@@ -19,10 +19,10 @@
 #   3) run with a seepdup of e.g. 4x
 #        python3 ppl.py HuggingFaceTB/SmolLM-135M --speedup 4
 
-from transformers import AutoTokenizer, AutoModelForCausalLM
-from datasets import load_dataset
-from tqdm import tqdm
-import torch, sys, argparse
+import argparse
+import transformer_tricks.tricks as tt
+# to use ./tricks.py instead, uncomment the line below
+# import tricks as tt
 
 # define arguments
 parser = argparse.ArgumentParser(description='calculate perplexity (PPL)')
@@ -35,39 +35,4 @@ repo = parser.parse_args().repo
 speedup = parser.parse_args().speedup
 no_bars = parser.parse_args().no_bars
 
-torch.set_grad_enabled(False)  # speed up torch
-
-tokenizer = AutoTokenizer.from_pretrained(repo)
-model = AutoModelForCausalLM.from_pretrained(repo)
-
-# tokenize wikitext2
-test = load_dataset('wikitext', 'wikitext-2-raw-v1', split='test')
-encodings = tokenizer('\n\n'.join(test['text']), return_tensors='pt')
-
-max_length = model.config.max_position_embeddings
-stride = max_length  # before it was 512 or max_length // 2
-seq_len = encodings.input_ids.size(1) // speedup
-
-nlls = []
-prev_end_loc = 0
-for begin_loc in tqdm(range(0, seq_len, stride), disable=no_bars):
-  end_loc = min(begin_loc + max_length, seq_len)
-  trg_len = end_loc - prev_end_loc  # may be different from stride on last loop
-  input_ids = encodings.input_ids[:, begin_loc:end_loc].to('cpu')
-  target_ids = input_ids.clone()
-  target_ids[:, :-trg_len] = -100
-  outputs = model(input_ids, labels=target_ids)
-
-  # loss is calculated using CrossEntropyLoss which averages over valid labels
-  # N.B. the model only calculates loss over trg_len - 1 labels, because it
-  # internally shifts the labels to the left by 1.
-  neg_log_likelihood = outputs.loss
-  nlls.append(neg_log_likelihood)
-
-  prev_end_loc = end_loc
-  if end_loc == seq_len:
-    break
-
-ppl = torch.exp(torch.stack(nlls).mean())
-print('ppl:', ppl)
-#print('nlls:', nlls)
+tt.perplexity(repo, speedup, no_bars)

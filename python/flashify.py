@@ -7,13 +7,11 @@
 #   2) same as (1) but name the local dir 'foo'
 #        python3 flashify.py HuggingFaceTB/SmolLM-135M --out foo
 
-from transformers import AutoTokenizer, AutoModelForCausalLM
-import torch, argparse, os
+import argparse, os
+
 import transformer_tricks.tricks as tt
 # to use ./tricks.py instead, uncomment the line below
 # import tricks as tt
-
-torch.set_grad_enabled(False)  # speed up PyTorch
 
 # define arguments
 parser = argparse.ArgumentParser(description='convert LLM to use flashNorm')
@@ -26,11 +24,5 @@ out_dir = parser.parse_args().out
 if out_dir == None:  # append '_flashNorm' if no output dir is defined
   out_dir = os.path.basename(repo) + '_flashNorm'
 
-# load model and flashify it
-tokenizer = AutoTokenizer.from_pretrained(repo)
-model = AutoModelForCausalLM.from_pretrained(repo)
-model = tt.flashify(model)
-
-# save model and tokenizer in local directory 'out_dir'
-tokenizer.save_pretrained(out_dir, from_pt=True)
-model.save_pretrained(out_dir, from_pt=True)
+# flashify repo
+tt.flashify_repo(repo, out_dir)
