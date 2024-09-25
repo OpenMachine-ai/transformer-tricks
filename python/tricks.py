@@ -68,18 +68,19 @@ def flashify_model(model):
 
 def flashify_repo(repo, out_dir=None):
   """convert LLM repo to flashNorm, store the new model in out_dir"""
+  with torch.no_grad():  # prevent autograd from tracking changes
 
-  # load model and flashify it
-  tok = AutoTokenizer.from_pretrained(repo)
-  model = AutoModelForCausalLM.from_pretrained(repo)
-  flashify_model(model)
-  # print('DEBUG, should be all 1:', model.model.layers[0].input_layernorm.weight)
+    # flashify model
+    model = AutoModelForCausalLM.from_pretrained(repo, low_cpu_mem_usage=True)
+    flashify_model(model)
+    # print('DEBUG, should be all 1', model.model.layers[0].input_layernorm.weight)
 
-  # save model and tokenizer in local directory 'out_dir'
-  if out_dir == None:  # append '_flashNorm' if no output dir is defined
-    out_dir = os.path.basename(repo) + '_flashNorm'
-  tok.save_pretrained(out_dir, from_pt=True)
-  model.save_pretrained(out_dir, from_pt=True)
+    # save model and tokenizer in local directory 'out_dir'
+    if out_dir == None:  # append '_flashNorm' if no output dir is defined
+      out_dir = os.path.basename(repo) + '_flashNorm'
+    model.save_pretrained(out_dir, from_pt=True)
+    tok = AutoTokenizer.from_pretrained(repo)
+    tok.save_pretrained(out_dir, from_pt=True)
 
 
 #-------------------------------------------------------------------------------------
@@ -88,7 +89,7 @@ def flashify_repo(repo, out_dir=None):
 def hello_world(repo, max_new_tok=4):
   """run example inference of an LLM from HuggingFace repo or local directory"""
   tok = AutoTokenizer.from_pretrained(repo)
-  model = AutoModelForCausalLM.from_pretrained(repo)
+  model = AutoModelForCausalLM.from_pretrained(repo, low_cpu_mem_usage=True)
   # to use FP16 or bfloaf: torch_dtype=torch.float16, torch_dtype=torch.bfloat
   # note: FP16 is 30x slower than FP32 on my Mac M1, not sure why
 
@@ -117,7 +118,7 @@ def perplexity(repo, speedup=1, bars=False):
   # TODO: consider using instead "with torch.no_grad():"
 
   tok = AutoTokenizer.from_pretrained(repo)
-  model = AutoModelForCausalLM.from_pretrained(repo)
+  model = AutoModelForCausalLM.from_pretrained(repo, low_cpu_mem_usage=True)
 
   # tokenize wikitext2
   test = load_dataset('wikitext', 'wikitext-2-raw-v1', split='test')
