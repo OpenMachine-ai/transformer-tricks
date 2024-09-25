@@ -10,7 +10,7 @@ import transformer_tricks.tricks as tt
 # import tricks as tt
 
 # disable tokenizer parallelism
-os.environ["TOKENIZERS_PARALLELISM"] = "false"
+os.environ['TOKENIZERS_PARALLELISM'] = 'false'
 
 # convert models to flashNorm
 tt.flashify_repo('HuggingFaceTB/SmolLM-135M')
