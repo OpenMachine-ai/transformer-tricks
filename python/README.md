@@ -4,7 +4,7 @@ To use the latest transformer-tricks python package:
 pip3 install transformer-tricks
 ```
 
-If you want to use the latest version of `tricks.py`, do this:
+If you want to run from this repo, do this:
 ```
 pip3 install --quiet -r requirements.txt
 ```
