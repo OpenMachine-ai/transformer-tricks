@@ -5,7 +5,7 @@
 #   python3 test_flashNorm.py
 
 import os
-import transformer_tricks.tricks as tt
+import transformer_tricks as tt
 # to use ./tricks.py instead, uncomment the line below
 # import tricks as tt
 

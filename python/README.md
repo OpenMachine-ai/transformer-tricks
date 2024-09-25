@@ -33,12 +33,12 @@ ppl: tensor(12.0864)
 
 ## Use the transformer-tricks package
 ```python
-import transformer_tricks.tricks as tt
+import transformer_tricks as tt
 ```
 ## Example
 Below example converts the model SmolLM-135M to FlashNorm and measures perplexity of the original and the modified model.
 ```python
-import transformer_tricks.tricks as tt
+import transformer_tricks as tt
 
 # convert model to flashNorm
 tt.flashify_repo('HuggingFaceTB/SmolLM-135M')
