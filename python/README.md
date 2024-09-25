@@ -1,4 +1,4 @@
-### Setup
+## Setup
 To use the latest transformer-tricks python package:
 ```
 pip3 install transformer-tricks
@@ -15,7 +15,7 @@ huggingface-cli login
 ```
 Above will ask you for the hf_token, which is the same you use e.g. in colab
 
-### Test FlashNorm
+## Test FlashNorm
 ```
 python3 test_flashNorm.py
 ```
@@ -31,11 +31,11 @@ ppl: tensor(12.0864)
 ppl: tensor(12.0864)
 ```
 
-### Use the transformer-tricks package
+## Use the transformer-tricks package
 ```python
 import transformer_tricks.tricks as tt
 ```
-### Example
+## Example
 Below example converts the model SmolLM-135M to FlashNorm and measures perplexity of the original and the modified model.
 ```python
 import transformer_tricks.tricks as tt
@@ -58,3 +58,7 @@ Once upon a time there was a curious little girl
 ppl: tensor(16.0831)
 ppl: tensor(16.0831)
 ```
+
+## Notes on python package
+- Link to package [here](https://pypi.org/project/transformer-tricks/)
+- Link to stats [here](https://www.pepy.tech/projects/transformer-tricks)

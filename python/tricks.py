@@ -6,21 +6,22 @@ from tqdm import tqdm
 import torch, os
 import torch.nn as nn
 
+
 #-------------------------------------------------------------------------------------
 # functions for flashNorm, see paper https://arxiv.org/abs/2407.09577
 #-------------------------------------------------------------------------------------
 def merge_norm_proj(param, norm, proj):
   """merge norm weights into projection weights"""
   param[proj] = nn.Parameter(param[proj] @ torch.diag(param[norm]))  # flipped order
-  return param
   # TODO: consider first converting to float64, then merge norm into projections,
   # and then convert back to float32. Example: torch.ones(4, dtype=torch.float32)
+
 
 def set_norm_one(param, norm):
   """set all norm weights to 1.0"""
   len = list(param[norm].shape)[0]
   param[norm] = nn.Parameter(torch.ones(len))
-  return param
+
 
 def flashify_model(model):
   """merge norm weights into projection weights as per flashNorm"""
@@ -39,31 +40,31 @@ def flashify_model(model):
       # merge input-layernorm into QKV projections
       norm = prefix + 'input_layernorm.weight'
       if fused_proj:
-        param = merge_norm_proj(param, norm, prefix + 'self_attn.qkv_proj.weight')
+        merge_norm_proj(param, norm, prefix + 'self_attn.qkv_proj.weight')
       else:
-        param = merge_norm_proj(param, norm, prefix + 'self_attn.q_proj.weight')
-        param = merge_norm_proj(param, norm, prefix + 'self_attn.k_proj.weight')
-        param = merge_norm_proj(param, norm, prefix + 'self_attn.v_proj.weight')
-      param = set_norm_one(param, norm)
+        merge_norm_proj(param, norm, prefix + 'self_attn.q_proj.weight')
+        merge_norm_proj(param, norm, prefix + 'self_attn.k_proj.weight')
+        merge_norm_proj(param, norm, prefix + 'self_attn.v_proj.weight')
+      set_norm_one(param, norm)
 
       # merge post-attention layernorm into Gate and Up projections
       norm = prefix + 'post_attention_layernorm.weight'
       if fused_proj:
-        param = merge_norm_proj(param, norm, prefix + 'mlp.gate_up_proj.weight')
+        merge_norm_proj(param, norm, prefix + 'mlp.gate_up_proj.weight')
       else:
-        param = merge_norm_proj(param, norm, prefix + 'mlp.gate_proj.weight')
-        param = merge_norm_proj(param, norm, prefix + 'mlp.up_proj.weight')
-      param = set_norm_one(param, norm)
+        merge_norm_proj(param, norm, prefix + 'mlp.gate_proj.weight')
+        merge_norm_proj(param, norm, prefix + 'mlp.up_proj.weight')
+      set_norm_one(param, norm)
 
     # if the model has untied embeddings, then merge 'model.norm' into 'lm_head'
     # see also https://huggingface.co/HuggingFaceTB/SmolLM-135M/discussions/15
     if model.config.tie_word_embeddings == False:
-      param = merge_norm_proj(param, 'model.norm.weight', 'lm_head.weight')
-      param = set_norm_one(param, 'model.norm.weight')
+      merge_norm_proj(param, 'model.norm.weight', 'lm_head.weight')
+      set_norm_one(param, 'model.norm.weight')
 
     # load the modified state_dict back into the model
     model.load_state_dict(param)
-  return model
+
 
 def flashify_repo(repo, out_dir=None):
   """convert LLM repo to flashNorm, store the new model in out_dir"""
@@ -71,13 +72,15 @@ def flashify_repo(repo, out_dir=None):
   # load model and flashify it
   tok = AutoTokenizer.from_pretrained(repo)
   model = AutoModelForCausalLM.from_pretrained(repo)
-  model = flashify_model(model)
+  flashify_model(model)
+  # print('DEBUG, should be all 1:', model.model.layers[0].input_layernorm.weight)
 
   # save model and tokenizer in local directory 'out_dir'
   if out_dir == None:  # append '_flashNorm' if no output dir is defined
     out_dir = os.path.basename(repo) + '_flashNorm'
   tok.save_pretrained(out_dir, from_pt=True)
   model.save_pretrained(out_dir, from_pt=True)
+
 
 #-------------------------------------------------------------------------------------
 # functions for testing
@@ -96,6 +99,7 @@ def hello_world(repo, max_new_tok=4):
   # TODO: especially for Phi-3, set verbosity to quiet as follows
   #  transformers.logging.set_verbosity_error()
 
+
 def perplexity(repo, speedup=1, bars=False):
   """calculate perplexity of an LLM with wikitext2
   this def is copied from https://huggingface.co/docs/transformers/perplexity
@@ -110,7 +114,7 @@ def perplexity(repo, speedup=1, bars=False):
   https://huggingface.co/spaces/evaluate-metric/perplexity"""
 
   torch.set_grad_enabled(False)  # speed up torch
-  # TODO: consider to use instead "with torch.no_grad():"
+  # TODO: consider using instead "with torch.no_grad():"
 
   tok = AutoTokenizer.from_pretrained(repo)
   model = AutoModelForCausalLM.from_pretrained(repo)
@@ -146,6 +150,7 @@ def perplexity(repo, speedup=1, bars=False):
   ppl = torch.exp(torch.stack(nlls).mean())
   print('ppl:', ppl)
   #print('nlls:', nlls)
+
 
 #-------------------------------------------------------------------------------------
 # TODOs: add more functions
