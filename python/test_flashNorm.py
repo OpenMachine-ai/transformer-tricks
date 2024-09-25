@@ -6,8 +6,6 @@
 
 import os
 import transformer_tricks as tt
-# to use ./tricks.py instead, uncomment the line below
-# import tricks as tt
 
 # disable tokenizer parallelism
 os.environ['TOKENIZERS_PARALLELISM'] = 'false'

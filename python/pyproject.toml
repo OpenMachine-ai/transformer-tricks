@@ -10,7 +10,7 @@ build-backend = "hatchling.build"
 [project]
 name = "transformer-tricks"
 # version numbering A.B.C: A is major version, B is minor version, and C is patch
-version = "0.1.12"
+version = "0.1.13"
 authors = [
   {name="Open Machine", email="info@openmachine.ai"},
 ]
@@ -25,9 +25,9 @@ classifiers = [
 dependencies = [
   "transformers==4.41.2",
   "datasets==2.19.2",
-  'accelerate>=0.9.0",
+  "accelerate>=0.9.0",
   "torch>=2.4.1",
-  "tqdm>=4.64.1"
+  "tqdm>=4.64.1",
 ]
 
 [project.urls]
