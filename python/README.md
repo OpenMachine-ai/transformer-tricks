@@ -1,46 +1,21 @@
 ## Setup
-To use the latest transformer-tricks python package:
 ```
 pip3 install transformer-tricks
 ```
-
-If you want to run from this repo, do this:
-```
-pip3 install --quiet -r requirements.txt
-```
-
-To run llama and other LLMs that need an agreement (not SmolLM), you first have to type the following:
+To run llama and other LLMs that need an agreement (not SmolLM), you first have to type the following, which will ask for your `hf_token`:
 ```
 huggingface-cli login
 ```
-Above will ask you for the hf_token, which is the same you use e.g. in colab
-
-## Test FlashNorm
+If you want to run from this repo, do this:
 ```
-python3 test_flashNorm.py
-```
-Above should return the following:
-```
-Once upon a time there was a curious little girl
-Once upon a time there was a curious little girl
-Once upon a time there was a little girl named
-Once upon a time there was a little girl named
-ppl: tensor(16.0831)
-ppl: tensor(16.0831)
-ppl: tensor(12.0864)
-ppl: tensor(12.0864)
-```
-
-## Use the transformer-tricks package
-```python
-import transformer_tricks as tt
+pip3 install --quiet -r requirements.txt
 ```
 ## Example
 Below example converts the model SmolLM-135M to FlashNorm and measures perplexity of the original and the modified model.
 ```python
 import transformer_tricks as tt
 
-# convert model to flashNorm
+# convert model and store the new model in ./SmolLM-135M_flashNorm
 tt.flashify_repo('HuggingFaceTB/SmolLM-135M')
 
 # run example inference of original and modified model
@@ -57,6 +32,22 @@ Once upon a time there was a curious little girl
 Once upon a time there was a curious little girl
 ppl: tensor(16.0831)
 ppl: tensor(16.0831)
+```
+
+## Test FlashNorm
+```
+python3 test_flashNorm.py
+```
+Above should return the following:
+```
+Once upon a time there was a curious little girl
+Once upon a time there was a curious little girl
+Once upon a time there was a little girl named
+Once upon a time there was a little girl named
+ppl: tensor(16.0831)
+ppl: tensor(16.0831)
+ppl: tensor(12.0864)
+ppl: tensor(12.0864)
 ```
 
 ## Notes on python package
