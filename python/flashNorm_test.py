@@ -8,7 +8,8 @@ import os
 import transformer_tricks as tt
 
 # disable tokenizer parallelism
-os.environ['TOKENIZERS_PARALLELISM'] = 'false'
+# os.environ['TOKENIZERS_PARALLELISM'] = 'false'
+# TODO: above line is only needed for Phi3?
 
 # convert models to flashNorm
 tt.flashify_repo('HuggingFaceTB/SmolLM-135M')

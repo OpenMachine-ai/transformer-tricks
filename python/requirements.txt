@@ -4,6 +4,7 @@ transformer-tricks>=0.1.13
 accelerate>=0.9.0
 torch>=2.4.1
 tqdm>=4.64.1
+jupytext>=1.16.4
 
 # other transformer versions to try
 # 4.44.2  -- TODO: fix the warnings

@@ -6,12 +6,9 @@ To run llama and other LLMs that need an agreement (not SmolLM), you first have 
 ```
 huggingface-cli login
 ```
-If you want to run from this repo, do this:
-```
-pip3 install --quiet -r requirements.txt
-```
+
 ## Example
-Below example converts the model SmolLM-135M to FlashNorm and measures perplexity of the original and the modified model.
+The example below converts SmolLM-135M to FlashNorm and measures perplexity of the original and the modified model.
 ```python
 import transformer_tricks as tt
 
@@ -26,7 +23,7 @@ tt.hello_world('SmolLM-135M_flashNorm')
 tt.perplexity('HuggingFaceTB/SmolLM-135M', speedup=16)
 tt.perplexity('SmolLM-135M_flashNorm', speedup=16)
 ```
-Above should return the following:
+Results:
 ```
 Once upon a time there was a curious little girl
 Once upon a time there was a curious little girl
@@ -36,9 +33,15 @@ ppl: tensor(16.0831)
 
 ## Test FlashNorm
 ```
-python3 test_flashNorm.py
+# setup
+git clone https://github.com/OpenMachine-ai/transformer-tricks.git
+cd python
+pip3 install --quiet -r requirements.txt
+
+# run tests
+python3 flashNorm_test.py
 ```
-Above should return the following:
+Results:
 ```
 Once upon a time there was a curious little girl
 Once upon a time there was a curious little girl
