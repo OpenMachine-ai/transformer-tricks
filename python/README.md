@@ -1,3 +1,5 @@
+<a href="https://colab.research.google.com/github/OpenMachine-ai/transformer-tricks/blob/main/notebooks/flashNorm_example.ipynb"> <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Colab" height="20"> </a>
+
 ## Setup
 ```
 pip3 install transformer-tricks
@@ -30,6 +32,8 @@ Once upon a time there was a curious little girl
 ppl: tensor(16.0831)
 ppl: tensor(16.0831)
 ```
+
+You can run also run this example in your browser by clicking on this notebook: <a href="https://colab.research.google.com/github/OpenMachine-ai/transformer-tricks/blob/main/notebooks/flashNorm_example.ipynb"> <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Colab" height="20"> </a>
 
 ## Test FlashNorm
 ```
