@@ -1,3 +1,7 @@
+[![Downloads](https://static.pepy.tech/badge/transformer-tricks)](https://pepy.tech/project/transformer-tricks)
+```
+pip3 install transformer-tricks
+```
 This repo contains code (Python and LaTeX) for the Transformer Tricks papers.
 
 * **Flash normalization:**
