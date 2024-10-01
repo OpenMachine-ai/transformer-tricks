@@ -18,7 +18,7 @@ tt.hello_world('SmolLM-135M_flashNorm')
 tt.perplexity('HuggingFaceTB/SmolLM-135M', speedup=16)
 tt.perplexity('SmolLM-135M_flashNorm', speedup=16)
 
-# %%
+# %% [markdown]
 # Whenever you change this script, make sure to regenerate the
 # jupyter notebook as follows:
 #   pip install jupytext
