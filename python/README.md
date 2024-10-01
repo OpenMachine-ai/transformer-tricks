@@ -1,3 +1,5 @@
+<a href="https://colab.research.google.com/github/OpenMachine-ai/transformer-tricks/blob/main/notebooks/flashNorm_example.ipynb"> <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Colab" height="20"> </a> [![Downloads](https://static.pepy.tech/badge/transformer-tricks)](https://pepy.tech/project/transformer-tricks)
+
 ## Setup
 ```
 pip3 install transformer-tricks
@@ -31,6 +33,8 @@ ppl: tensor(16.0831)
 ppl: tensor(16.0831)
 ```
 
+You can run also run this example in your browser by clicking on this notebook: <a href="https://colab.research.google.com/github/OpenMachine-ai/transformer-tricks/blob/main/notebooks/flashNorm_example.ipynb"> <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Colab" height="20"> </a>
+
 ## Test FlashNorm
 ```
 # setup
@@ -56,3 +60,4 @@ ppl: tensor(12.0864)
 ## Notes on python package
 - Link to package [here](https://pypi.org/project/transformer-tricks/)
 - Link to stats [here](https://www.pepy.tech/projects/transformer-tricks)
+- Source of this README file [here](https://github.com/OpenMachine-ai/transformer-tricks/blob/main/python/README.md) 
