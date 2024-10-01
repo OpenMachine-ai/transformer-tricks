@@ -3,16 +3,6 @@
 #
 # Usage:
 #   python3 flashNorm_example.py
-#
-# Whenever you change this script, make sure to regenerate the
-# jupyter notebook as follows:
-#   pip install jupytext
-#   jupytext --to ipynb flashNorm_example.py -o ../notebooks/flashNorm_example.ipynb
-#   sed -i -e 's/import \
-#     transformer_tricks/%pip install transformer_tricks\\nimport transformer_tricks/g' \
-#     ../notebooks/flashNorm_example.ipynb
-#   The sed command adds %pip install transformer-tricks
-# '# %%' in the code below marks the beginning of a new cell in the notebook
 
 import transformer_tricks as tt
 
@@ -27,3 +17,15 @@ tt.hello_world('SmolLM-135M_flashNorm')
 # measure perplexity of original and modified model
 tt.perplexity('HuggingFaceTB/SmolLM-135M', speedup=16)
 tt.perplexity('SmolLM-135M_flashNorm', speedup=16)
+
+# %%
+# Whenever you change this script, make sure to regenerate the
+# jupyter notebook as follows:
+#   pip install jupytext
+# \nimport transformer_tricks
+# \n%pip install transformer-tricks
+#   jupytext --to ipynb flashNorm_example.py -o ../notebooks/flashNorm_example.ipynb
+#   sed -i -e 's/import \
+#     transformer_tricks/%pip install transformer_tricks\\n", "import transformer_tricks/g' \
+#     ../notebooks/flashNorm_example.ipynb
+#   The sed command adds %pip install transformer-tricks
