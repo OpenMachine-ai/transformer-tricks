@@ -4,10 +4,10 @@
 # Usage:
 #   python3 test_flashNorm.py
 
-import os
 import transformer_tricks as tt
 
 # disable tokenizer parallelism
+# import os
 # os.environ['TOKENIZERS_PARALLELISM'] = 'false'
 # TODO: above line is only needed for Phi3?
 

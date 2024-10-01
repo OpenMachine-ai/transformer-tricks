@@ -7,13 +7,16 @@
 # Whenever you change this script, make sure to regenerate the
 # jupyter notebook as follows:
 #   pip install jupytext
-#   jupytext --to notebook flashNorm_example.py -o ../notebooks/flashNorm_example.ipynb
+#   jupytext --to ipynb flashNorm_example.py -o ../notebooks/flashNorm_example.ipynb
+#   sed -i -e 's/import \
+#     transformer_tricks/%pip install transformer_tricks\\nimport transformer_tricks/g' \
+#     ../notebooks/flashNorm_example.ipynb
+#   The sed command adds %pip install transformer-tricks
 # '# %%' in the code below marks the beginning of a new cell in the notebook
 
-import os
 import transformer_tricks as tt
-# %%
 
+# %%
 # convert model and store the new model in ./SmolLM-135M_flashNorm
 tt.flashify_repo('HuggingFaceTB/SmolLM-135M')
 
