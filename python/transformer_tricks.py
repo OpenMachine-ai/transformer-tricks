@@ -108,7 +108,7 @@ def hello_world(repo, max_new_tok=4):
     start_time = time.perf_counter()
     inp = tok.encode(prompt, return_tensors="pt").to("cpu")
     out = model.generate(inp, pad_token_id=0, max_new_tokens=max_new_tok).ravel()
-    print(f"text: {tok.decode(out)}  time(s): {time.perf_counter()-start_time:.3f}")
+    print(f"text: {tok.decode(out)}  time (s): {time.perf_counter()-start_time:.3f}")
     del tok, model
     gc.collect()  # run garbage collection
     # TODO: especially for Phi-3, set verbosity to quiet as follows
@@ -168,7 +168,7 @@ def perplexity(repo, speedup=1, bars=False):
             break
 
     ppl = torch.exp(torch.stack(nlls).mean())
-    print(f"ppl: {ppl}  time(s): {time.perf_counter()-start_time:.3f}")
+    print(f"ppl: {ppl}  time (s): {time.perf_counter()-start_time:.3f}")
     # print('nlls:', nlls)
     del model
     gc.collect()  # run garbage collection
