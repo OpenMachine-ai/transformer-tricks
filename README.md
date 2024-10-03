@@ -23,4 +23,4 @@ This repo contains code (Python and LaTeX) for the Transformer Tricks papers.
 * **Precomputing the first layer:**
   * arXiv paper: https://arxiv.org/abs/2402.13388
 
-**Please <a class="github-button" href="https://github.com/buttons/github-buttons" data-color-scheme="no-preference: light; light: light; dark: dark;" data-icon="octicon-star" data-size="large" aria-label="Star buttons/github-buttons on GitHub">click here</a> to give us a ⭐ -- thanks!**
+**Please <a class="github-button" href="https://github.com/OpenMachine-ai/transformer-tricks" data-color-scheme="no-preference: light; light: light; dark: dark;" data-icon="octicon-star" data-size="large" aria-label="Star OpenMachine-ai/transformer-tricks on GitHub">click here</a> to give us a ⭐ -- thanks!**
