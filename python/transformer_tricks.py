@@ -10,9 +10,9 @@ from tqdm import tqdm
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 
-# -------------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------------
 # functions for flashNorm, see paper https://arxiv.org/abs/2407.09577
-# -------------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------------
 def merge_norm_proj(param, norm, proj):
   """merge norm weights into projection weights"""
   param[proj] = nn.Parameter(param[proj] @ torch.diag(param[norm]))  # flipped order
@@ -92,9 +92,9 @@ def flashify_repo(repo, out_dir=None):
       gc.collect()  # run garbage collection
 
 
-# -------------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------------
 # functions for testing
-# -------------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------------
 def hello_world(repo, max_new_tok=4):
   """run example inference of an LLM from HuggingFace repo or local directory"""
   tok = AutoTokenizer.from_pretrained(repo)
@@ -174,9 +174,9 @@ def perplexity(repo, speedup=1, bars=False):
     gc.collect()  # run garbage collection
 
 
-# -------------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------------
 # TODOs: add more functions
-# -------------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------------
 # e.g. add a def to compare or diff two models / safetensors. See here:
 #   - https://gist.github.com/so298/b5fc4127f161dbd65429f5756d771d88
 #   - https://gist.github.com/madebyollin/034afe6670fc03966d075912cbccf797
