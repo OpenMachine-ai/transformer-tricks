@@ -33,3 +33,7 @@ dependencies = [
 [project.urls]
 "Homepage" = "https://github.com/OpenMachine-ai/transformer-tricks"
 "Bug Tracker" = "https://github.com/OpenMachine-ai/transformer-tricks/issues"
+
+[tool.autopep8]
+indent-size = 2
+ignore = "E265, E401"
