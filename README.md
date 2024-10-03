@@ -22,3 +22,5 @@ This repo contains code (Python and LaTeX) for the Transformer Tricks papers.
 
 * **Precomputing the first layer:**
   * arXiv paper: https://arxiv.org/abs/2402.13388
+
+**Please give us a ⭐ if you like this project, thanks!**
