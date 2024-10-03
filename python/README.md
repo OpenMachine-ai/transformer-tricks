@@ -61,3 +61,5 @@ ppl: tensor(12.0864)
 - Link to package [here](https://pypi.org/project/transformer-tricks/)
 - Link to stats [here](https://www.pepy.tech/projects/transformer-tricks)
 - Source of this README file [here](https://github.com/OpenMachine-ai/transformer-tricks/blob/main/python/README.md) 
+
+## Please give us a ⭐ if you like this project, thanks!
