@@ -38,3 +38,4 @@ dependencies = [
 indent-size = 2
 ignore = "E265, E401"
 in-place = true
+max-line-length = 88
