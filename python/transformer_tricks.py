@@ -78,14 +78,12 @@ def flashify_repo(repo, out_dir=None):
     if out_dir == None:  # append '_flashNorm' if no output dir is defined
       out_dir = os.path.basename(repo) + '_flashNorm'
     model.save_pretrained(out_dir, from_pt=True)
-    del model
-    gc.collect()  # run garbage collection
+    del model; gc.collect()  # run garbage collection
 
     # ditto with tokenizer
     tok = AutoTokenizer.from_pretrained(repo)
     tok.save_pretrained(out_dir, from_pt=True)
-    del tok
-    gc.collect()  # run garbage collection
+    del tok; gc.collect()  # run garbage collection
 
 
 #-------------------------------------------------------------------------------------
@@ -98,15 +96,12 @@ def hello_world(repo, max_new_tok=4):
   # to use FP16 or bfloaf: torch_dtype=torch.float16, torch_dtype=torch.bfloat
   # note: FP16 is 30x slower than FP32 on my Mac M1, not sure why
 
-  print(f"\nhello_world('{repo}', max_new_tok={max_new_tok})")
-
   prompt = 'Once upon a time there was'
   start_time = time.perf_counter()
   inp = tok.encode(prompt, return_tensors='pt').to('cpu')
   out = model.generate(inp, pad_token_id=0, max_new_tokens=max_new_tok).ravel()
-  print(f"text: {tok.decode(out)}  time (s): {time.perf_counter() - start_time:.3f}")
-  del tok, model
-  gc.collect()  # run garbage collection
+  print(f'{tok.decode(out)}  time (s): {time.perf_counter() - start_time:.3f}')
+  del tok, model; gc.collect()  # run garbage collection
   # TODO: especially for Phi-3, set verbosity to quiet as follows
   #  transformers.logging.set_verbosity_error()
 
@@ -130,13 +125,10 @@ def perplexity(repo, speedup=1, bars=False):
   tok = AutoTokenizer.from_pretrained(repo)
   model = AutoModelForCausalLM.from_pretrained(repo, low_cpu_mem_usage=True)
 
-  print(f"\nperplexity('{repo}', speedup={speedup}, bars={bars})")
-
   # tokenize wikitext2
   test = load_dataset('wikitext', 'wikitext-2-raw-v1', split='test')
   encodings = tok('\n\n'.join(test['text']), return_tensors='pt')
-  del tok
-  gc.collect()  # run garbage collection
+  del tok; gc.collect()  # run garbage collection
 
   max_length = model.config.max_position_embeddings
   stride = max_length  # before it was 512 or max_length // 2
@@ -164,10 +156,9 @@ def perplexity(repo, speedup=1, bars=False):
       break
 
   ppl = torch.exp(torch.stack(nlls).mean())
-  print(f"ppl: {ppl}  time (s): {time.perf_counter()-start_time:.3f}")
+  print(f'perplexity = {ppl}  time (s): {time.perf_counter() - start_time:.3f}')
   # print('nlls:', nlls)
-  del model
-  gc.collect()  # run garbage collection
+  del model; gc.collect()  # run garbage collection
 
 
 #-------------------------------------------------------------------------------------

@@ -23,6 +23,6 @@ tt.perplexity('SmolLM-135M_flashNorm', speedup=16)
 # jupyter notebook as follows:
 #   pip install jupytext
 #   jupytext --to ipynb flashNorm_example.py -o ../notebooks/flashNorm_example.ipynb
-#   sed -i -e 's/import transformer_tricks/%pip install transformer_tricks\\n", "import transformer_tricks/g'
+#   sed -i -e 's/import transformer_tricks/%pip install --quiet transformer_tricks\\n", "import transformer_tricks/g'
 #     ../notebooks/flashNorm_example.ipynb
 #   The sed command adds %pip install transformer-tricks
