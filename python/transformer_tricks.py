@@ -30,36 +30,36 @@ def flashify_model(model):
     param = model.state_dict()
 
     # check if model uses fused projections as Phi-3
-    fused_proj = "model.layers.0.self_attn.qkv_proj.weight" in param
+    fused_proj = 'model.layers.0.self_attn.qkv_proj.weight' in param
 
     # perform flashNorm merging for all layers
     for layer in range(model.config.num_hidden_layers):
-      prefix = "model.layers." + str(layer) + "."
+      prefix = 'model.layers.' + str(layer) + '.'
 
       # merge input-layernorm into QKV projections
-      norm = prefix + "input_layernorm.weight"
+      norm = prefix + 'input_layernorm.weight'
       if fused_proj:
-        merge_norm_proj(param, norm, prefix + "self_attn.qkv_proj.weight")
+        merge_norm_proj(param, norm, prefix + 'self_attn.qkv_proj.weight')
       else:
-        merge_norm_proj(param, norm, prefix + "self_attn.q_proj.weight")
-        merge_norm_proj(param, norm, prefix + "self_attn.k_proj.weight")
-        merge_norm_proj(param, norm, prefix + "self_attn.v_proj.weight")
+        merge_norm_proj(param, norm, prefix + 'self_attn.q_proj.weight')
+        merge_norm_proj(param, norm, prefix + 'self_attn.k_proj.weight')
+        merge_norm_proj(param, norm, prefix + 'self_attn.v_proj.weight')
       set_norm_one(param, norm)
 
       # merge post-attention layernorm into Gate and Up projections
-      norm = prefix + "post_attention_layernorm.weight"
+      norm = prefix + 'post_attention_layernorm.weight'
       if fused_proj:
-        merge_norm_proj(param, norm, prefix + "mlp.gate_up_proj.weight")
+        merge_norm_proj(param, norm, prefix + 'mlp.gate_up_proj.weight')
       else:
-        merge_norm_proj(param, norm, prefix + "mlp.gate_proj.weight")
-        merge_norm_proj(param, norm, prefix + "mlp.up_proj.weight")
+        merge_norm_proj(param, norm, prefix + 'mlp.gate_proj.weight')
+        merge_norm_proj(param, norm, prefix + 'mlp.up_proj.weight')
       set_norm_one(param, norm)
 
     # if the model has untied embeddings, then merge 'model.norm' into 'lm_head'
     # see also https://huggingface.co/HuggingFaceTB/SmolLM-135M/discussions/15
     if model.config.tie_word_embeddings == False:
-      merge_norm_proj(param, "model.norm.weight", "lm_head.weight")
-      set_norm_one(param, "model.norm.weight")
+      merge_norm_proj(param, 'model.norm.weight', 'lm_head.weight')
+      set_norm_one(param, 'model.norm.weight')
 
     # load the modified state_dict back into the model
     model.load_state_dict(param)
@@ -76,16 +76,16 @@ def flashify_repo(repo, out_dir=None):
 
     # save model in local directory 'out_dir'
     if out_dir == None:  # append '_flashNorm' if no output dir is defined
-      out_dir = os.path.basename(repo) + "_flashNorm"
-      model.save_pretrained(out_dir, from_pt=True)
-      del model
-      gc.collect()  # run garbage collection
+      out_dir = os.path.basename(repo) + '_flashNorm'
+    model.save_pretrained(out_dir, from_pt=True)
+    del model
+    gc.collect()  # run garbage collection
 
-      # ditto with tokenizer
-      tok = AutoTokenizer.from_pretrained(repo)
-      tok.save_pretrained(out_dir, from_pt=True)
-      del tok
-      gc.collect()  # run garbage collection
+    # ditto with tokenizer
+    tok = AutoTokenizer.from_pretrained(repo)
+    tok.save_pretrained(out_dir, from_pt=True)
+    del tok
+    gc.collect()  # run garbage collection
 
 
 #-------------------------------------------------------------------------------------
@@ -100,9 +100,9 @@ def hello_world(repo, max_new_tok=4):
 
   print(f"\nhello_world('{repo}', max_new_tok={max_new_tok})")
 
-  prompt = "Once upon a time there was"
+  prompt = 'Once upon a time there was'
   start_time = time.perf_counter()
-  inp = tok.encode(prompt, return_tensors="pt").to("cpu")
+  inp = tok.encode(prompt, return_tensors='pt').to('cpu')
   out = model.generate(inp, pad_token_id=0, max_new_tokens=max_new_tok).ravel()
   print(f"text: {tok.decode(out)}  time (s): {time.perf_counter() - start_time:.3f}")
   del tok, model
@@ -125,7 +125,7 @@ def perplexity(repo, speedup=1, bars=False):
   https://huggingface.co/spaces/evaluate-metric/perplexity"""
 
   torch.set_grad_enabled(False)  # speed up torch
-  # TODO: consider using instead "with torch.no_grad():"
+  # TODO: consider using instead 'with torch.no_grad():'
 
   tok = AutoTokenizer.from_pretrained(repo)
   model = AutoModelForCausalLM.from_pretrained(repo, low_cpu_mem_usage=True)
@@ -133,8 +133,8 @@ def perplexity(repo, speedup=1, bars=False):
   print(f"\nperplexity('{repo}', speedup={speedup}, bars={bars})")
 
   # tokenize wikitext2
-  test = load_dataset("wikitext", "wikitext-2-raw-v1", split="test")
-  encodings = tok("\n\n".join(test["text"]), return_tensors="pt")
+  test = load_dataset('wikitext', 'wikitext-2-raw-v1', split='test')
+  encodings = tok('\n\n'.join(test['text']), return_tensors='pt')
   del tok
   gc.collect()  # run garbage collection
 
@@ -148,7 +148,7 @@ def perplexity(repo, speedup=1, bars=False):
   for begin_loc in tqdm(range(0, seq_len, stride), disable=not bars):
     end_loc = min(begin_loc + max_length, seq_len)
     trg_len = end_loc - prev_end_loc  # may be different from stride on last loop
-    input_ids = encodings.input_ids[:, begin_loc:end_loc].to("cpu")
+    input_ids = encodings.input_ids[:, begin_loc:end_loc].to('cpu')
     target_ids = input_ids.clone()
     target_ids[:, :-trg_len] = -100
     outputs = model(input_ids, labels=target_ids)
