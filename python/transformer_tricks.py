@@ -1,9 +1,5 @@
 # functions for transformer tricks
-import gc
-import os
-import time
-
-import torch
+import gc, os, time, torch
 import torch.nn as nn
 from datasets import load_dataset
 from tqdm import tqdm
@@ -48,25 +44,25 @@ def flashify_model(model):
         merge_norm_proj(param, norm, prefix + "self_attn.q_proj.weight")
         merge_norm_proj(param, norm, prefix + "self_attn.k_proj.weight")
         merge_norm_proj(param, norm, prefix + "self_attn.v_proj.weight")
-        set_norm_one(param, norm)
+      set_norm_one(param, norm)
 
-        # merge post-attention layernorm into Gate and Up projections
-        norm = prefix + "post_attention_layernorm.weight"
-        if fused_proj:
-          merge_norm_proj(param, norm, prefix + "mlp.gate_up_proj.weight")
-        else:
-          merge_norm_proj(param, norm, prefix + "mlp.gate_proj.weight")
-          merge_norm_proj(param, norm, prefix + "mlp.up_proj.weight")
-          set_norm_one(param, norm)
+      # merge post-attention layernorm into Gate and Up projections
+      norm = prefix + "post_attention_layernorm.weight"
+      if fused_proj:
+        merge_norm_proj(param, norm, prefix + "mlp.gate_up_proj.weight")
+      else:
+        merge_norm_proj(param, norm, prefix + "mlp.gate_proj.weight")
+        merge_norm_proj(param, norm, prefix + "mlp.up_proj.weight")
+      set_norm_one(param, norm)
 
-        # if the model has untied embeddings, then merge 'model.norm' into 'lm_head'
-        # see also https://huggingface.co/HuggingFaceTB/SmolLM-135M/discussions/15
-        if model.config.tie_word_embeddings == False:
-          merge_norm_proj(param, "model.norm.weight", "lm_head.weight")
-          set_norm_one(param, "model.norm.weight")
+    # if the model has untied embeddings, then merge 'model.norm' into 'lm_head'
+    # see also https://huggingface.co/HuggingFaceTB/SmolLM-135M/discussions/15
+    if model.config.tie_word_embeddings == False:
+      merge_norm_proj(param, "model.norm.weight", "lm_head.weight")
+      set_norm_one(param, "model.norm.weight")
 
-        # load the modified state_dict back into the model
-        model.load_state_dict(param)
+    # load the modified state_dict back into the model
+    model.load_state_dict(param)
 
 
 def flashify_repo(repo, out_dir=None):
@@ -180,6 +176,3 @@ def perplexity(repo, speedup=1, bars=False):
 # e.g. add a def to compare or diff two models / safetensors. See here:
 #   - https://gist.github.com/so298/b5fc4127f161dbd65429f5756d771d88
 #   - https://gist.github.com/madebyollin/034afe6670fc03966d075912cbccf797
-
-
-# vim: expandtab:ts=2:sw=2
