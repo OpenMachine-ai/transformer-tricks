@@ -10,7 +10,7 @@ build-backend = "hatchling.build"
 [project]
 name = "transformer-tricks"
 # version numbering A.B.C: A is major version, B is minor version, and C is patch
-version = "0.1.14"
+version = "0.1.15"
 authors = [
   {name="Open Machine", email="info@openmachine.ai"},
 ]
@@ -37,6 +37,6 @@ dependencies = [
 [tool.autopep8]
 indent-size = 2
 in-place = true
-max-line-length = 88
+max-line-length = 120
 ignore = "E265, E401, E70"
 # list of all E rules: https://github.com/hhatto/autopep8?tab=readme-ov-file#features

@@ -6,10 +6,7 @@
 
 import transformer_tricks as tt
 
-# disable tokenizer parallelism
-# import os
-# os.environ['TOKENIZERS_PARALLELISM'] = 'false'
-# TODO: above line is only needed for Phi3?
+tt.quiet_hf()  # calm down HuggingFace
 
 # convert models to flashNorm
 tt.flashify_repo('HuggingFaceTB/SmolLM-135M')

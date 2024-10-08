@@ -1,9 +1,8 @@
 # functions for transformer tricks
-import gc, os, time, torch
+import gc, os, time, torch, datasets
 import torch.nn as nn
-from datasets import load_dataset
 from tqdm import tqdm
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoModelForCausalLM, AutoTokenizer, logging, utils
 
 
 #-------------------------------------------------------------------------------------
@@ -89,7 +88,7 @@ def flashify_repo(repo, out_dir=None):
 #-------------------------------------------------------------------------------------
 # functions for testing
 #-------------------------------------------------------------------------------------
-def hello_world(repo, max_new_tok=4):
+def hello_world(repo, max_new_tok=4, perf=False):
   """run example inference of an LLM from HuggingFace repo or local directory"""
   tok = AutoTokenizer.from_pretrained(repo)
   model = AutoModelForCausalLM.from_pretrained(repo, low_cpu_mem_usage=True)
@@ -100,13 +99,14 @@ def hello_world(repo, max_new_tok=4):
   start_time = time.perf_counter()
   inp = tok.encode(prompt, return_tensors='pt').to('cpu')
   out = model.generate(inp, pad_token_id=0, max_new_tokens=max_new_tok).ravel()
-  print(f'{tok.decode(out)}  time (s): {time.perf_counter() - start_time:.3f}')
+  print(tok.decode(out),
+        f'  (time: {time.perf_counter() - start_time:.2f}s)' if perf else '')
   del tok, model; gc.collect()  # run garbage collection
   # TODO: especially for Phi-3, set verbosity to quiet as follows
   #  transformers.logging.set_verbosity_error()
 
 
-def perplexity(repo, speedup=1, bars=False):
+def perplexity(repo, speedup=1, bars=False, perf=False):
   """calculate perplexity of an LLM with wikitext2
   this def is copied from https://huggingface.co/docs/transformers/perplexity
   I made the following changes to adapt it for SmolLM (was GPT2 before):
@@ -126,7 +126,7 @@ def perplexity(repo, speedup=1, bars=False):
   model = AutoModelForCausalLM.from_pretrained(repo, low_cpu_mem_usage=True)
 
   # tokenize wikitext2
-  test = load_dataset('wikitext', 'wikitext-2-raw-v1', split='test')
+  test = datasets.load_dataset('wikitext', 'wikitext-2-raw-v1', split='test')
   encodings = tok('\n\n'.join(test['text']), return_tensors='pt')
   del tok; gc.collect()  # run garbage collection
 
@@ -156,9 +156,24 @@ def perplexity(repo, speedup=1, bars=False):
       break
 
   ppl = torch.exp(torch.stack(nlls).mean())
-  print(f'perplexity = {ppl}  time (s): {time.perf_counter() - start_time:.3f}')
+  print(f'perplexity = {ppl:.3f}',
+        f'  (time: {time.perf_counter() - start_time:.2f}s)' if perf else '')
   # print('nlls:', nlls)
   del model; gc.collect()  # run garbage collection
+
+
+#-------------------------------------------------------------------------------------
+# misc tools
+#-------------------------------------------------------------------------------------
+def quiet_hf():
+  """reduce verbosity of HF (huggingface) packages"""
+  logging.set_verbosity_error()
+  utils.logging.disable_progress_bar()
+  datasets.disable_progress_bars()
+  os.environ['TOKENIZERS_PARALLELISM'] = 'true'
+  os.environ['HF_HUB_VERBOSITY'] = 'error'
+  # for more env variables, see link below
+  # https://huggingface.co/docs/huggingface_hub/en/package_reference/environment_variables
 
 
 #-------------------------------------------------------------------------------------
