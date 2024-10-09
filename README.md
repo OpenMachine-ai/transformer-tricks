@@ -2,7 +2,7 @@
 ```
 pip3 install transformer-tricks
 ```
-This repo contains code (Python and LaTeX) for the Transformer Tricks papers.
+Tricks and tools for speeding up LLMs:
 
 * **Flash normalization:**
   * arXiv paper: https://arxiv.org/abs/2407.09577
@@ -23,4 +23,4 @@ This repo contains code (Python and LaTeX) for the Transformer Tricks papers.
 * **Precomputing the first layer:**
   * arXiv paper: https://arxiv.org/abs/2402.13388
 
-**Please give us a ⭐ if you like this project, thanks!**
+**Please give us a ⭐ if you like this repo, thanks!**
