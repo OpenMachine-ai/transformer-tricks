@@ -61,7 +61,7 @@ perplexity = 12.086
 Before making a change to this repo, please do the following:
 - Format your code by typing `autopep8 *.py`. It's using the config in  `pyproject.toml`.
 - Whenever you change `transformer_tricks.py`, publish a new version of the package as follows:
-  - First, update the version number in `pyproject.toml`
+  - First, update the version number in `pyproject.toml` and in `requirements.txt`
   - Then, push the package to PyPi by typing `./push_pypi.sh`
 - Whenever you modify `flashNorm_example.py`, generate the corresponding notebook as follows:
   ```

@@ -10,7 +10,7 @@ build-backend = "hatchling.build"
 [project]
 name = "transformer-tricks"
 # version numbering A.B.C: A is major version, B is minor version, and C is patch
-version = "0.1.15"
+version = "0.1.16"
 authors = [
   {name="Open Machine", email="info@openmachine.ai"},
 ]
@@ -23,7 +23,7 @@ classifiers = [
   "Operating System :: OS Independent",
 ]
 dependencies = [
-  "transformers==4.41.2",
+  "transformers==4.45.2",
   "datasets==2.19.2",
   "accelerate>=0.9.0",
   "torch>=2.4.1",
@@ -38,5 +38,6 @@ dependencies = [
 indent-size = 2
 in-place = true
 max-line-length = 120
-ignore = "E265, E401, E70"
-# list of all E rules: https://github.com/hhatto/autopep8?tab=readme-ov-file#features
+ignore = "E265, E401, E70, E20, E241, E11"
+# type 'autopep8 --list-fixes' to see a list of all rules
+# for debug, type 'autopep8 --verbose *.py'

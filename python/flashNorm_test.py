@@ -34,10 +34,6 @@ tt.perplexity(              'SmolLM-360M_flashNorm', speedup=16)
 #tt.perplexity('microsoft/Phi-3-mini-4k-instruct',           speedup=64, bars=True)
 #tt.perplexity(          'Phi-3-mini-4k-instruct_flashNorm', speedup=64, bars=True)
 
-# clean up
-#rm -Rf SmolLM*_flashNorm
-# TODO, remove stuff, see above
-
 # TODO: add more LLMs
 #python3 gen.py stabilityai/stablelm-2-1_6b  # doesn't use RMSNorm, but LayerNorm
 #python3 gen.py meta-llama/Meta-Llama-3.1-8B
