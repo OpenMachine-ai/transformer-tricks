@@ -1,8 +1,13 @@
-# functions for transformer tricks
+# tricks and tools for speeding up LLMs
+
 import gc, os, time, torch, datasets
 import torch.nn as nn
 from tqdm import tqdm
 from transformers import AutoModelForCausalLM, AutoTokenizer, logging, utils
+try:
+  from flashNorm_modeling_llama import *  # import local file if it exists
+except ImportError:
+  pass
 
 
 #-------------------------------------------------------------------------------------
@@ -73,25 +78,35 @@ def flashify_repo(repo, out_dir=None):
     flashify_model(model)
     # print('DEBUG, should be all 1', model.model.layers[0].input_layernorm.weight)
 
-    # save model in local directory 'out_dir'
+    # TODO: the commented out code below is for a future feature ...
+    # save model in local directories 'out_dir' and 'out_dir_test'
     if out_dir == None:  # append '_flashNorm' if no output dir is defined
       out_dir = os.path.basename(repo) + '_flashNorm'
-    model.save_pretrained(out_dir, from_pt=True)
+    model.save_pretrained(out_dir,           from_pt=True)
+    #model.save_pretrained(out_dir + '_test', from_pt=True)
     del model; gc.collect()  # run garbage collection
 
     # ditto with tokenizer
     tok = AutoTokenizer.from_pretrained(repo)
-    tok.save_pretrained(out_dir, from_pt=True)
+    tok.save_pretrained(out_dir,           from_pt=True)
+    #tok.save_pretrained(out_dir + '_test', from_pt=True)
     del tok; gc.collect()  # run garbage collection
+
+    # change the config for one repo only
+    #cfg = AutoConfig.from_pretrained(repo)
+    #cfg.architectures = ['LlamaForCausalLM_flashNorm']
+    #cfg.auto_map = {'AutoModelForCausalLM': 'flashNorm_modeling_llama.LlamaForCausalLM_flashNorm'}
+    #cfg.model_type = 'flashNorm'
+    #cfg.save_pretrained(out_dir, from_pt=True)
 
 
 #-------------------------------------------------------------------------------------
 # functions for testing
 #-------------------------------------------------------------------------------------
-def hello_world(repo, max_new_tok=4, perf=False):
+def hello_world(repo, max_new_tok=4, arch='AutoModelForCausalLM', perf=False):
   """run example inference of an LLM from HuggingFace repo or local directory"""
   tok = AutoTokenizer.from_pretrained(repo)
-  model = AutoModelForCausalLM.from_pretrained(repo, low_cpu_mem_usage=True)
+  model = eval(f'{arch}.from_pretrained(repo, low_cpu_mem_usage=True)')
   # to use FP16 or bfloaf: torch_dtype=torch.float16, torch_dtype=torch.bfloat
   # note: FP16 is 30x slower than FP32 on my Mac M1, not sure why
 
@@ -106,7 +121,7 @@ def hello_world(repo, max_new_tok=4, perf=False):
   #  transformers.logging.set_verbosity_error()
 
 
-def perplexity(repo, speedup=1, bars=False, perf=False):
+def perplexity(repo, speedup=1, arch='AutoModelForCausalLM', bars=False, perf=False):
   """calculate perplexity of an LLM with wikitext2
   this def is copied from https://huggingface.co/docs/transformers/perplexity
   I made the following changes to adapt it for SmolLM (was GPT2 before):
@@ -123,7 +138,7 @@ def perplexity(repo, speedup=1, bars=False, perf=False):
   # TODO: consider using instead 'with torch.no_grad():'
 
   tok = AutoTokenizer.from_pretrained(repo)
-  model = AutoModelForCausalLM.from_pretrained(repo, low_cpu_mem_usage=True)
+  model = eval(f'{arch}.from_pretrained(repo, low_cpu_mem_usage=True)')
 
   # tokenize wikitext2
   test = datasets.load_dataset('wikitext', 'wikitext-2-raw-v1', split='test')
