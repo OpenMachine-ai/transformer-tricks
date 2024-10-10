@@ -3,12 +3,14 @@
 # wget https://raw.githubusercontent.com/huggingface/transformers/refs/tags/v4.45.2/src/transformers/models/llama/modeling_llama.py
 #
 # I made the following changes:
+#  - added new class 'FlashNorm' as alternative to RMSNorm
+#  - replaced RMSNorm calls by FlashNorm in class 'LlamaDecoderLayer'
 #  - renamed 'LlamaForCausalLM' to 'LlamaFlashNorm'
 #  - changed relative imports 'from ...foo' to absolute 'from transformers.foo':
 #    sed -i 's/from \.\.\./from transformers./'
 #    sed -i 's/from \.configuration_llama import LlamaConfig/from transformers import LlamaConfig/'
 #  - All changes (except for the import changes at the beginning) are marked
-#    by a preceeding comment saying '# FlashNorm change, before it was:'
+#    by a preceeding comment saying '# FlashNorm change:'
 #--------------------------------------------------------------------------------
 
 # coding=utf-8
@@ -141,6 +143,24 @@ class LlamaRMSNorm(nn.Module):
 
     def extra_repr(self):
         return f"{tuple(self.weight.shape)}, eps={self.variance_epsilon}"
+
+
+# FlashNorm change: added the class below
+class FlashNorm(nn.Module):
+    def __init__(self, hidden_size, eps=1e-6):
+        """
+        FlashNorm is like RMSNorm without weights, see https://arxiv.org/abs/2407.09577
+        """
+        super().__init__()
+        #self.weight = nn.Parameter(torch.ones(hidden_size))
+        self.variance_epsilon = eps
+
+    def forward(self, hidden_states):
+        input_dtype = hidden_states.dtype
+        hidden_states = hidden_states.to(torch.float32)
+        variance = hidden_states.pow(2).mean(-1, keepdim=True)
+        hidden_states = hidden_states * torch.rsqrt(variance + self.variance_epsilon)
+        return hidden_states.to(input_dtype)
 
 
 ALL_LAYERNORM_LAYERS.append(LlamaRMSNorm)
@@ -697,8 +717,11 @@ class LlamaDecoderLayer(nn.Module):
         self.self_attn = LLAMA_ATTENTION_CLASSES[config._attn_implementation](config=config, layer_idx=layer_idx)
 
         self.mlp = LlamaMLP(config)
-        self.input_layernorm = LlamaRMSNorm(config.hidden_size, eps=config.rms_norm_eps)
-        self.post_attention_layernorm = LlamaRMSNorm(config.hidden_size, eps=config.rms_norm_eps)
+        # FlashNorm change: before it was:
+        #self.input_layernorm = LlamaRMSNorm(config.hidden_size, eps=config.rms_norm_eps)
+        #self.post_attention_layernorm = LlamaRMSNorm(config.hidden_size, eps=config.rms_norm_eps)
+        self.input_layernorm = FlashNorm(config.hidden_size, eps=config.rms_norm_eps)
+        self.post_attention_layernorm = FlashNorm(config.hidden_size, eps=config.rms_norm_eps)
 
     def forward(
         self,
@@ -1115,7 +1138,7 @@ class LlamaModel(LlamaPreTrainedModel):
         return causal_mask
 
 
-# FlashNorm change, before it was:
+# FlashNorm change: before it was:
 #class LlamaForCausal(LlamaPreTrainedModel, GenerationMixin):
 class LlamaFlashNorm(LlamaPreTrainedModel, GenerationMixin):
     _tied_weights_keys = ["lm_head.weight"]
@@ -1128,8 +1151,6 @@ class LlamaFlashNorm(LlamaPreTrainedModel, GenerationMixin):
 
         # Initialize weights and apply final processing
         self.post_init()
-        # FlashNorm change, added line below
-        print('HEY')
 
     def get_input_embeddings(self):
         return self.model.embed_tokens

@@ -5,6 +5,7 @@
 # https://packaging.python.org/en/latest/tutorials/packaging-projects/
 #
 # Setup: install build and twine via 'pip3 install build twine'
+# Usage: ./push_pypi.sh
 
 # create folder 'pypi' and copy all relevant files
 rm -rf pypi
