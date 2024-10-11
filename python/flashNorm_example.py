@@ -3,6 +3,7 @@
 #
 # Usage: python3 flashNorm_example.py
 
+# %pip install --quiet transformer_tricks
 import transformer_tricks as tt
 
 tt.quiet_hf()  # calm down HuggingFace
@@ -21,6 +22,3 @@ tt.perplexity('./SmolLM-135M_flashNorm_test', speedup=16)
 # %% [markdown]
 # Whenever you change this file, make sure to regenerate the jupyter notebook as follows:
 #   jupytext --to ipynb flashNorm_example.py -o ../notebooks/flashNorm_example.ipynb
-#   sed -i -e 's/import transformer_tricks/%pip install --quiet transformer_tricks\\n", "import transformer_tricks/g'
-#     ../notebooks/flashNorm_example.ipynb
-#   The sed command adds %pip install --quiet transformer-tricks

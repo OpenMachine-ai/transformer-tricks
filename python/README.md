@@ -66,8 +66,6 @@ Before making a change to this repo, please do the following:
 - Whenever you modify `flashNorm_example.py`, generate the corresponding notebook as follows:
   ```
   jupytext --to ipynb flashNorm_example.py -o ../notebooks/flashNorm_example.ipynb
-  sed -i -e 's/import transformer_tricks/%pip install --quiet transformer_tricks\\n", "import transformer_tricks/g'
-    ../notebooks/flashNorm_example.ipynb
   ```
 
 ## Notes on python package
