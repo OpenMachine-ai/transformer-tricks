@@ -13,7 +13,7 @@ tt.quiet_hf()  # calm down HuggingFace
 tt.flashify_repo('HuggingFaceTB/SmolLM-135M')
 tt.flashify_repo('HuggingFaceTB/SmolLM-360M')
 #tt.flashify_repo('HuggingFaceTB/SmolLM-1.7B')
-#tt.flashify_repo('microsoft/Phi-3-mini-4k-instruct')
+#tt.flashify_repo('microsoft/Phi-3-mini-4k-instruct', bars=True)
 
 # run models
 tt.hello_world('HuggingFaceTB/SmolLM-135M')

@@ -13,11 +13,11 @@ tt.flashify_repo('HuggingFaceTB/SmolLM-135M')
 
 # run example inference of original and modified model
 tt.hello_world('HuggingFaceTB/SmolLM-135M')
-tt.hello_world('SmolLM-135M_flashNorm')
+tt.hello_world('./SmolLM-135M_flashNorm')
 
 # measure perplexity of original and modified model
 tt.perplexity('HuggingFaceTB/SmolLM-135M', speedup=16)
-tt.perplexity('SmolLM-135M_flashNorm', speedup=16)
+tt.perplexity('./SmolLM-135M_flashNorm', speedup=16)
 
 # %% [markdown]
 # Whenever you change this file, make sure to regenerate the jupyter notebook as follows:

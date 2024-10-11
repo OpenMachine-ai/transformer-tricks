@@ -1,9 +1,11 @@
 # tricks and tools for speeding up LLMs
 
-import gc, os, time, torch, datasets
+import gc, os, time, torch, datasets, glob
 import torch.nn as nn
 from tqdm import tqdm
-from transformers import AutoModelForCausalLM, AutoTokenizer, logging, utils
+from huggingface_hub import snapshot_download
+from safetensors.torch import load_file, save_file, safe_open
+from transformers import AutoModelForCausalLM, AutoTokenizer, AutoConfig, logging, utils
 try:
   from flashNorm_modeling_llama import *  # import local file if it exists
 except ImportError:
@@ -13,91 +15,111 @@ except ImportError:
 #-------------------------------------------------------------------------------------
 # functions for flashNorm, see paper https://arxiv.org/abs/2407.09577
 #-------------------------------------------------------------------------------------
-def merge_norm_proj(param, norm, proj):
+def weight(name, layer=0):
+  """get dictionary key of specific weight (such as Q from layer 0)"""
+  layer_str = 'model.layers.' + str(layer) + '.'
+  match name:
+    # weights of each layer
+    case 'Inorm': key = layer_str + 'input_layernorm.weight'
+    case 'Anorm': key = layer_str + 'post_attention_layernorm.weight'
+    case 'QKV'  : key = layer_str + 'self_attn.qkv_proj.weight'
+    case 'Q'    : key = layer_str + 'self_attn.q_proj.weight'
+    case 'K'    : key = layer_str + 'self_attn.k_proj.weight'
+    case 'V'    : key = layer_str + 'self_attn.v_proj.weight'
+    case 'O'    : key = layer_str + 'self_attn.o_proj.weight'
+    case 'GU'   : key = layer_str + 'mlp.gate_up_proj.weight'
+    case 'G'    : key = layer_str + 'mlp.gate_proj.weight'
+    case 'U'    : key = layer_str + 'mlp.up_proj.weight'
+    case 'D'    : key = layer_str + 'mlp.down_proj.weight'
+    # embedding weights
+    case 'Hnorm': key = 'model.norm.weight'          # normalization of lm_head
+    case 'H'    : key = 'lm_head.weight'             # output embeddings
+    case 'E'    : key = 'model.embed_tokens.weight'  # input embeddings
+  return key
+
+
+def merge_norm_proj(param, norm, proj, layer=0):
   """merge norm weights into projection weights"""
-  param[proj] = nn.Parameter(param[proj] @ torch.diag(param[norm]))  # flipped order
+  n_key = weight(norm, layer)
+  p_key = weight(proj, layer)
+  param[p_key] = nn.Parameter(param[p_key] @ torch.diag(param[n_key])).detach()  # flipped order
   # TODO: consider first converting to float64, then merge norm into projections,
   # and then convert back to float32. Example: torch.ones(4, dtype=torch.float32)
 
 
-def set_norm_one(param, norm):
+def set_norm_one(param, norm, layer=0):
   """set all norm weights to 1.0"""
-  len = list(param[norm].shape)[0]
-  param[norm] = nn.Parameter(torch.ones(len))
+  n_key = weight(norm, layer)
+  len = list(param[n_key].shape)[0]
+  param[n_key] = nn.Parameter(torch.ones(len)).detach()
 
 
-def flashify_model(model):
+def flashify(param, config, bars):
   """merge norm weights into projection weights as per flashNorm"""
   with torch.no_grad():  # prevent autograd from tracking changes
 
-    # copy the model's state_dict
-    param = model.state_dict()
+    # check if model uses fused projections (such as in Phi-3)
+    fused_proj = weight('QKV') in param
 
-    # check if model uses fused projections as Phi-3
-    fused_proj = 'model.layers.0.self_attn.qkv_proj.weight' in param
-
-    # perform flashNorm merging for all layers
-    for layer in range(model.config.num_hidden_layers):
-      prefix = 'model.layers.' + str(layer) + '.'
+    # perform flashNorm merging for each layer
+    for layer in tqdm(range(config.num_hidden_layers), disable=not bars):
 
       # merge input-layernorm into QKV projections
-      norm = prefix + 'input_layernorm.weight'
       if fused_proj:
-        merge_norm_proj(param, norm, prefix + 'self_attn.qkv_proj.weight')
+        merge_norm_proj(param, 'Inorm', 'QKV', layer)
       else:
-        merge_norm_proj(param, norm, prefix + 'self_attn.q_proj.weight')
-        merge_norm_proj(param, norm, prefix + 'self_attn.k_proj.weight')
-        merge_norm_proj(param, norm, prefix + 'self_attn.v_proj.weight')
-      set_norm_one(param, norm)
+        merge_norm_proj(param, 'Inorm', 'Q', layer)
+        merge_norm_proj(param, 'Inorm', 'K', layer)
+        merge_norm_proj(param, 'Inorm', 'V', layer)
+      set_norm_one(param, 'Inorm', layer)
 
-      # merge post-attention layernorm into Gate and Up projections
-      norm = prefix + 'post_attention_layernorm.weight'
+      # merge post-attention layernorm 'Anorm' into Gate and Up projections
       if fused_proj:
-        merge_norm_proj(param, norm, prefix + 'mlp.gate_up_proj.weight')
+        merge_norm_proj(param, 'Anorm', 'GU', layer)
       else:
-        merge_norm_proj(param, norm, prefix + 'mlp.gate_proj.weight')
-        merge_norm_proj(param, norm, prefix + 'mlp.up_proj.weight')
-      set_norm_one(param, norm)
+        merge_norm_proj(param, 'Anorm', 'G', layer)
+        merge_norm_proj(param, 'Anorm', 'U', layer)
+      set_norm_one(param, 'Anorm', layer)
 
-    # if the model has untied embeddings, then merge 'model.norm' into 'lm_head'
+    # if the model has untied embeddings, then merge 'Hnorm' into 'lm_head'
     # see also https://huggingface.co/HuggingFaceTB/SmolLM-135M/discussions/15
-    if model.config.tie_word_embeddings == False:
-      merge_norm_proj(param, 'model.norm.weight', 'lm_head.weight')
-      set_norm_one(param, 'model.norm.weight')
-
-    # load the modified state_dict back into the model
-    model.load_state_dict(param)
+    if config.tie_word_embeddings == False:
+      merge_norm_proj(param, 'Hnorm', 'H')
+      set_norm_one(param, 'Hnorm')
 
 
-def flashify_repo(repo, out_dir=None):
+def get_param(repo):
+  """download all safetensor files from repo and return a single param dict"""
+  snapshot_download(repo_id=repo, allow_patterns='*.safetensors', local_dir='tmp')
+  param = {}
+  for file in glob.glob('tmp/*.safetensors'):
+    param.update(load_file(file))  # concatenate all parameters into a single dict
+  return param
+
+
+def flashify_repo(repo, out_dir=None, bars=False):
   """convert LLM repo to flashNorm, store the new model in out_dir"""
   with torch.no_grad():  # prevent autograd from tracking changes
 
-    # flashify model
-    model = AutoModelForCausalLM.from_pretrained(repo, low_cpu_mem_usage=True)
-    flashify_model(model)
-    # print('DEBUG, should be all 1', model.model.layers[0].input_layernorm.weight)
-
-    # TODO: the commented out code below is for a future feature ...
-    # save model in local directories 'out_dir' and 'out_dir_test'
     if out_dir == None:  # append '_flashNorm' if no output dir is defined
       out_dir = os.path.basename(repo) + '_flashNorm'
-    model.save_pretrained(out_dir,           from_pt=True)
-    #model.save_pretrained(out_dir + '_test', from_pt=True)
-    del model; gc.collect()  # run garbage collection
 
-    # ditto with tokenizer
+    # save tokenizer in out_dir
     tok = AutoTokenizer.from_pretrained(repo)
-    tok.save_pretrained(out_dir,           from_pt=True)
-    #tok.save_pretrained(out_dir + '_test', from_pt=True)
-    del tok; gc.collect()  # run garbage collection
+    tok.save_pretrained(out_dir, from_pt=True)
 
-    # change the config for one repo only
-    #cfg = AutoConfig.from_pretrained(repo)
-    #cfg.architectures = ['LlamaForCausalLM_flashNorm']
-    #cfg.auto_map = {'AutoModelForCausalLM': 'flashNorm_modeling_llama.LlamaForCausalLM_flashNorm'}
-    #cfg.model_type = 'flashNorm'
-    #cfg.save_pretrained(out_dir, from_pt=True)
+    # ditto for config
+    config = AutoConfig.from_pretrained(repo)
+    #config.architectures = ['LlamaForCausalLM_flashNorm']
+    #config.auto_map = {'AutoModelForCausalLM': 'flashNorm_modeling_llama.LlamaForCausalLM_flashNorm'}
+    #config.model_type = 'flashNorm'
+    config.save_pretrained(out_dir, from_pt=True)
+
+    # download safetensors, flashify it, and save modified file in out_dir
+    param = get_param(repo)
+    flashify(param, config, bars)
+    save_file(param, out_dir + '/model.safetensors', metadata={'format': 'pt'})
+    del param; gc.collect()  # run garbage collection
 
 
 #-------------------------------------------------------------------------------------
@@ -181,7 +203,7 @@ def perplexity(repo, speedup=1, arch='AutoModelForCausalLM', bars=False, perf=Fa
 # misc tools
 #-------------------------------------------------------------------------------------
 def quiet_hf():
-  """reduce verbosity of HF (huggingface) packages"""
+  """reduce verbosity of HuggingFace packages"""
   logging.set_verbosity_error()
   utils.logging.disable_progress_bar()
   datasets.disable_progress_bars()
@@ -194,6 +216,12 @@ def quiet_hf():
 #-------------------------------------------------------------------------------------
 # TODOs: add more functions
 #-------------------------------------------------------------------------------------
+
+# print metadata of a safetensor file:
+#    with safe_open('model.safetensors', framework='pt') as f:
+#      for k, v in f.metadata().items():
+#        print(f'{k}: {v}')
+
 # e.g. add a def to compare or diff two models / safetensors. See here:
 #   - https://gist.github.com/so298/b5fc4127f161dbd65429f5756d771d88
 #   - https://gist.github.com/madebyollin/034afe6670fc03966d075912cbccf797
