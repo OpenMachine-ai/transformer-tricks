@@ -97,28 +97,41 @@ def get_param(repo):
   return param
 
 
-def flashify_repo(repo, out_dir=None, bars=False):
-  """convert LLM repo to flashNorm, store the new model in out_dir"""
+def save_repo(repo, param, config, dir):
+  """save tokenizer, config, and param in local dir"""
+  tok = AutoTokenizer.from_pretrained(repo)
+  tok.save_pretrained(dir, from_pt=True)
+  config.save_pretrained(dir, from_pt=True)
+  save_file(param, dir + '/model.safetensors', metadata={'format': 'pt'})
+
+
+def flashify_repo(repo, dir=None, bars=False, test=True):
+  """convert LLM repo to flashNorm, store the new model in local dir"""
   with torch.no_grad():  # prevent autograd from tracking changes
 
-    if out_dir == None:  # append '_flashNorm' if no output dir is defined
-      out_dir = os.path.basename(repo) + '_flashNorm'
+    if dir == None:  # append '_flashNorm' if no output dir is defined
+      dir = os.path.basename(repo) + '_flashNorm'
 
-    # save tokenizer in out_dir
-    tok = AutoTokenizer.from_pretrained(repo)
-    tok.save_pretrained(out_dir, from_pt=True)
-
-    # ditto for config
+    # get config, download safetensors, and flashify params
     config = AutoConfig.from_pretrained(repo)
+    param = get_param(repo)
+    flashify(param, config, bars)
+    if test:  # optionally, save a test-repo in directory *_test
+      save_repo(repo, param, config, dir + '_test')
+
+    # delete norm weights from param
+    for layer in range(config.num_hidden_layers):
+      del param[weight('Inorm', layer)]
+      del param[weight('Anorm', layer)]
+    if config.tie_word_embeddings == False:
+      del param[weight('Hnorm')]
+
+   # TODO:
     #config.architectures = ['LlamaForCausalLM_flashNorm']
     #config.auto_map = {'AutoModelForCausalLM': 'flashNorm_modeling_llama.LlamaForCausalLM_flashNorm'}
     #config.model_type = 'flashNorm'
-    config.save_pretrained(out_dir, from_pt=True)
+    save_repo(repo, param, config, dir)
 
-    # download safetensors, flashify it, and save modified file in out_dir
-    param = get_param(repo)
-    flashify(param, config, bars)
-    save_file(param, out_dir + '/model.safetensors', metadata={'format': 'pt'})
     del param; gc.collect()  # run garbage collection
 
 
@@ -225,3 +238,8 @@ def quiet_hf():
 # e.g. add a def to compare or diff two models / safetensors. See here:
 #   - https://gist.github.com/so298/b5fc4127f161dbd65429f5756d771d88
 #   - https://gist.github.com/madebyollin/034afe6670fc03966d075912cbccf797
+
+# misc TODOs:
+#  - do we really need 'with torch.no_grad():' everywhere?
+#  - do we really need garbage collection 'gc'?
+#  - would 'torch.set_grad_enabled(False)' speed up things?

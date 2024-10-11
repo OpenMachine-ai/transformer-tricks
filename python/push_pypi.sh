@@ -10,7 +10,7 @@
 # create folder 'pypi' and copy all relevant files
 rm -rf pypi
 mkdir pypi
-cp LICENSE README.md pyproject.toml transformer_tricks.py pypi
+cp ../LICENSE README.md pyproject.toml transformer_tricks.py pypi
 
 # build and upload
 cd pypi

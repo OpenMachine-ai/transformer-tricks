@@ -1,8 +1,7 @@
 # flashify LLMs and run inference and perplexity to make sure that
 # the flashified models are equivalent to the original ones
 #
-# Usage:
-#   python3 test_flashNorm.py
+# Usage: python3 test_flashNorm.py
 
 import transformer_tricks as tt
 from flashNorm_modeling_llama import *  # import local file
@@ -12,15 +11,15 @@ tt.quiet_hf()  # calm down HuggingFace
 # convert models to flashNorm
 tt.flashify_repo('HuggingFaceTB/SmolLM-135M')
 tt.flashify_repo('HuggingFaceTB/SmolLM-360M')
-#tt.flashify_repo('HuggingFaceTB/SmolLM-1.7B')
+#tt.flashify_repo('HuggingFaceTB/SmolLM-1.7B', bars=True)
 #tt.flashify_repo('microsoft/Phi-3-mini-4k-instruct', bars=True)
 
 # run models
 tt.hello_world('HuggingFaceTB/SmolLM-135M')
-tt.hello_world(              'SmolLM-135M_flashNorm')
+tt.hello_world(              'SmolLM-135M_flashNorm_test')
 tt.hello_world(              'SmolLM-135M_flashNorm', arch='LlamaFlashNorm')
 tt.hello_world('HuggingFaceTB/SmolLM-360M')
-tt.hello_world(              'SmolLM-360M_flashNorm')
+tt.hello_world(              'SmolLM-360M_flashNorm_test')
 tt.hello_world(              'SmolLM-360M_flashNorm', arch='LlamaFlashNorm')
 #tt.hello_world('HuggingFaceTB/SmolLM-1.7B')
 #tt.hello_world(              'SmolLM-1.7B_flashNorm')
@@ -28,12 +27,12 @@ tt.hello_world(              'SmolLM-360M_flashNorm', arch='LlamaFlashNorm')
 #tt.hello_world(          'Phi-3-mini-4k-instruct_flashNorm')
 
 # measure perplexity
-tt.perplexity('HuggingFaceTB/SmolLM-135M',           speedup=16)
-tt.perplexity(              'SmolLM-135M_flashNorm', speedup=16)
-tt.perplexity(              'SmolLM-135M_flashNorm', speedup=16, arch='LlamaFlashNorm')
-tt.perplexity('HuggingFaceTB/SmolLM-360M',           speedup=16)
-tt.perplexity(              'SmolLM-360M_flashNorm', speedup=16)
-tt.perplexity(              'SmolLM-360M_flashNorm', speedup=16, arch='LlamaFlashNorm')
+tt.perplexity('HuggingFaceTB/SmolLM-135M',                                  speedup=16)
+tt.perplexity(              'SmolLM-135M_flashNorm_test',                   speedup=16)
+tt.perplexity(              'SmolLM-135M_flashNorm', arch='LlamaFlashNorm', speedup=16)
+tt.perplexity('HuggingFaceTB/SmolLM-360M',                                  speedup=16)
+tt.perplexity(              'SmolLM-360M_flashNorm_test',                   speedup=16)
+tt.perplexity(              'SmolLM-360M_flashNorm', arch='LlamaFlashNorm', speedup=16)
 #tt.perplexity('HuggingFaceTB/SmolLM-1.7B',           speedup=64)
 #tt.perplexity(              'SmolLM-1.7B_flashNorm', speedup=64)
 #tt.perplexity('microsoft/Phi-3-mini-4k-instruct',           speedup=64, bars=True)

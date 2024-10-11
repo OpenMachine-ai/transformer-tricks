@@ -4,26 +4,22 @@
 ```
 pip3 install transformer-tricks
 ```
-To run llama and other LLMs that need an agreement (not SmolLM), you first have to type the following, which will ask for your `hf_token`:
-```
-huggingface-cli login
-```
 
 ## Example
 The example below converts SmolLM-135M to [FlashNorm](https://arxiv.org/pdf/2407.09577) and measures perplexity of the original and the modified model.
 ```python
 import transformer_tricks as tt
 
-# convert model and store the new model in ./SmolLM-135M_flashNorm
+# convert model and store the new model in ./SmolLM-135M_flashNorm_test
 tt.flashify_repo('HuggingFaceTB/SmolLM-135M')
 
 # run example inference of original and modified model
 tt.hello_world('HuggingFaceTB/SmolLM-135M')
-tt.hello_world('SmolLM-135M_flashNorm')
+tt.hello_world('./SmolLM-135M_flashNorm_test')
 
 # measure perplexity of original and modified model
 tt.perplexity('HuggingFaceTB/SmolLM-135M', speedup=16)
-tt.perplexity('SmolLM-135M_flashNorm', speedup=16)
+tt.perplexity('./SmolLM-135M_flashNorm_test', speedup=16)
 ```
 Results:
 ```
@@ -55,6 +51,10 @@ perplexity = 16.083
 perplexity = 16.083
 perplexity = 12.086
 perplexity = 12.086
+```
+To run llama and other LLMs that need an agreement (not SmolLM), you first have to type the following, which will ask for your `hf_token`:
+```
+huggingface-cli login
 ```
 
 ## Contributing
