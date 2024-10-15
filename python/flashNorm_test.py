@@ -1,10 +1,8 @@
 # flashify LLMs and run inference and perplexity to make sure that
 # the flashified models are equivalent to the original ones
-#
 # Usage: python3 test_flashNorm.py
 
 import transformer_tricks as tt
-from flashNorm_modeling_llama import *  # import local file
 
 tt.quiet_hf()  # calm down HuggingFace
 
