@@ -3,7 +3,7 @@
 import gc, os, time, torch, datasets, glob
 import torch.nn as nn
 from tqdm import tqdm
-from huggingface_hub import snapshot_download
+from huggingface_hub import snapshot_download, repo_exists
 from safetensors.torch import load_file, save_file, safe_open
 from transformers import AutoModelForCausalLM, AutoTokenizer, AutoConfig, logging, utils
 try:
@@ -13,8 +13,19 @@ except ImportError:
 
 
 #-------------------------------------------------------------------------------------
-# functions for flashNorm, see paper https://arxiv.org/abs/2407.09577
+# tools for working with safetensors and HuggingFace repos
 #-------------------------------------------------------------------------------------
+def quiet_hf():
+  """reduce verbosity of HuggingFace"""
+  logging.set_verbosity_error()
+  utils.logging.disable_progress_bar()
+  datasets.disable_progress_bars()
+  os.environ['TOKENIZERS_PARALLELISM'] = 'true'
+  os.environ['HF_HUB_VERBOSITY'] = 'error'
+  # for more env variables, see link below
+  # https://huggingface.co/docs/huggingface_hub/en/package_reference/environment_variables
+
+
 def weight(name, layer=0):
   """get dictionary key of specific weight (such as Q from layer 0)"""
   layer_str = 'model.layers.' + str(layer) + '.'
@@ -38,6 +49,42 @@ def weight(name, layer=0):
   return key
 
 
+def get_param(repo, get_meta=False):
+  """download all *.safetensors files from repo (or local dir) and return a single
+  param dict, and optionally also return the metadata"""
+
+  # download and get list of files
+  if repo_exists(repo):
+    dir = 'get_param_tmp'
+    snapshot_download(repo_id=repo, allow_patterns='*.safetensors', local_dir=dir)
+  else:  # if repo doesn't exist on HuggingFace, then 'repo' specifies local dir
+    dir = repo
+  files = glob.glob(dir + '/*.safetensors')
+
+  # get parameters
+  param = {}
+  for file in files:
+    param.update(load_file(file))  # concatenate all parameters into a single dict
+
+  # return param only, or param and metadata
+  if get_meta == False:
+    return param
+  else:
+    with safe_open(files[0], framework='pt') as f: # use the first file
+      return param, f.metadata()
+
+
+def save_repo(repo, param, config, dir):
+  """save tokenizer, config, and param in local dir"""
+  tok = AutoTokenizer.from_pretrained(repo)
+  tok.save_pretrained(dir, from_pt=True)
+  config.save_pretrained(dir, from_pt=True)
+  save_file(param, dir + '/model.safetensors', metadata={'format': 'pt'})
+
+
+#-------------------------------------------------------------------------------------
+# functions for flashNorm, see paper https://arxiv.org/abs/2407.09577
+#-------------------------------------------------------------------------------------
 def merge_norm_proj(param, norm, proj, layer=0):
   """merge norm weights into projection weights"""
   n_key = weight(norm, layer)
@@ -86,23 +133,6 @@ def flashify(param, config, bars):
     if config.tie_word_embeddings == False:
       merge_norm_proj(param, 'Hnorm', 'H')
       set_norm_one(param, 'Hnorm')
-
-
-def get_param(repo):
-  """download all safetensor files from repo and return a single param dict"""
-  snapshot_download(repo_id=repo, allow_patterns='*.safetensors', local_dir='tmp')
-  param = {}
-  for file in glob.glob('tmp/*.safetensors'):
-    param.update(load_file(file))  # concatenate all parameters into a single dict
-  return param
-
-
-def save_repo(repo, param, config, dir):
-  """save tokenizer, config, and param in local dir"""
-  tok = AutoTokenizer.from_pretrained(repo)
-  tok.save_pretrained(dir, from_pt=True)
-  config.save_pretrained(dir, from_pt=True)
-  save_file(param, dir + '/model.safetensors', metadata={'format': 'pt'})
 
 
 def flashify_repo(repo, dir=None, bars=False, test=True):
@@ -213,31 +243,39 @@ def perplexity(repo, speedup=1, arch='AutoModelForCausalLM', bars=False, perf=Fa
 
 
 #-------------------------------------------------------------------------------------
-# misc tools
+# debug tools
 #-------------------------------------------------------------------------------------
-def quiet_hf():
-  """reduce verbosity of HuggingFace packages"""
-  logging.set_verbosity_error()
-  utils.logging.disable_progress_bar()
-  datasets.disable_progress_bars()
-  os.environ['TOKENIZERS_PARALLELISM'] = 'true'
-  os.environ['HF_HUB_VERBOSITY'] = 'error'
-  # for more env variables, see link below
-  # https://huggingface.co/docs/huggingface_hub/en/package_reference/environment_variables
+def diff_safetensors(repo1, repo2):
+  """compare differences of safetensor file(s) between repo1 and repo2"""
+  param1, meta1 = get_param(repo1, get_meta=True)
+  param2, meta2 = get_param(repo2, get_meta=True)
+  set1, set2 = set(param1.keys()), set(param2.keys())
 
+  # diff keys
+  if set1 == set2:
+    print('>>> SAFE-DIFF: both repos have the same safetensor keys')
+  else:
+    if set1 - set2:
+      print(f'>>> SAFE-DIFF: these keys are only in repo {repo1}: {set1 - set2}')
+    if set2 - set1:
+      print(f'>>> SAFE-DIFF: these keys are only in repo {repo2}: {set2 - set1}')
 
-#-------------------------------------------------------------------------------------
-# TODOs: add more functions
-#-------------------------------------------------------------------------------------
+  # diff tensors
+  found_diff = False
+  for key in set1.intersection(set2):
+    if not torch.equal(param1[key], param2[key]):
+      found_diff = True
+      print(f'>>> SAFE-DIFF: tensors {key} are not equal')
+  if not found_diff:
+    print('>>> SAFE-DIFF: all intersecting tensors are equal')
 
-# print metadata of a safetensor file:
-#    with safe_open('model.safetensors', framework='pt') as f:
-#      for k, v in f.metadata().items():
-#        print(f'{k}: {v}')
+  # diff metadata
+  if meta1 == meta2:
+    print('>>> SAFE-DIFF: both repos have the same safetensor metadata')
+  else:
+    print(f'>>> SAFE-DIFF: metadata of repo {repo1}: {meta1}')
+    print(f'>>> SAFE-DIFF: metadata of repo {repo2}: {meta2}')
 
-# e.g. add a def to compare or diff two models / safetensors. See here:
-#   - https://gist.github.com/so298/b5fc4127f161dbd65429f5756d771d88
-#   - https://gist.github.com/madebyollin/034afe6670fc03966d075912cbccf797
 
 # misc TODOs:
 #  - do we really need 'with torch.no_grad():' everywhere?
