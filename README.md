@@ -13,6 +13,9 @@ Tricks and tools for speeding up LLMs:
 <a href="https://colab.research.google.com/github/OpenMachine-ai/transformer-tricks/blob/main/notebooks/flash_normalization.ipynb"> <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Colab" height="20"> </a>
   * [HuggingFace repo](https://huggingface.co/open-machine/FlashNorm)
 
+* **Slim attention: cut your context memory in half without loss of accuracy [work in progress]:**
+  * [PDF here](pdf/slim.pdf)
+
 * **Approximate attention [work in progress]:**
   * [PDF here](pdf/approximate.pdf)
 
