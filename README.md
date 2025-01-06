@@ -15,7 +15,8 @@ Tricks and tools for speeding up LLMs:
 
 * **Slim attention: cut your context memory in half without loss of accuracy [work in progress]:**
   * [PDF here](pdf/slim.pdf)
-  * [test](https://raw.githubusercontent.com/OpenMachine-ai/transformer-tricks/refs/heads/main/pdf/slim.pdf)
+  * [test](https://docs.google.com/viewer?url=https://raw.githubusercontent.com/OpenMachine-ai/transformer-tricks/refs/heads/main/pdf/slim.pdf)
+  * 
 
 * **Approximate attention [work in progress]:**
   * [PDF here](pdf/approximate.pdf)
