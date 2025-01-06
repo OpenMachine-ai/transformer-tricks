@@ -5,6 +5,10 @@ pip3 install transformer-tricks
 ```
 Tricks and tools for speeding up LLMs:
 
+* **Slim attention: cut your context memory in half without loss of accuracy [work in progress]:**
+  * [Podcast](https://notebooklm.google.com/notebook/ac47a53c-866b-4271-ab79-bc48d1b41722/audio)
+  * [PDF here](https://docs.google.com/viewer?url=https://raw.githubusercontent.com/OpenMachine-ai/transformer-tricks/refs/heads/main/pdf/slim.pdf)
+
 * **Flash normalization:**
   * arXiv paper: https://arxiv.org/abs/2407.09577
   * See [python folder](python) for code to convert LLMs to FlashNorm
@@ -12,11 +16,6 @@ Tricks and tools for speeding up LLMs:
   * Notebook for paper:
 <a href="https://colab.research.google.com/github/OpenMachine-ai/transformer-tricks/blob/main/notebooks/flash_normalization.ipynb"> <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Colab" height="20"> </a>
   * [HuggingFace repo](https://huggingface.co/open-machine/FlashNorm)
-
-* **Slim attention: cut your context memory in half without loss of accuracy [work in progress]:**
-  * [PDF here](pdf/slim.pdf)
-  * [test](https://docs.google.com/viewer?url=https://raw.githubusercontent.com/OpenMachine-ai/transformer-tricks/refs/heads/main/pdf/slim.pdf)
-  * 
 
 * **Approximate attention [work in progress]:**
   * [PDF here](pdf/approximate.pdf)
