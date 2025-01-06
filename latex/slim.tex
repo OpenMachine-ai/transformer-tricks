@@ -15,7 +15,8 @@
 
 \title{Slim attention: cut your context memory in half without \\ loss of accuracy --- \emph{K-cache is all you need for MHA}}
 
-\author{Nils Graef\thanks{\texttt{info@openmachine.ai}}, TBD \\ \href{https://openmachine.ai}{OpenMachine}}
+\author{Nils Graef\thanks{\texttt{info@openmachine.ai}}, Andrew Wasielewski, TBD \\
+  \href{https://openmachine.ai}{OpenMachine}}
 
 \begin{document} \maketitle
 
@@ -38,30 +39,30 @@ Slim attention is applicable for transformers that use MHA (multi-head attention
 %\begin{tabular}{l|l|l|c|c|c|c|c|c|c} \fline
 \begin{tabular}{lllccccccc} \fline
   \thead[l]{Year} & \thead[l]{Publisher} & \thead[l]{Model} & \thead{Params} & \thead{$d$} & \thead{layers} & \thead{$h$} & \thead{$d_k$} & \thead{context \\ length} & \thead{context \\ memory} \\ \hline
-  \mr{15}{2024} & \mr{2}{Meta}  & CodeLlama-7B \citep{code-llama}         & 7B & 4,096  & \mco{2}{32}             & \mr{2}{128} & \mr{2}{16k}  & 4.3B  \\ %\cline{3-7} \cline{10-10}
-                &               & CodeLlama-13B \citep{code-llama}        & 13B   & 5,120         & \mco{2}{40}             &             &              & 6.7B  \\ \cline{2-10}
-                & Google        & CodeGemma-7B \citep{codeGemma}          & 8.5B  & 3,072         & 28         & 16         & 256         & \mr{3}{8k}   & 1.9B  \\ \cline{2-8} \cline{10-10}
-                & Cohere        & aya-23-35B \citep{aya}           & 35B   & 8,192         & 40         & 64         & 128         &              & 5.4B  \\ \cline{2-8} \cline{10-10}
-         & \mr{2}{HuggingFace}  & SmolLM2-1.7B          & 1.7B  & \mr{2}{2,048} & \mr{2}{24} & \mr{2}{32} & \mr{2}{64}  &              & 0.8B  \\ \cline{9-9} %\cline{3-4} \cline{9-10}
-         &                      & SmolVLM               & 2.3B  &               &            &            &             & 16k          & 1.6B  \\ \cline{2-10}
-         & \mr{2}{Microsoft}    & Phi-3-mini-128k       & 3.8B  & 3,072         & \mco{2}{32}             & 96          & 128k         & 25.8B \\ %\cline{3-10}
-         &                      & bitnet\_b1\_58-3B     & 3.3B  & 3,200         & 26         & 32         & 100         & 2k           & 0.3B  \\ \cline{2-10}
-         & \mr{3}{Allen AI}     & OLMo-1B               & 1.3B  & 2,048         & \mco{2}{16}             & \mr{3}{128} & \mr{3}{4k}   & 0.3B  \\ %\cline{3-7} \cline{10-10}
-         &                      & OLMo-2-1124-7B        & 7.3B  & 4,096         & \mco{2}{32}             &             &              & 1.1B  \\ %\cline{3-7} \cline{10-10}
-         &                      & OLMo-2-1124-13B       & 13.7B & 5,120         & \mco{2}{40}             &             &              & 1.7B  \\ \cline{2-10}
-         & \mr{2}{Amazon}       & Cronos-Bolt-tiny      & 9M    & 256           & \mco{2}{4}              & \mr{2}{64}  & \mr{2}{0.5k} & 1M    \\ %\cline{3-7} \cline{10-10}
-         &                      & Cronos-Bolt-base      & 205M  & 768           & \mco{2}{12}             &             &              & 9.4M  \\ \cline{2-10}
-         & Alibaba              & Qwen2-Audio-7B        & 8.4B  & \mr{2}{4,096} & \mco{2}{\mr{2}{32}}     & \mr{5}{128} & 8k           & 2.1B  \\ \cline{2-4} \cline{9-10}
-         & \mr{2}{UW–Madison}   & llava-NeXT-video-7B   & 7.1B  &               & \mco{2}{}               &             & \mr{2}{4k}   & 1.1B  \\ \cline{1-1} \cline{5-7} %\cline{1-1} \cline{3-7} \cline{10-10}
-  \mr{3}{2023} &                & llava-v1.6-vicuna-13B & 13.4B & 5,120         & \mco{2}{40}             &             &              & 1.7B  \\ \cline{2-7} \cline{9-10}
-         & \mr{2}{LMSYS}        & Vicuna-7B-v1.5-16k    & ~7B   & 4,096         & \mco{2}{32}             &             & \mr{2}{16k}  & 4.3B  \\ %\cline{3-7} \cline{10-10}
-         &                      & Vicuna-13B-v1.5-16k   & ~13B  & 5,120         & \mco{2}{40}             &             &              & 6.7B  \\ \hline
-  \mr{5}{2022} & \mr{2}{Google} & Flan-T5-base          & 248M  & 768           & \mco{2}{12}             & \mr{6}{64}  & \mr{2}{0.5k} & 9.4M  \\ %\cline{3-7} \cline{10-10}
-         &                      & Flan-T5-XXL           & 11.3B & 4,096         & 24         & 64         &             &              & 101M  \\ \cline{2-7} \cline{9-10}
-         & \mr{4}{OpenAI}       & Whisper-tiny          & 38M   & 384           & 4          & 6          & & \mr{3}{\makecell{enc: 1500 \\ dec: 448}} & 6M \\ %\cline{3-7} \cline{10-10}
-         &                      & Whisper-small         & 242M  & 768           & \mco{2}{12}             &             &              & 36M   \\ %\cline{3-7} \cline{10-10}
-         &                      & Whisper-large-v3      & 1.5B  & 1,280         & 32         & 20         &             &              & 160M  \\ \cline{1-1} \cline{9-9} %\cline{1-1} \cline{3-7} \cline{9-10}
-  2019   &                      & GPT-2 XL              & 1.6B  & 1,600         & 48         & 25         &             & 1k           & 157M  \\ \fline
+  \mr{15}{2024} & \mr{2}{Meta}  & CodeLlama-7B \citep{code-llama}        & 7B & 4,096  & \mco{2}{32}             & \mr{2}{128} & \mr{2}{16k}  & 4.3B  \\ %\cline{3-7} \cline{10-10}
+                &               & CodeLlama-13B \citep{code-llama}       & 13B   & 5,120         & \mco{2}{40}             &             &              & 6.7B  \\ \cline{2-10}
+                & Google        & CodeGemma-7B \citep{codeGemma}         & 8.5B  & 3,072         & 28         & 16         & 256         & \mr{3}{8k}   & 1.9B  \\ \cline{2-8} \cline{10-10}
+                & Cohere        & aya-23-35B \citep{aya}                 & 35B   & 8,192         & 40         & 64         & 128         &              & 5.4B  \\ \cline{2-8} \cline{10-10}
+         & \mr{2}{HuggingFace}  & SmolLM2-1.7B \citep{smollm}            & 1.7B  & \mr{2}{2,048} & \mr{2}{24} & \mr{2}{32} & \mr{2}{64}  &              & 0.8B  \\ \cline{9-9} %\cline{3-4} \cline{9-10}
+         &                      & SmolVLM \citep{smolvlm}                & 2.3B  &               &            &            &             & 16k          & 1.6B  \\ \cline{2-10}
+         & \mr{2}{Microsoft}    & Phi-3-mini-128k \citep{phi3}           & 3.8B  & 3,072         & \mco{2}{32}             & 96          & 128k         & 25.8B \\ %\cline{3-10}
+         &                      & bitnet\_b1\_58-3B \citep{bitnet}       & 3.3B  & 3,200         & 26         & 32         & 100         & 2k           & 0.3B  \\ \cline{2-10}
+         & \mr{3}{Allen AI}     & OLMo-1B \citep{olmo}                   & 1.3B  & 2,048         & \mco{2}{16}             & \mr{3}{128} & \mr{3}{4k}   & 0.3B  \\ %\cline{3-7} \cline{10-10}
+         &                      & OLMo-2-1124-7B \citep{olmo}            & 7.3B  & 4,096         & \mco{2}{32}             &             &              & 1.1B  \\ %\cline{3-7} \cline{10-10}
+         &                      & OLMo-2-1124-13B \citep{olmo}           & 13.7B & 5,120         & \mco{2}{40}             &             &              & 1.7B  \\ \cline{2-10}
+         & \mr{2}{Amazon}       & Cronos-Bolt-tiny \citep{cronos}        & 9M    & 256           & \mco{2}{4}              & \mr{2}{64}  & \mr{2}{0.5k} & 1M    \\ %\cline{3-7} \cline{10-10}
+         &                      & Cronos-Bolt-base \citep{cronos}        & 205M  & 768           & \mco{2}{12}             &             &              & 9.4M  \\ \cline{2-10}
+         & Alibaba              & Qwen2-Audio-7B   \citep{qwen2-audio}   & 8.4B  & \mr{2}{4,096} & \mco{2}{\mr{2}{32}}     & \mr{5}{128} & 8k           & 2.1B  \\ \cline{2-4} \cline{9-10}
+         & \mr{2}{UW–Madison}   & llava-next-video-7B \citep{llava-next} & 7.1B  &               & \mco{2}{}               &             & \mr{2}{4k}   & 1.1B  \\ \cline{1-1} \cline{5-7} %\cline{1-1} \cline{3-7} \cline{10-10}
+  \mr{3}{2023} &                & llava-vicuna-13B \citep{llava}         & 13.4B & 5,120         & \mco{2}{40}             &             &              & 1.7B  \\ \cline{2-7} \cline{9-10}
+         & \mr{2}{LMSYS}        & Vicuna-7B-16k \citep{vicuna}           & ~7B   & 4,096         & \mco{2}{32}             &             & \mr{2}{16k}  & 4.3B  \\ %\cline{3-7} \cline{10-10}
+         &                      & Vicuna-13B-16k \citep{vicuna}          & ~13B  & 5,120         & \mco{2}{40}             &             &              & 6.7B  \\ \hline
+  \mr{5}{2022} & \mr{2}{Google} & Flan-T5-base \citep{flan}              & 248M  & 768           & \mco{2}{12}             & \mr{6}{64}  & \mr{2}{0.5k} & 9.4M  \\ %\cline{3-7} \cline{10-10}
+         &                      & Flan-T5-XXL  \citep{flan}              & 11.3B & 4,096         & 24         & 64         &             &              & 101M  \\ \cline{2-7} \cline{9-10}
+         & \mr{4}{OpenAI}       & Whisper-tiny \citep{whisper}           & 38M   & 384           & 4          & 6          & & \mr{3}{\makecell{enc: 1500 \\ dec: 448}} & 6M \\ %\cline{3-7} \cline{10-10}
+         &                      & Whisper-small \citep{whisper}          & 242M  & 768           & \mco{2}{12}             &             &              & 36M   \\ %\cline{3-7} \cline{10-10}
+         &                      & Whisper-large-v3 \citep{whisper}       & 1.5B  & 1,280         & 32         & 20         &             &              & 160M  \\ \cline{1-1} \cline{9-9} %\cline{1-1} \cline{3-7} \cline{9-10}
+  2019   &                      & GPT-2 XL \citep{gpt2}                  & 1.6B  & 1,600         & 48         & 25         &             & 1k           & 157M  \\ \fline
 \end{tabular} \label{tab1} \end{table} \endgroup
 For long contexts, the KV-cache can be larger than the parameter memory. For batch size 1 and 1 byte per parameter and activation (int8 or fp8), the Phi-3-mini-128k model for example has a 3.8GB parameter memory and requires 25GB for its KV-cache to support a context length of 128K tokens. For a batch size of 16 for example, the KV-cache grows to 16 $\cdot$ 25GB = 400GB. Therefore, memory bandwidth and capacity become the bottleneck for supporting large context windows.
 
