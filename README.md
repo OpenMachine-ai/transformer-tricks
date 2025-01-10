@@ -8,6 +8,8 @@ Tricks and tools for speeding up LLMs:
 * **Slim attention: cut your context memory in half without loss of accuracy [work in progress]:**
   * [Podcast](https://notebooklm.google.com/notebook/ac47a53c-866b-4271-ab79-bc48d1b41722/audio)
   * [PDF here](https://docs.google.com/viewer?url=https://raw.githubusercontent.com/OpenMachine-ai/transformer-tricks/refs/heads/main/pdf/slim.pdf)
+  * Notebook for paper:
+<a href="https://colab.research.google.com/github/OpenMachine-ai/transformer-tricks/blob/main/notebooks/slimAttn_concept.ipynb"> <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Colab" height="20"> </a>
 
 * **Flash normalization:**
   * [Podcast](https://notebooklm.google.com/notebook/cca31378-7f5b-4bfc-a1d7-75c7b279fcb5/audio)
