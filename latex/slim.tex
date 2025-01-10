@@ -14,6 +14,7 @@
 \def\fline{\Xhline{2\arrayrulewidth}} % fatline for table
 
 \title{Slim attention: cut your context memory in half without \\ loss of accuracy --- \emph{K-cache is all you need for MHA}}
+%\title{Slim attention: halving context memory in transformers with \\ no accuracy loss --- \emph{K-cache is all you need for MHA}}
 
 \author{Nils Graef\thanks{\texttt{info@openmachine.ai}}, Andrew Wasielewski, TBD \\
   \href{https://openmachine.ai}{OpenMachine}}
@@ -22,7 +23,7 @@
 
 \begin{abstract}
 Slim attention shrinks the context memory size by 2x for transformer models with MHA (multi-head attention), which can speed up inference by up to 2x for long context. Slim attention is an exact, mathematically identical implementation of the standard attention mechanism and therefore doesn’t compromise model accuracy. In other words, slim attention losslessly compresses the context memory by a factor of 2. \\
-For encoder-decoder transformers, the context memory size can be reduced even further: For the Whisper models for example, we reduce the context memory by 8x, which can speed up token generation by 5x for batch size 64. And for rare cases where the MHA projections have non-square weight matrices, the memory can be reduced by a factor of 32 for the T5-11B model for example.
+For encoder-decoder transformers, the context memory size can be reduced even further: For the Whisper models for example, we reduce the context memory by 8x, which can speed up token generation by 5x for batch size 64. And for rare cases where the MHA projections have non-square weight matrices, the memory can be reduced by a factor of 32 for the T5-11B model for example. See \citep{slim-podcast} for a podcast about this paper.
 \end{abstract}
 
 Fig. \ref{fig1} illustrates how slim attention computes the value (V) projections from the key (K) projections in a mathematical equivalent way without hurting model accuracy. Therefore, we only need to store the keys in memory, instead of storing both keys and values. This reduces the size of the context memory (aka KV-cache) by half. Alternatively, slim attention can double the context window size without increasing context memory. However, calculating V from K on-the-fly requires additional compute, which we will discuss below.

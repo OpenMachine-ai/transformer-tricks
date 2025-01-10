@@ -25,13 +25,13 @@ Tricks and tools for speeding up LLMs:
   * [PDF here](pdf/approximate.pdf)
 
 * **Removing weights from skipless transformers:**
-  * [Podcast](https://notebooklm.google.com/notebook/0875eef7-094e-4c30-bc13-90a1a074c949/audio) 
+  * [Podcast](https://notebooklm.google.com/notebook/0875eef7-094e-4c30-bc13-90a1a074c949/audio)
   * arXiv paper: https://arxiv.org/abs/2404.12362
   * Notebook:
 <a href="https://colab.research.google.com/github/OpenMachine-ai/transformer-tricks/blob/main/notebooks/removing_weights.ipynb"> <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Colab" height="20"> </a>
 
 * **Precomputing the first layer:**
-  * [Podcast](https://notebooklm.google.com/notebook/7794278e-de6a-40fc-ab1c-3240a40e55d5/audio) 
+  * [Podcast](https://notebooklm.google.com/notebook/7794278e-de6a-40fc-ab1c-3240a40e55d5/audio)
   * arXiv paper: https://arxiv.org/abs/2402.13388
 
 **Please give us a ⭐ if you like this repo, thanks!**

@@ -1,4 +1,4 @@
-# Proof of concept for the paper "Slim Attention: cut your context memory in half"
+# Proof of concept for paper "Slim Attention: cut your context memory in half"
 # Usage: python3 slimAttn_example.py
 
 # %pip install --quiet transformer_tricks
@@ -12,7 +12,7 @@ from transformers import AutoConfig
 #-------------------------------------------------------------------------------
 def softmax(x, axis=-1):
   """softmax along 'axis', default is the last axis"""
-  e_x = np.exp(x - np.max(x, axis=axis, keepdims=True))  # subtract max for numerical stability
+  e_x = np.exp(x - np.max(x, axis=axis, keepdims=True))
   return e_x / np.sum(e_x, axis=axis, keepdims=True)
 
 def msplit(M, h):
@@ -20,17 +20,17 @@ def msplit(M, h):
   return np.array_split(M, h, axis=-1)
 
 def ops(A, B):
-  """number of ops for matmul of A and B;
-  -  A and B must be 2D arrays, and their inner dimensions must agree!
+  """number of ops (operations) for matmul of A and B:
+   - A and B must be 2D arrays, and their inner dimensions must agree!
    - A is an m × n matrix, and B is an n × p matrix, then the resulting product
      of A and B is an m × p matrix.
-   - Each element (i,j) of the m x p result matrix is computed by the dot-product
+   - Each element (i,j) of the m x p result matrix is computed by the dotproduct
      of the i-th row of A and the j-th column of B.
-   - Each dot-product takes n multiplications and n - 1 additions, so total
+   - Each dotproduct takes n multiplications and n - 1 additions, so total
      number of ops is 2n - 1 per dotproduct.
-   - There are m * p elements in the result matrix, so we have m * p dotproducts,
-     so in total we need m * p * (2n - 1) ops, which is approximately 2*m*p*n ops
-   - For simplicity, let's just use the simple approximation of OPS = 2*m*p*n"""
+   - There are m * p elements in the result matrix, so m * p dotproducts, so in
+     total we need m * p * (2n - 1) ops, which is approximately 2*m*p*n ops
+   - For simplicity, let's just use the simple approximation of ops = 2*m*p*n"""
   m, n = A.shape
   p = B.shape[1]
   return 2 * m * n * p
@@ -57,11 +57,11 @@ for layer in range(config.num_hidden_layers):
   Wk = param[tt.weight('K', layer)].to(torch.float64).numpy()
   Wv = param[tt.weight('V', layer)].to(torch.float64).numpy()
   Wkv = np.linalg.inv(Wk) @ Wv
-  print(layer, ':', np.allclose(Wk @ Wkv, Wv))  # check if Wk @ Wkv is the 'same' as Wv
+  print(layer, ':', np.allclose(Wk @ Wkv, Wv))  # check if Wk @ Wkv close to Wv
 
 # %%
 #-------------------------------------------------------------------------------
-# compare option 1 and option 2 for calculating equation (5) of paper
+# compare options 1 and 2 for calculating equation (5) of paper
 #-------------------------------------------------------------------------------
 
 # get weights for Q, K, V and convert to float64
@@ -69,13 +69,13 @@ for layer in range(config.num_hidden_layers):
 Wq = param[tt.weight('Q', 0)].to(torch.float64).numpy()
 Wk = param[tt.weight('K', 0)].to(torch.float64).numpy()
 Wv = param[tt.weight('V', 0)].to(torch.float64).numpy()
-Wkv = np.linalg.inv(Wk) @ Wv # calculate Wkv (aka W_KV)
+Wkv = np.linalg.inv(Wk) @ Wv  # calculate Wkv (aka W_KV)
 # print('Is Wk @ Wkv close to Wv?', np.allclose(Wk @ Wkv, Wv))
 
 # generate random input X
 n = 100  # number of tokens
 X = np.random.rand(n, d).astype(np.float64)  # range [0,1]
-Xn = np.expand_dims(X[n-1, :], axis=0)  # the n-th row of X, and make it a 1 x d matrix
+Xn = np.expand_dims(X[n-1, :], axis=0)  # n-th row of X; make it a 1 x d matrix
 
 Q = Xn @ Wq  # only for the last row of X (for the generate-phase)
 K = X @ Wk
