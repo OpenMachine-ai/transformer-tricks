@@ -59,20 +59,4 @@ To run llama and other LLMs that need an agreement (not SmolLM), you first have 
 huggingface-cli login
 ```
 
-## Contributing
-Before making a change to this repo, please do the following:
-- Format your code by typing `autopep8 *.py`. It's using the config in  `pyproject.toml`.
-- Whenever you change `transformer_tricks.py`, publish a new version of the package as follows:
-  - First, update the version number in `pyproject.toml` and in `requirements.txt`
-  - Then, push the package to PyPi by typing `./push_pypi.sh`
-- Whenever you modify `flashNorm_example.py`, generate the corresponding notebook as follows:
-  ```
-  jupytext --to ipynb flashNorm_example.py -o ../notebooks/flashNorm_example.ipynb
-  ```
-
-## Notes on python package
-- Link to package [here](https://pypi.org/project/transformer-tricks/)
-- Link to stats [here](https://www.pepy.tech/projects/transformer-tricks)
-- Source of this README file [here](https://github.com/OpenMachine-ai/transformer-tricks/blob/main/python/README.md)
-
 ## Please give us a ⭐ if you like this repo, thanks!
