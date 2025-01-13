@@ -40,4 +40,18 @@ The papers are accompanied by the following Jupyter notebooks:
 
 ---
 
+## Contributing
+Before making a change to this repo, please do the following:
+- Format your code by typing `autopep8 *.py`. It's using the config in  `pyproject.toml`.
+- Whenever you change `transformer_tricks.py`, publish a new version of the package as follows:
+  - First, update the version number in `pyproject.toml` and in `requirements.txt`
+  - Then, push the package to PyPi by typing `./push_pypi.sh`
+  - Links for python package: [pypi](https://pypi.org/project/transformer-tricks/), [stats](https://www.pepy.tech/projects/transformer-tricks), [source of this readme](https://github.com/OpenMachine-ai/transformer-tricks/blob/main/python/README.md)
+- Whenever you modify `flashNorm_example.py` or another python file, generate the corresponding notebook as follows:
+  ```
+  jupytext --to ipynb flashNorm_example.py -o notebooks/flashNorm_example.ipynb
+  ```
+
+---
+
 **Please give us a ⭐ if you like this repo, thanks!**
