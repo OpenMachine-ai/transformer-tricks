@@ -54,4 +54,4 @@ Before making a change to this repo, please do the following:
 
 ---
 
-**Please give us a ⭐ if you like this repo, thanks!**
+<h3 align="center"> Please give us a ⭐ if you like this repo, thanks! </h3>
