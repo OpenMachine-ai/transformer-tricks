@@ -22,8 +22,7 @@
 \begin{document} \maketitle
 
 \begin{abstract}
-Slim attention shrinks the context memory size by 2x for transformer models with MHA (multi-head attention), which can speed up inference by up to 2x for long context. Slim attention is an exact, mathematically identical implementation of the standard attention mechanism and therefore doesn’t compromise model accuracy. In other words, slim attention losslessly compresses the context memory by a factor of 2. \\
-For encoder-decoder transformers, the context memory size can be reduced even further: For the Whisper models for example, we reduce the context memory by 8x, which can speed up token generation by 5x for batch size 64. And for rare cases where the MHA projections have non-square weight matrices, the memory can be reduced by a factor of 32 for the T5-11B model for example. See \citep{slim-podcast} for a podcast about this paper.
+Slim attention shrinks the context memory size by 2x for transformer models with MHA (multi-head attention), which can speed up inference by up to 2x for long context. Slim attention is an exact, mathematically identical implementation of the standard attention mechanism and therefore doesn’t compromise model accuracy. In other words, slim attention losslessly compresses the context memory by a factor of 2. For encoder-decoder transformers, the context memory size can be reduced even further: For the Whisper models for example, we reduce the context memory by 8x, which can speed up token generation by 5x for batch size 64. And for rare cases where the MHA projections have non-square weight matrices, the memory can be reduced by a factor of 32 for the T5-11B model for example. See \citep{slim-podcast} for a podcast about this paper.
 \end{abstract}
 
 Fig. \ref{fig1} illustrates how slim attention computes the value (V) projections from the key (K) projections in a mathematical equivalent way without hurting model accuracy. Therefore, we only need to store the keys in memory, instead of storing both keys and values. This reduces the size of the context memory (aka KV-cache) by half. Alternatively, slim attention can double the context window size without increasing context memory. However, calculating V from K on-the-fly requires additional compute, which we will discuss below.
@@ -321,6 +320,9 @@ There is a further optimization, which is a hybrid of options 1 and 2, where one
 %For many applications, the main advantage of FlashNorm is simplification. This is similar to the simplifications we get from using RMSNorm over LayerNorm \citep{layerNorm}, and from Llama's removal of biases from all linear layers.
 
 %Future work should investigate which of the presented optimizations are applicable for training of LLMs.
+
+\section{Conclusion}
+Slim attention offers a simple trick for halving the context memory of MHA transformer models without sacrificing accuracy. Future work includes integrating slim attention into popular frameworks such as vLLM \citep{vLLM}, llamafile \citep{llamafile}, Ollama \citep{ollama}, and combining it with existing context memory management schemes such as PagedAttention \citep{pagedAttn} and other compression schemes such as VL-cache \citep{VL-cache}.
 
 %\section*{Acknowledgements}
 %We would like to thank TBD for helpful feedback on this work.

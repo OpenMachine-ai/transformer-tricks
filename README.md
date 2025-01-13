@@ -1,5 +1,5 @@
 <h1 align="center">
-  Transformer Tricks 
+  Transformer Tricks
   <!--- and Treats :jack_o_lantern: --->
 </h1>
 
@@ -15,7 +15,7 @@ Tricks and tools for speeding up LLMs:
 
 * **Slim attention: cut your context memory in half without loss of accuracy [work in progress]:**
   * [Podcast](https://notebooklm.google.com/notebook/ac47a53c-866b-4271-ab79-bc48d1b41722/audio)
-  * [PDF here](https://docs.google.com/viewer?url=https://raw.githubusercontent.com/OpenMachine-ai/transformer-tricks/refs/heads/main/pdf/slim.pdf)
+  * [PDF here](https://docs.google.com/viewer?url=https://raw.githubusercontent.com/OpenMachine-ai/transformer-tricks/refs/heads/main/doc/slim.pdf)
   * Notebook for paper:
 <a href="https://colab.research.google.com/github/OpenMachine-ai/transformer-tricks/blob/main/notebooks/slimAttn_concept.ipynb"> <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Colab" height="20"> </a>
 
@@ -30,7 +30,7 @@ Tricks and tools for speeding up LLMs:
 
 * **Approximate attention [work in progress]:**
   * [Podcast](https://notebooklm.google.com/notebook/5fb65371-6048-4e63-8a37-6e4f16d7f708/audio)
-  * [PDF here](pdf/approximate.pdf)
+  * [PDF here](doc/approximate.pdf)
 
 * **Removing weights from skipless transformers:**
   * [Podcast](https://notebooklm.google.com/notebook/0875eef7-094e-4c30-bc13-90a1a074c949/audio)
