@@ -42,4 +42,4 @@ tt.perplexity('./SmolLM-135M_flashNorm', speedup=16, arch='LlamaFlashNorm')
 
 # %% [markdown]
 # Whenever you change this file, make sure to regenerate the jupyter notebook as follows:
-#   `jupytext flashNorm_example.py -o ../notebooks/flashNorm_example.ipynb`
+#   `jupytext flashNorm_example.py -o notebooks/flashNorm_example.ipynb`

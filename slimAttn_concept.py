@@ -107,4 +107,4 @@ print(f'speedup of option 2 over option 1: {((o1_step1 + o1_step2) / (o2_step1 +
 
 # %% [markdown]
 # Whenever you change this file, make sure to regenerate the jupyter notebook as follows:
-#   `jupytext slimAttn_concept.py -o ../notebooks/slimAttn_concept.ipynb`
+#   `jupytext slimAttn_concept.py -o notebooks/slimAttn_concept.ipynb`
