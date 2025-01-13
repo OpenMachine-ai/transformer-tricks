@@ -54,4 +54,7 @@ Before making a change to this repo, please do the following:
 
 ---
 
+  <a href="https://transformertricks.substack.com"><b>[newsletter]</b></a>  
+
+
 <h3 align="center"> Please give us a ⭐ if you like this repo, thanks! </h3>
