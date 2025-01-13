@@ -6,8 +6,8 @@
 ---
 
 A collection of tricks to simplify and speed up transformer models:
-- Slim attention: [[podcast]](https://notebooklm.google.com/notebook/ac47a53c-866b-4271-ab79-bc48d1b41722/audio), [[paper]](https://docs.google.com/viewer?url=https://raw.githubusercontent.com/OpenMachine-ai/transformer-tricks/refs/heads/main/doc/slim.pdf), [[notebook]](https://colab.research.google.com/github/OpenMachine-ai/transformer-tricks/blob/main/notebooks/slimAttn_concept.ipynb)
-- Flash normalization: [[podcast]](https://notebooklm.google.com/notebook/cca31378-7f5b-4bfc-a1d7-75c7b279fcb5/audio), [[paper]](https://arxiv.org/abs/2407.09577), [[code-readme]](doc/flashNorm.md)
+- Slim attention: [[podcast]](https://notebooklm.google.com/notebook/ac47a53c-866b-4271-ab79-bc48d1b41722/audio), [[paper]](https://docs.google.com/viewer?url=https://raw.githubusercontent.com/OpenMachine-ai/transformer-tricks/refs/heads/main/doc/slim.pdf), [[notebook]](https://colab.research.google.com/github/OpenMachine-ai/transformer-tricks/blob/main/notebooks/slimAttn_concept.ipynb), [[code-readme]](doc/slimAttn.md)
+- Flash normalization: [[podcast]](https://notebooklm.google.com/notebook/cca31378-7f5b-4bfc-a1d7-75c7b279fcb5/audio), [[paper]](https://arxiv.org/abs/2407.09577), [[notebook]](https://colab.research.google.com/github/OpenMachine-ai/transformer-tricks/blob/main/notebooks/flash_normalization.ipynb), [[code-readme]](doc/flashNorm.md)
 - Precomputing the first layer: [[podcast]](https://notebooklm.google.com/notebook/7794278e-de6a-40fc-ab1c-3240a40e55d5/audio), [[paper]](https://arxiv.org/abs/2402.13388)
 - Removing weights from skipless transformers: [[podcast]](https://notebooklm.google.com/notebook/0875eef7-094e-4c30-bc13-90a1a074c949/audio), [[paper]](https://arxiv.org/abs/2404.12362), [[notebook]](https://colab.research.google.com/github/OpenMachine-ai/transformer-tricks/blob/main/notebooks/removing_weights.ipynb)
 - Approximate attention [work in progress]: [[podcast]](https://notebooklm.google.com/notebook/5fb65371-6048-4e63-8a37-6e4f16d7f708/audio), [[paper]](https://docs.google.com/viewer?url=https://raw.githubusercontent.com/OpenMachine-ai/transformer-tricks/refs/heads/main/doc/approximate.pdf)
@@ -16,7 +16,7 @@ Many of these tricks follow a recent trend of removing parts from neural network
 
 ---
 
-## Getting Started
+## Installation
 
 Install the transformer tricks package:
 ```bash
@@ -25,23 +25,24 @@ pip install transformer-tricks
 
 ---
 
+## Code documentation
+Follow the links below for documentation of the python code in this directory:
+- [Slim attention](doc/slimAttn.md)
+- [Flash normalization](doc/flashNorm.md)
+
+---
+
+## Notebooks
+The papers are accompanied by the following Jupyter notebooks:
+- Slim attention: <a href="https://colab.research.google.com/github/OpenMachine-ai/transformer-tricks/blob/main/notebooks/slimAttn_concept.ipynb"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Colab" height="20"></a>
+- Flash normalization: <a href="https://colab.research.google.com/github/OpenMachine-ai/transformer-tricks/blob/main/notebooks/flashNorm_example.ipynb"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Colab" height="20"></a> <a href="https://colab.research.google.com/github/OpenMachine-ai/transformer-tricks/blob/main/notebooks/flash_normalization.ipynb"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Colab" height="20"></a>
+- Removing weights from skipless transformers: <a href="https://colab.research.google.com/github/OpenMachine-ai/transformer-tricks/blob/main/notebooks/removing_weights.ipynb"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Colab" height="20"></a>
+
+
+
 OLD docu:
 
-Tricks and tools for speeding up LLMs:
-
-* **Slim attention: cut your context memory in half without loss of accuracy [work in progress]:**
-  * Notebook for paper:
-<a href="https://colab.research.google.com/github/OpenMachine-ai/transformer-tricks/blob/main/notebooks/slimAttn_concept.ipynb"> <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Colab" height="20"> </a>
-
-* **Flash normalization:**
-  * Notebook example for converting an LLM to FlashNorm: <a href="https://colab.research.google.com/github/OpenMachine-ai/transformer-tricks/blob/main/notebooks/flashNorm_example.ipynb"> <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Colab" height="20"> </a>
-  * Notebook for paper:
-<a href="https://colab.research.google.com/github/OpenMachine-ai/transformer-tricks/blob/main/notebooks/flash_normalization.ipynb"> <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Colab" height="20"> </a>
   * [HuggingFace repo](https://huggingface.co/open-machine/FlashNorm)
-
-* **Removing weights from skipless transformers:**
-  * Notebook:
-<a href="https://colab.research.google.com/github/OpenMachine-ai/transformer-tricks/blob/main/notebooks/removing_weights.ipynb"> <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Colab" height="20"> </a>
 
 ---
 
