@@ -31,6 +31,8 @@ perplexity = 16.083
 
 You can run the example in your browser by clicking on this notebook: <a href="https://colab.research.google.com/github/OpenMachine-ai/transformer-tricks/blob/main/notebooks/flashNorm_example.ipynb"> <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Colab" height="20"> </a>. Hit "cancel" when it says "Notebook does not have secret access", because we don't need an HF_TOKEN for SmolLM.
 
+TODO: [our HuggingFace repo](https://huggingface.co/open-machine/FlashNorm)
+
 ## Test FlashNorm
 ```shell
 # setup
