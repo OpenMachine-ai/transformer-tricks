@@ -26,7 +26,7 @@ pip install transformer-tricks
 
 ---
 
-## Code documentation
+## Documentation
 Follow the links below for documentation of the python code in this directory:
 - [Slim attention](doc/slimAttn.md)
 - [Flash normalization](doc/flashNorm.md)
