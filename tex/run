@@ -15,3 +15,12 @@ mv "$1".pdf ../doc
 
 echo "--------------------------------------------------------------------------------"
 grep Warning "$1".log
+
+./clean
+
+# note: to diff 2 PDF files visually, type the following:
+#   diff-pdf --view file1.pdf file2.pdf
+# alternatively, use pdftotext to convert each PDF to text and then diff the text files:
+#   pdftotext file1.pdf  # this generates file1.txt
+#   pdftotext file2.pdf  # this generates file2.txt
+#   diff file1.txt file2.txt
