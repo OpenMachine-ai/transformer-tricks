@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # script to submit foo.tex to arXiv
-# usage: ./submit foo
+# usage: ./submit foo.tex
 # above generates a directory foo_submit and a tar gz file foo_submit.tar.gz
 # only upload this tar file to arXiv and see the notes in README on how to submit
 
@@ -10,15 +10,18 @@
 #  cd foo_submit
 #  pdflatex foo && pdflatex foo
 
-DIR="$1"_submit
+# remove filename extension from arg
+file="${1%.*}"
+
+DIR="$file"_submit
 
 rm -Rf "$DIR" "$DIR".tar.gz
 mkdir "$DIR"
 mkdir -p "$DIR"/tex "$DIR"/doc/fig
 
-./run "$1"
+./run "$file"
 
-cp arxiv.sty references.bib "$1".bbl "$1".tex "$DIR"/tex
-cp ../doc/fig/"$1"_fig* "$DIR"/doc/fig
+cp arxiv.sty references.bib "$file".bbl "$file".tex "$DIR"/tex
+cp ../doc/fig/"$file"_fig* "$DIR"/doc/fig
 
 tar -czvf "$DIR".tar.gz "$DIR"

@@ -1,23 +1,26 @@
 #!/bin/bash
 
 # script to convert foo.tex to PDF
-# usage: ./run foo
+# usage: ./run foo.tex  or ./run foo
 # above generates foo.pdf and other files
 
+# remove filename extension from arg
+file="${1%.*}"
+
 ./clean
-pdflatex "$1"
-bibtex   "$1"
-pdflatex "$1"
-pdflatex "$1"
-pdflatex "$1"  # we sometimes need to run pdflatex 3 times
+pdflatex "$file"
+bibtex   "$file"
+pdflatex "$file"
+pdflatex "$file"
+pdflatex "$file"  # we sometimes need to run pdflatex 3 times
 
 # in case you want to diff your changes visually
-diff-pdf --view "$1".pdf ../doc/"$1".pdf
+diff-pdf --view "$file".pdf ../doc/"$file".pdf
 
-mv "$1".pdf ../doc
+mv "$file".pdf ../doc
 
 echo "--------------------------------------------------------------------------------"
-grep Warning "$1".log
+grep Warning "$file".log
 
 #./clean
 
