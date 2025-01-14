@@ -12,7 +12,7 @@ A collection of tricks to simplify and speed up transformer models:
 - Precomputing the first layer: [[podcast]](https://notebooklm.google.com/notebook/7794278e-de6a-40fc-ab1c-3240a40e55d5/audio), [[paper]](https://arxiv.org/abs/2402.13388)
 - Removing weights from skipless transformers: [[podcast]](https://notebooklm.google.com/notebook/0875eef7-094e-4c30-bc13-90a1a074c949/audio), [[paper]](https://arxiv.org/abs/2404.12362), [[notebook]](https://colab.research.google.com/github/OpenMachine-ai/transformer-tricks/blob/main/notebooks/removing_weights.ipynb)
 
-Many of these tricks follow a recent trend of removing parts from neural networks such as RMSNorm’s removal of mean centering from LayerNorm, T5’s removal of bias-parameters, NoPE’s removal of positional encoding, GPT’s removal of the encoder stack, and of course transformer’s revolutionary removal of recurrent layers. Specifically, our FlashNorm removes the weights from RMSNorm and merges them with the next linear layer. And slim attention removes the entire V-cache from the context memory for MHA transformers.
+Many of these tricks follow a recent trend of removing parts from neural networks such as RMSNorm’s removal of mean centering from LayerNorm, PaLM's removal of bias-parameters, NoPE’s removal of positional encoding, GPT’s removal of the encoder stack, and of course transformer’s revolutionary removal of recurrent layers. Specifically, our FlashNorm removes the weights from RMSNorm and merges them with the next linear layer. And slim attention removes the entire V-cache from the context memory for MHA transformers.
 
 ---
 
