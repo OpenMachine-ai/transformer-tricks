@@ -41,7 +41,7 @@ RMSNorm \citep{rms} normalizes the elements  $a_i$ of vector $\a$ as $y_i = \fra
 \end{itemize}
 
 \begin{figure}[h!] \centering  % the [h!] tries to place the picture right here
-  \includegraphics[scale=0.9]{figs/flash_fig1.pdf}
+  \includegraphics[scale=0.9]{../doc/fig/flashNorm_fig1.pdf}
   \caption{Mathematically identical implementations of RMSNorm followed by a linear layer: (a) unoptimized version with weight matrix $\mat{W}$; (b) optimized version with normalization weights $g_i$ merged into the linear layer with new weights $\W*$; (c) optimized version with deferred normalization. The $\triangleq$ symbol denotes mathematical identity.}
 \label{fig1} \end{figure}
 
@@ -56,7 +56,7 @@ For the feed-forward networks (FFN) of LLMs, the linear layers at the FFN input 
 Even though ReLU is a nonlinear function, multiplying its argument by a non-negative scaling factor $s$ is the same as scaling its output by $s$, i.e. $\text{ReLU}(s \cdot \a) = s \cdot \text{ReLU}(\a)$ for $s \ge 0$ \citep{ReLU}. Because of this scale-invariance, we can defer the normalization to the output of the FFN as illustrated in Fig. \ref{fig2}(b), which saves $f - n$ multipliers.
 
 \begin{figure}[h!] \centering
-  \includegraphics[scale=0.9]{figs/flash_fig2.pdf}
+  \includegraphics[scale=0.9]{../doc/fig/flashNorm_fig2.pdf}
   \caption{FFN with ReLU and preceding flash normalization: (a) unoptimized version; (b) optimized version where the normalization is deferred to the output of the FFN. Up and Down denote the linear layers for up and down projections.}
 \label{fig2} \end{figure}
 
@@ -64,7 +64,7 @@ Even though ReLU is a nonlinear function, multiplying its argument by a non-nega
 Fig. \ref{fig3}(a) shows an FFN with a GLU variant \citep{GLU} and flash normalization at its input. The flash normalization requires two sets of $f$ multipliers at the outputs of the Gate and Up linear layers in Fig. \ref{fig3}(a). One set can be deferred to the FFN output in Fig. \ref{fig3}(b), which saves $f - n$ multipliers.
 
 \begin{figure}[h!] \centering
-  \includegraphics[scale=0.9]{figs/flash_fig3.pdf}
+  \includegraphics[scale=0.9]{../doc/fig/flashNorm_fig3.pdf}
   \caption{FFN with GLU variant and preceding flash normalization: (a) unoptimized version; (b) optimized version with fewer scaling multipliers. Gate, Up, and Down denote the linear layers for gate, up, and down projections.}
 \label{fig3} \end{figure}
 
@@ -75,14 +75,14 @@ Fig. \ref{fig3}(a) shows an FFN with a GLU variant \citep{GLU} and flash normali
 \end{equation*}
 
 \begin{figure}[h!] \centering
-  \includegraphics[scale=0.9]{figs/flash_fig4.pdf}
+  \includegraphics[scale=0.9]{../doc/fig/flashNorm_fig4.pdf}
   \caption{FFN with ReGLU (or bilinear GLU) and preceding flash normalization: (a) unoptimized version; (b) optimized version with fewer scaling multipliers.}
 \label{fig4} \end{figure}
 
 \section{Flash normalization for attention with RoPE}
 Fig. \ref{fig5}(a) shows the Q and K linear layers with flash normalization followed by RoPE \citep{RoPE} and scaled dot-product attention \citep{vanilla}.
 \begin{figure}[h!] \centering
-  \includegraphics[scale=0.9]{figs/flash_fig5.pdf}
+  \includegraphics[scale=0.9]{../doc/fig/flashNorm_fig5.pdf}
   \caption{Flash normalization for scaled dot-product attention with RoPE: (a) unoptimized version; (b) optimized version where the normalization is fused with $\cosi$ and $\sini$.}
 \label{fig5} \end{figure}
 
@@ -125,7 +125,7 @@ Fig. \ref{fig6}(a) shows a linear layer with flash normalization followed by an 
 \end{itemize}
 
 \begin{figure}[h!] \centering
-  \includegraphics[scale=0.9]{figs/flash_fig6.pdf}
+  \includegraphics[scale=0.9]{../doc/fig/flashNorm_fig6.pdf}
   \caption{Linear layer with flash normalization followed by a second normalization: (a) unoptimized version; (b) optimized version.}
 \label{fig6} \end{figure}
 
@@ -135,7 +135,7 @@ The scale-invariance property of $\rms$ doesn’t hold exactly true for RMS with
 Fig. \ref{fig7}(a) illustrates QK-normalization with RoPE. If the QK-normalization weights are the same for all heads of a layer, as is the case for OpenELM \citep{openelm}, then we can fuse them with RoPE's $\cosi$ and $\sini$ as follows: multiply $\cosi$ and $\sini$ with the normalization weights and then share the fused $\cosi$ and $\sini$ vectors across all heads of the LLM layer as shown in Fig. \ref{fig7}(b). This requires permutation of the normalization weights $\vg$ so that the boxes labeled cos, sin, and RoPE in Fig. \ref{fig7}(b) perform $\vy = \vx \cdot \left( \cosi \cdot \vg \right) + \text{permute}(\vx) \cdot \left( \sini \cdot \text{permuteg}(\vg) \right)$, where $\text{permuteg}(\vg) = (g_2, g_1, g_4, g_3, \dots, g_h, g_{h-1})$. For simplicity, Fig. \ref{fig7}(b) doesn't show the permutation of the normalization weights.
 
 \begin{figure}[h!] \centering
-  \includegraphics[scale=0.9]{figs/flash_fig7.pdf}
+  \includegraphics[scale=0.9]{../doc/fig/flashNorm_fig7.pdf}
   \caption{QK-normalization with RoPE: (a) unoptimized version; (b) optimized version.}
 \label{fig7} \end{figure}
 
@@ -160,7 +160,7 @@ For the example $n = 512, m = 128$ and batch 1, Fig. \ref{fig8} shows timing dia
 \end{itemize}
 
 \begin{figure}[h!] \centering
-  \includegraphics[scale=0.9]{figs/flash_fig8.pdf}
+  \includegraphics[scale=0.9]{../doc/fig/flashNorm_fig8.pdf}
   \caption{Timing diagrams for $n = 512, m = 128$: (a) without deferred normalization; (b) with interleaved scaling and vector-matrix multiplication; (c) with deferred normalization.}
 \label{fig8} \end{figure}
 

@@ -37,7 +37,7 @@
 \citet{skipless} have shown how transformers without skip connections and normalization (see Figure \ref{fig1}(a)) can be trained successfully.
 
 \begin{figure}[h!] \centering % the [h!] tries to place the picture right here
-  \includegraphics[scale=0.90]{figs/remove_fig1.pdf}
+  \includegraphics[scale=0.90]{../doc/fig/removeWeights_fig1.pdf}
   \caption{(a) Skipless vanilla transformer; equivalent versions with (b) Q and P merged into the FFN (feedforward network); (c) K and P merged into FFN; (d) V and P merged into FFN. $\M^*, \Q^*, \K^*, \V^*, \O^*$ are defined in table \ref{tab1}.}
 \label{fig1} \end{figure}
 
@@ -58,7 +58,7 @@ Figure \ref{fig1} uses the following dimensions and weight matrices, based on th
 \end{itemize}
 
 \begin{figure}[h!] \centering % the [h!] tries to place the picture right here
-  \includegraphics[scale=0.92]{figs/remove_fig2.pdf}
+  \includegraphics[scale=0.92]{../doc/fig/removeWeights_fig2.pdf}
   \caption{(a) Merging P and M; (b) eliminating Q; (c) eliminating K; (d) eliminating V.}
 \label{fig2} \end{figure}
 
@@ -89,7 +89,7 @@ Table \ref{tab1} specifies how the new weight matrices ($\M^*, \Q^*, \K^*, \V^*,
 Similar to the parallel transformer \cite{parallel}, Figure \ref{fig3} shows parallel versions of Figures \ref{fig1}(b) to (d). Here, “parallel” refers to having the attention (including its linear layers) in parallel to the FFN.
 
 \begin{figure} [h!] \centering  % the [h!] tries to place the picture right here
-  \includegraphics[scale=0.92]{figs/remove_fig3.pdf}
+  \includegraphics[scale=0.92]{../doc/fig/removeWeights_fig3.pdf}
   \caption{Parallel skipless transformers (a) without Q and P; (b) without K and P; (c) without V and P.}
 \label{fig3} \end{figure}
 
@@ -134,7 +134,7 @@ Refer to \cite{tricks} for Python code that demonstrates the numerical equivalen
 Because skipless transformers are not very popular right now, future work should investigate whether removing P and Q (or K or V) is also beneficial for transformers with normalization and skip connections as illustrated in Figure \ref{fig4}. Adding normalization and skip connections again could simplify and speed up training relative to skipless transformers.
 
 \begin{figure} \centering
-  \includegraphics[scale=0.92]{figs/remove_fig4.pdf}
+  \includegraphics[scale=0.92]{../doc/fig/removeWeights_fig4.pdf}
   \caption{(a) Transformer block without Q and P; (b) version with parallel attention / FFN.}
 \label{fig4} \end{figure}
 

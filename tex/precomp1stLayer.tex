@@ -21,7 +21,7 @@ The next two sections detail the precompute for transformers with parallel atten
 Figure \ref{fig1}(a) shows the first layer of a transformer with RoPE and parallel attention/FFN. Because the inputs of Q, K, V, and FFN only depend on the embedding, we can precompute their outputs and store them in memory instead of the input embeddings, see Figure \ref{fig1}(b).
 
 \begin{figure}[h!] \centering  % the [h!] tries to place the picture right here
-  \includegraphics[scale=0.86]{figs/precompute_fig1.pdf}
+  \includegraphics[scale=0.86]{../doc/fig/precomp1stLayer_fig1.pdf}
   \caption{First layer of parallel transformer (a) without precompute; and (b) with precompute of FFN and linear layers Q, K, and V.}
 \label{fig1} \end{figure}
 
@@ -72,7 +72,7 @@ However, precomputing the first layer can increase (or decrease) the total memor
 Transformers without the parallel attention/FFN scheme can also benefit from precompute, but the savings are smaller: As shown in Figure \ref{fig2}(c), we can only precompute Q, K, and V, but not the FFN. For reference, Figure \ref{fig2}(a) shows the vanilla transformer with absolute positional encoding (PE) instead of RoPE and with pre-normalization \citep{pre-norm}. The PE is located right after the embedding layer, which prevents us from precomputing the first layer. But replacing the PE by RoPE, as done in Figure \ref{fig2}(b), allows us to precompute the linear layers Q, K, and V and store the precomputed values along the embeddings in memory as illustrated in Figure \ref{fig2}(c).
 
 \begin{figure} \centering
-  \includegraphics[scale=0.86]{figs/precompute_fig2.pdf}
+  \includegraphics[scale=0.86]{../doc/fig/precomp1stLayer_fig2.pdf}
   \caption{First transformer layer. (a) Vanilla with pre-normalization and vanilla PE; (b) Vanilla with RoPE; (c) Precomputing linear layers Q, K, V.}
 \label{fig2} \end{figure}
 

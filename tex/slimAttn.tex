@@ -27,7 +27,7 @@ Slim attention shrinks the context memory size by 2x for transformer models with
 
 Fig. \ref{fig1} illustrates how slim attention computes the value (V) projections from the key (K) projections in a mathematical equivalent way without hurting model accuracy. Therefore, we only need to store the keys in memory, instead of storing both keys and values. This reduces the size of the context memory (aka KV-cache) by half. Alternatively, slim attention can double the context window size without increasing context memory. However, calculating V from K on-the-fly requires additional compute, which we will discuss below.
 \begin{figure}[h!] \centering  % the [h!] tries to place the picture right here
-  \includegraphics[scale=0.9]{figs/slim_fig1.pdf}
+  \includegraphics[scale=0.9]{../doc/fig/slimAttn_fig1.pdf}
   \caption{Mathematically identical implementations of multi-headed self-attention with square weight matrices \eR{d}{d}. \emph{Left}: vanilla version. \emph{Right}: proposed version where values V are computed from keys K with $W_{KV} = W_K^{-1} W_V$. The $\triangleq$ symbol denotes mathematical identity.}
 \label{fig1} \end{figure}
 
@@ -95,7 +95,7 @@ Inference consists of the following two phases, which are illustrated in Fig. \r
   \item During the \textbf{generate-phase} (aka decoding phase), each output-token is generated sequentially (aka autoregressively). For each iteration of the generate-phase, only one K and V-vector is calculated and stored in the KV-cache, while all the previously stored KV-vectors are read from the cache.
 \end{itemize}
 \begin{figure}[h!] \centering
-  \includegraphics[scale=0.9]{figs/slim_fig2.pdf}
+  \includegraphics[scale=0.9]{../doc/fig/slimAttn_fig2.pdf}
   \caption{Standard MHA with KV-cache during (a) prompt-phase and (b) generate-phase.}
 \label{fig2} \end{figure}
 
@@ -112,7 +112,7 @@ Equation (\ref{eq7}) can be computed in two different ways:
 \end{itemize}
 
 \begin{figure}[h!] \centering
-  \includegraphics[scale=0.9]{figs/slim_fig3.pdf}
+  \includegraphics[scale=0.9]{../doc/fig/slimAttn_fig3.pdf}
   \caption{Proposed slim attention without V-cache during (a) prompt-phase; (b) unoptimized and (c) optimized generate-phase.}
 \label{fig3} \end{figure}
 
@@ -218,7 +218,7 @@ In the equation above, everything on the right side of $W_K$ has to be the inver
 
 \textbf{Option 2} caches the X-matrix instead of KV or just K, where the X-matrix contains the input activations of the attention layer (before the projections). Recomputing all K-vectors from X by multiplying X with weight matrix $W_K$ would require $2 n d e$ operations and would be very expensive. A lower complexity option is illustrated in Fig. \ref{fig4}, which is similar to the trick illustrated in Fig. \ref{fig3}(c).
 \begin{figure}[h!] \centering
-  \includegraphics[scale=0.9]{figs/slim_fig4.pdf}
+  \includegraphics[scale=0.9]{../doc/fig/slimAttn_fig4.pdf}
   \caption{Slim attention with X-cache (instead of KV or V-cache) for the generate-phase of transformers with non-square weight matrices with $e > d$.}
 \label{fig4} \end{figure}
 Recall that for the $i$-th head ($i = 1, \ldots, h$), the softmax argument (without the scaling factor $1/\sqrt{d_k}$) is $A_i = Q_i K_i^\top$, where $Q_i = X W_{Q,i}$ and $K_i = X W_{K,i}$. For the generate-phase, there is only one input-vector $x_n$ for the query, but there are $n$ input-vectors $X$ for the key and value projections. We can take advantage of this and modify $A$ as follows (which uses the trick $(B C)^\top = C^\top B^\top$ for transposing the product of arbitrary matrices $B$ and $C$):
@@ -270,7 +270,7 @@ The \textbf{baseline} implementation consists of the following three phases:
 \end{itemize}
 
 \begin{figure}[h!] \centering
-  \includegraphics[scale=0.9]{figs/slim_fig5.pdf}
+  \includegraphics[scale=0.9]{../doc/fig/slimAttn_fig5.pdf}
   \caption{Slim attention with a single X-cache that is shared among all cross-attention layers for the generate-phase of encoder-decoder transformers.}
 \label{fig5} \end{figure}
 

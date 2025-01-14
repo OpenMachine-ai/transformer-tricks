@@ -13,12 +13,12 @@
 DIR="$1"_submit
 
 rm -Rf "$DIR" "$DIR".tar.gz
-mkdir  "$DIR"
-mkdir -p "$DIR"/figs
+mkdir "$DIR"
+mkdir -p "$DIR"/tex "$DIR"/doc/fig
 
 ./run "$1"
 
-cp arxiv.sty references.bib "$1".bbl "$1".tex "$DIR"
-cp figs/"$1"_fig* "$DIR"/figs
+cp arxiv.sty references.bib "$1".bbl "$1".tex "$DIR"/tex
+cp ../doc/fig/"$1"_fig* "$DIR"/doc/fig
 
 tar -czvf "$DIR".tar.gz "$DIR"

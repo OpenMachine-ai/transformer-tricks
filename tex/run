@@ -11,12 +11,15 @@ pdflatex "$1"
 pdflatex "$1"
 pdflatex "$1"  # we sometimes need to run pdflatex 3 times
 
+# in case you want to diff your changes visually
+diff-pdf --view "$1".pdf ../doc/"$1".pdf
+
 mv "$1".pdf ../doc
 
 echo "--------------------------------------------------------------------------------"
 grep Warning "$1".log
 
-./clean
+#./clean
 
 # note: to diff 2 PDF files visually, type the following:
 #   diff-pdf --view file1.pdf file2.pdf
