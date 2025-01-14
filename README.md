@@ -1,5 +1,6 @@
 <h1 align="center"> Transformer Tricks </h1>
 <p align="center">
+  <a href="https://transformertricks.substack.com"><img src="https://img.shields.io/badge/Substack-FF6719?logo=substack&logoColor=fff"></a>
   <a href="https://pepy.tech/projects/transformer-tricks"><img src="https://static.pepy.tech/badge/transformer-tricks" alt="PyPI Downloads"></a>
 </p>
 
@@ -25,7 +26,7 @@ pip install transformer-tricks
 
 ---
 
-## Code documentation
+## Documentation
 Follow the links below for documentation of the python code in this directory:
 - [Slim attention](doc/slimAttn.md)
 - [Flash normalization](doc/flashNorm.md)
@@ -37,6 +38,12 @@ The papers are accompanied by the following Jupyter notebooks:
 - Slim attention: <a href="https://colab.research.google.com/github/OpenMachine-ai/transformer-tricks/blob/main/notebooks/slimAttn_concept.ipynb"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Colab" height="20"></a>
 - Flash normalization: <a href="https://colab.research.google.com/github/OpenMachine-ai/transformer-tricks/blob/main/notebooks/flashNorm_example.ipynb"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Colab" height="20"></a> <a href="https://colab.research.google.com/github/OpenMachine-ai/transformer-tricks/blob/main/notebooks/flash_normalization.ipynb"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Colab" height="20"></a>
 - Removing weights from skipless transformers: <a href="https://colab.research.google.com/github/OpenMachine-ai/transformer-tricks/blob/main/notebooks/removing_weights.ipynb"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Colab" height="20"></a>
+
+---
+## Newsletter
+Please subsribe to our [[newsletter]](https://transformertricks.substack.com) on substack to get the latest news about this project. We will never send you more than one email per month.
+
+[![Substack](https://img.shields.io/badge/Substack-FF6719?logo=substack&logoColor=fff)](https://transformertricks.substack.com)
 
 ---
 
@@ -54,7 +61,6 @@ Before making a change to this repo, please do the following:
 
 ---
 
-  <a href="https://transformertricks.substack.com"><b>[newsletter]</b></a>  
-
-
 <h3 align="center"> Please give us a ⭐ if you like this repo, thanks! </h3>
+
+---
