@@ -107,7 +107,7 @@ Fig. \ref{fig3} illustrates slim attention, which only has a K-cache because V i
 \label{eq7} \end{equation}
 Equation (\ref{eq7}) can be computed in two different ways:
 \begin{itemize}[topsep=-1pt, itemsep=-1pt]
-  \item Option 1: Compute $V_i = K W_{KV,i}$ first, and then multiply it with $\text{softmax}(\cdot)$. This option is used by Fig. \ref{fig3}(a) and \ref{fig3}(b). Complexity: multiplying $K$ \eR{n}{d} with $W_{KV,i}$ \eR{d}{d_k} takes $2 n d d_k$ OPs\footnote{In general, multiplying two matrices with dimensions $m \times n$ and $n \times p$ takes $mnp$ MULs (two-operand multiplication operations) and $mp(n-1)$ ADDs, so in total approximately $2mnp$ operations or OPs.}, and multiplying $\text{softmax}(\cdot)$ \eR{1}{n} with the $n \times d_k$ result takes $2 n d_k$ OPs.
+  \item Option 1: Compute $V_i = K W_{KV,i}$ first, and then multiply it with $\text{softmax}(\cdot)$. This option is used by Fig. \ref{fig3}(a) and \ref{fig3}(b). Complexity: multiplying $K$ \eR{n}{d} with $W_{KV,i}$ \eR{d}{d_k} takes $2 n d d_k$ OPs\footnote{In general, multiplying two matrices with dimensions $m \times n$ and $n \times p$ takes $mnp$ MULs (two-operand multiply operations) and $mp(n-1)$ ADDs, so in total approximately $2mnp$ operations or OPs (two-operand operations).}, and multiplying $\text{softmax}(\cdot)$ \eR{1}{n} with the $n \times d_k$ result takes $2 n d_k$ OPs.
   \item Option 2: First multiply $\text{softmax}(\cdot)$ with $K$, and then multiply the result by $W_{KV,i}$.  This option is illustrated in Fig. \ref{fig3}(c). During the generate-phase, this option has lower compute complexity than option 1: multiplying $\text{softmax}(\cdot)$ with $K$ takes $2nd$ OPs, and multiplying the result with $W_{KV,i}$ takes $2dd_k$ OPs.
 \end{itemize}
 
@@ -116,24 +116,37 @@ Equation (\ref{eq7}) can be computed in two different ways:
   \caption{Slim attention without V-cache during (a) prompt-phase; (b) unoptimized and (c) optimized generate-phase.}
 \label{fig3} \end{figure}
 
-During the prompt-phase, Fig. \ref{fig3}(a) has the exact same computational complexity as the vanilla scheme shown in Fig. \ref{fig2}(a). However, during the generate-phase, the proposed scheme has a slightly higher complexity than the vanilla scheme. Using big-$O$ notation, Table \ref{tab2} specifies the complexity per token per layer during the generate-phase for batch size 1. The columns labeled ``compute'', ``reads'', and ``intensity'' specify the computational complexity, the number of memory reads, and the arithmetic intensity, resp. We define the arithmetic intensity here as big-O complexity per each activation or parameter read from memory. Specifically, the projection complexity includes calculating $X W_Q$, $X W_K$, $X W_V$, and the $W_O$ linear layer. And the memory reads for projections include reading all four weight matrices; while the memory reads of the MHA include reading the K-cache and the V-cache (only for Fig. \ref{fig2}(b)).
+During the prompt-phase, Fig. \ref{fig3}(a) has the exact same computational complexity as the vanilla scheme shown in Fig. \ref{fig2}(a). However, during the generate-phase, the proposed scheme has a slightly higher complexity than the vanilla scheme. Table \ref{tab2} specifies the complexity per token per layer during the generate-phase for batch size 1. The columns labeled ``compute'', ``reads'', and ``intensity'' specify the computational complexity (as number of OPs), the number of memory reads, and the arithmetic intensity, resp. We define the arithmetic intensity here as number of OPs per each activation or parameter read from memory. Specifically, the projection complexity includes calculating $X W_Q$, $X W_K$, $X W_V$, and multiplying with weight matrices $W_O$ and $W_{KV}$. And the memory reads for projections include reading all four weight matrices; while the memory reads of the MHA include reading the K-cache (and the V-cache for the vanilla implementation).
+%So for the optimized version (option 2), the arithmetic intensity is 2 for weight multiplications (projections) and $2h$ for the MHA multiplications. For a system with enough buffering, the average arithmetic intensity will be lower than $2h$: For $n = 1000$ and $d = 1000$ for example, the number of memory reads for projections is $4d^2 = 4 \cdot 1000^2$ and $nd = 1000^2$, so the projection-compute phase is 4 times longer than the MHA-compute phase, thus the average arithmetic intensity is
+
 \begingroup \renewcommand{\arraystretch}{1.3} % increase table row height by 1.3x
 \begin{table}[h!] \centering
 \caption{\textbf{Complexity per token} per layer during the generate-phase for batch size 1}
 \begin{tabular}{lcccccc} \fline
-                                  & \mco{3}{Projection complexity}           & \mco{3}{MHA complexity}              \\
-                                  & compute           & reads   & intensity  & compute         & reads  & intensity \\ \hline
-  Vanilla, see Fig. \ref{fig2}(b) & $O(4 d^2)$        & $4d^2$  & 1          & $O(2nd)$         & $2nd$  & 1         \\
-  Unoptimized, Fig. \ref{fig3}(b) & $O((n + 3) d^2)$  & $4d^2$  & $(n+3)/4$  & $O(2nd)$         & $nd$   & 2         \\
-  Optimized, Fig. \ref{fig3}(c)   & $O(4d^2)$         & $4d^2$  & 1          & $O((h + 1) nd)$  & $nd$   & $h+1$     \\ \fline
+                                  & \mco{3}{Projection complexity}    & \mco{3}{MHA complexity}      \\
+                                  & OPs         & reads   & intensity & OPs     & reads  & intensity \\ \hline
+  Vanilla, see Fig. \ref{fig2}(b) & $8d^2$      & $4d^2$  & 2          & $4nd$  & $2nd$  & 2         \\
+  Unoptimized, Fig. \ref{fig3}(b) & $(2n+6)d^2$ & $4d^2$  & $(n+3)/2$  & $2nd$  & $nd$   & 2         \\
+  Optimized, Fig. \ref{fig3}(c)   & $8d^2$      & $4d^2$  & 2          & $2hnd$ & $nd$   & $2h$      \\ \fline
 \end{tabular} \label{tab2} \end{table} \endgroup
 
-Table \ref{tab3} shows the arithmetic intensity (now defined as Ops per memory byte) of various SoCs, TPUs, and GPUs, which vary from 93 to 583. A system is memory bound (i.e. limited by memory bandwidth) if the arithmetic intensity of the executed program is below the chip’s arithmetic intensity. Here, the arithmetic intensity of slim attention is 1 or $h + 1$, see Table \ref{tab2}, where $h$ is the number of attention heads, which ranges between 16 and 64 for the models listed in Table \ref{tab1}. So the arithmetic intensity (up to 65 for $h = 64$) is usually less than the system’s intensity, which means that the system is still memory bound during the token generation phase. Therefore, slim attention speeds up the processing by up to 2x as it reduces the context memory reads by half. Furthermore, slim attention enables processing all heads in parallel as a single matrix-matrix multiplication instead of multiple vector-matrix multiplications, which is usually more efficient and faster on many machines.
+%\begingroup \renewcommand{\arraystretch}{1.3} % increase table row height by 1.3x
+%\begin{table}[h!] \centering
+%\caption{\textbf{Complexity per token} per layer during the generate-phase for batch size 1}
+%\begin{tabular}{lcccccc} \fline
+%                                  & \mco{3}{Projection complexity}           & \mco{3}{MHA complexity}              \\
+%                                  & compute           & reads   & intensity  & compute         & reads  & intensity \\ \hline
+%  Vanilla, see Fig. \ref{fig2}(b) & $O(4 d^2)$        & $4d^2$  & 1          & $O(2nd)$         & $2nd$  & 1         \\
+%  Unoptimized, Fig. \ref{fig3}(b) & $O((n + 3) d^2)$  & $4d^2$  & $(n+3)/4$  & $O(2nd)$         & $nd$   & 2         \\
+%  Optimized, Fig. \ref{fig3}(c)   & $O(4d^2)$         & $4d^2$  & 1          & $O((h + 1) nd)$  & $nd$   & $h+1$     \\ \fline
+%\end{tabular} \label{tab2} \end{table} \endgroup
+
+Table \ref{tab3} shows the arithmetic intensity (now defined as OPs per memory byte) of various SoCs, TPUs, and GPUs, which vary from 93 to 583. A system is memory bound (i.e. limited by memory bandwidth) if the arithmetic intensity of the executed program is below the chip’s arithmetic intensity. Here, the arithmetic intensity of slim attention is 2 or $2h$, see Table \ref{tab2}, where $h$ is the number of attention heads, which ranges between 16 and 64 for the models listed in Table \ref{tab1}. So the peak arithmetic intensity (up to 128 for $h = 64$) is usually less than the system’s intensity (except for Apple's M4 Max), which means that the system is still memory bound during the token generation phase. Therefore, slim attention speeds up the processing by up to 2x as it reduces the context memory reads by half. Furthermore, slim attention enables processing all heads in parallel as a single matrix-matrix multiplication instead of multiple vector-matrix multiplications, which is usually more efficient and faster on many machines.
 \begingroup \renewcommand{\arraystretch}{1.3} % increase table row height by 1.3x
 \begin{table}[h!] \centering
 \caption{\textbf{TOPS\tablefootnote{tera-operations-per-second}, memory bandwidth, and arithmetic intensity} of popular chips}
 \begin{tabular}{lccc} \fline
-  Chip & \makecell{TOPS \\ (int8)} & \makecell{Theoretical memory \\ bandwidth (GB/s)} & \makecell{Arithmetic intensity \\ (Ops per byte)} \\ \hline
+  Chip & \makecell{TOPS \\ (int8)} & \makecell{Theoretical memory \\ bandwidth (GB/s)} & \makecell{Arithmetic intensity \\ (OPs per byte)} \\ \hline
   Rockchip RK3588 & 6         & 19      & 316 \\
   Apple A18 \citep{apple-wiki}       & 35        & 60      & 583 \\
   Apple M4 Max \citep{apple-wiki}    & 38        & 410     & 93  \\
@@ -327,13 +340,27 @@ Slim attention offers a simple trick for halving the context memory of MHA trans
 %\section*{Acknowledgements}
 %We would like to thank TBD for helpful feedback on this work.
 
+% TODO: alternatively, place appendix before references
 \bibliographystyle{unsrtnat}
 \bibliography{references}
 
-%\section*{Appendix}
+\section*{Appendix}
 
-%\subsection*{RMS with epsilon}
+\subsection*{Alternative scheme: V-cache is all you need}
+Instead of calculating V from K, it's also possible to calculate K from V and thereby eliminate the K-cache (instead of the V-cache). This scheme is illustrated in the figure below. However, this scheme does not support RoPE.
+TODO: add figure here
 
-%\subsection*{Eliminating $1/n$}
+\subsection*{Additional MHA transformers}
+The table below lists additional popular transformers with MHA, similar to Table \ref{tab1}.
+%- Moonshine
+%- the DNA model
+%
+%\begingroup \renewcommand{\arraystretch}{1.3} % increase table row height by 1.3x
+%\begin{table}[h!] \centering
+%\begin{tabular}{lllccccc} \fline
+%  \thead[l]{Year} & \thead[l]{Publisher} & \thead[l]{Model} & \thead{Params} & \thead{$d$} & \thead{layers} & \thead{$h$} & \thead{$d_k$} \\ \hline
+%  2024 & Google        & CodeGemma-7B \citep{codeGemma}         & 8.5B  & 3,072         & 28         & 16         & 256  \\ \hline
+%  2024 & Google        & CodeGemma-7B \citep{codeGemma}         & 8.5B  & 3,072         & 28         & 16         & 256  \\ \fline
+%\end{tabular} \end{table} \endgroup
 
 \end{document}
