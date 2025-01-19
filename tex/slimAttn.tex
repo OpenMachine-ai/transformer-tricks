@@ -351,16 +351,17 @@ Instead of calculating V from K, it's also possible to calculate K from V and th
 TODO: add figure here
 
 \subsection*{Additional MHA transformers}
-The table below lists additional popular transformers with MHA, similar to Table \ref{tab1}.
-%- Moonshine
-%- the DNA model
-%
-%\begingroup \renewcommand{\arraystretch}{1.3} % increase table row height by 1.3x
-%\begin{table}[h!] \centering
-%\begin{tabular}{lllccccc} \fline
-%  \thead[l]{Year} & \thead[l]{Publisher} & \thead[l]{Model} & \thead{Params} & \thead{$d$} & \thead{layers} & \thead{$h$} & \thead{$d_k$} \\ \hline
-%  2024 & Google        & CodeGemma-7B \citep{codeGemma}         & 8.5B  & 3,072         & 28         & 16         & 256  \\ \hline
-%  2024 & Google        & CodeGemma-7B \citep{codeGemma}         & 8.5B  & 3,072         & 28         & 16         & 256  \\ \fline
-%\end{tabular} \end{table} \endgroup
+The table below lists additional popular transformers with MHA, similar to Table \ref{tab1}. See HuggingFace for more details on these models.
+
+\begingroup \renewcommand{\arraystretch}{1.3} % increase table row height by 1.3x
+\begin{table}[h!] \centering
+\begin{tabular}{lllccccc} \fline
+  \thead[l]{Year} & \thead[l]{Publisher} & \thead[l]{Model} & \thead{Params} & \thead{$d$} & \thead{layers} & \thead{$h$} & \thead{$d_k$} \\ \hline
+  2025 & Metagene       & METAGENE-1 \citep{metagene}       & 6.5B           & 4096       & 32              & 32          & 128  \\
+  2024 & Useful Sensors & Moonshine-base \citep{moonshine}  & 61M            & 416        & 8               & 8           & 52   \\
+  2024 &                & Moondream-2                       & 1.9B           & 2048       & 24              & 32          & 64   \\
+  2034 & Apple          & DCLM-7B \citep{dclm}              & 6.9B           & 4096       & 32              & 32          & 128  \\
+  2024 & Stability AI   & Stable-Code-3B                    & 2.8B           & 2560       & 32              & 32          & 80   \\  \fline
+\end{tabular} \end{table} \endgroup
 
 \end{document}

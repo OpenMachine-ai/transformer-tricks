@@ -1,5 +1,5 @@
 # Proof of concept for paper "Slim Attention: cut your context memory in half"
-# Usage: python3 slimAttn_example.py
+# Usage: python3 slimAttn_paper.py
 
 # %pip install --quiet transformer_tricks
 import transformer_tricks as tt
@@ -107,4 +107,4 @@ print(f'speedup of option 2 over option 1: {((o1_step1 + o1_step2) / (o2_step1 +
 
 # %% [markdown]
 # Whenever you change this file, make sure to regenerate the jupyter notebook as follows:
-#   `jupytext slimAttn_concept.py -o notebooks/slimAttn_concept.ipynb`
+#   `util/gen_notebooks`

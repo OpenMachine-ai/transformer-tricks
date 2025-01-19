@@ -1,0 +1,8 @@
+#!/bin/bash
+
+# generate Jupyter notebooks from python
+# usage: util/gen_notebooks  (run from the root dir of this repo)
+
+for fname in slimAttn_paper flashNorm_example; do
+  jupytext "$fname".py -o notebooks/"$fname".ipynb
+done
