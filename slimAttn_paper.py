@@ -20,17 +20,17 @@ def msplit(M, h):
   return np.array_split(M, h, axis=-1)
 
 def ops(A, B):
-  """number of ops (operations) for matmul of A and B:
+  """number of OPs (operations) for matmul of A and B:
    - A and B must be 2D arrays, and their inner dimensions must agree!
    - A is an m × n matrix, and B is an n × p matrix, then the resulting product
      of A and B is an m × p matrix.
    - Each element (i,j) of the m x p result matrix is computed by the dotproduct
      of the i-th row of A and the j-th column of B.
    - Each dotproduct takes n multiplications and n - 1 additions, so total
-     number of ops is 2n - 1 per dotproduct.
+     number of OPs is 2n - 1 per dotproduct.
    - There are m * p elements in the result matrix, so m * p dotproducts, so in
-     total we need m * p * (2n - 1) ops, which is approximately 2*m*p*n ops
-   - For simplicity, let's just use the simple approximation of ops = 2*m*p*n"""
+     total we need m * p * (2n - 1) OPs, which is approximately 2*m*p*n OPs
+   - For simplicity, let's just use the simple approximation of OPs = 2*m*p*n"""
   m, n = A.shape
   p = B.shape[1]
   return 2 * m * n * p
@@ -54,8 +54,9 @@ dk = config.head_dim
 #-------------------------------------------------------------------------------
 for layer in range(config.num_hidden_layers):
   # convert to float64 for better accuracy of matrix inversion
-  Wk = param[tt.weight('K', layer)].to(torch.float64).numpy()
-  Wv = param[tt.weight('V', layer)].to(torch.float64).numpy()
+  # note that all weights are transposed in tensorfile (per pytorch convention)
+  Wk = param[tt.weight('K', layer)].to(torch.float64).numpy().T
+  Wv = param[tt.weight('V', layer)].to(torch.float64).numpy().T
   Wkv = np.linalg.inv(Wk) @ Wv
   print(layer, ':', np.allclose(Wk @ Wkv, Wv))  # check if Wk @ Wkv close to Wv
 
@@ -65,10 +66,10 @@ for layer in range(config.num_hidden_layers):
 #-------------------------------------------------------------------------------
 
 # get weights for Q, K, V and convert to float64
-# TODO: some or all weights are actually transposed in the tensorfile!
-Wq = param[tt.weight('Q', 0)].to(torch.float64).numpy()
-Wk = param[tt.weight('K', 0)].to(torch.float64).numpy()
-Wv = param[tt.weight('V', 0)].to(torch.float64).numpy()
+# note that all weights are transposed in tensorfile (per pytorch convention)
+Wq = param[tt.weight('Q', 0)].to(torch.float64).numpy().T
+Wk = param[tt.weight('K', 0)].to(torch.float64).numpy().T
+Wv = param[tt.weight('V', 0)].to(torch.float64).numpy().T
 Wkv = np.linalg.inv(Wk) @ Wv  # calculate Wkv (aka W_KV)
 # print('Is Wk @ Wkv close to Wv?', np.allclose(Wk @ Wkv, Wv))
 
@@ -101,10 +102,10 @@ print('Is head_o2 close to head_ref?', np.allclose(head_o2, head_ref))
 o1_step1, o1_step2 = ops(K, Wkv0), ops(scores, (K @ Wkv0))
 o2_step1, o2_step2 = ops(scores, K), ops(scores @ K, Wkv0)
 
-print(f'Option 1 OPS: step 1 = {o1_step1:,}; step 2 = {o1_step2:,}; total = {(o1_step1 + o1_step2):,}')
-print(f'Option 2 OPS: step 1 = {o2_step1:,}; step 2 = {o2_step2:,}; total = {(o2_step1 + o2_step2):,}')
+print(f'Option 1 OPs: step 1 = {o1_step1:,}; step 2 = {o1_step2:,}; total = {(o1_step1 + o1_step2):,}')
+print(f'Option 2 OPs: step 1 = {o2_step1:,}; step 2 = {o2_step2:,}; total = {(o2_step1 + o2_step2):,}')
 print(f'speedup of option 2 over option 1: {((o1_step1 + o1_step2) / (o2_step1 + o2_step2)):.1f}')
 
 # %% [markdown]
-# Whenever you change this file, make sure to regenerate the jupyter notebook as follows:
+# Whenever you change this file, make sure to regenerate the jupyter notebook by typing:
 #   `util/gen_notebooks`

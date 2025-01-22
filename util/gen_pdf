@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # generate PDF from tex for all files
-# usage: util/tex_all (run from the root dir of this repo)
+# usage: util/gen_pdf  (run from the root dir of this repo)
 
 cd tex
 for fname in *.tex; do
