@@ -5,14 +5,17 @@
 # https://packaging.python.org/en/latest/tutorials/packaging-projects/
 #
 # Setup: install build and twine via 'pip3 install build twine'
-# Usage: ./push_pypi.sh
+#        To upgrade: pip3 install --upgrade build twine pkginfo packaging
+# Usage: ./push_pypi
 
 # create folder 'pypi' and copy all relevant files
 rm -rf pypi
 mkdir pypi
-cp LICENSE README.md pyproject.toml transformer_tricks.py pypi
+cp ../LICENSE ../README.md ../pyproject.toml ../transformer_tricks.py pypi
 
 # build and upload
 cd pypi
 python3 -m build
 python3 -m twine upload dist/*
+
+#rm -rf pypi
