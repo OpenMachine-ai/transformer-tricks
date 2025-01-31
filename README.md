@@ -51,7 +51,7 @@ Before making a change to this repo, please do the following:
 - Whenever you change `transformer_tricks.py`, publish a new version of the package as follows:
   - First, update the version number in `pyproject.toml` and in `requirements.txt`
   - Then, push the package to PyPi by typing `./push_pypi.sh`
-  - Links for python package: [pypi](https://pypi.org/project/transformer-tricks/), [stats](https://www.pepy.tech/projects/transformer-tricks), [source of this readme](https://github.com/OpenMachine-ai/transformer-tricks/blob/main/python/README.md)
+  - Links for python package: [pypi](https://pypi.org/project/transformer-tricks/), [stats](https://www.pepy.tech/projects/transformer-tricks), [source of this readme](https://github.com/OpenMachine-ai/transformer-tricks/blob/main/README.md)
 - Generate notebooks from python by typing `util/gen_notebooks`
 
 ---
