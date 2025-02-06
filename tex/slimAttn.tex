@@ -1,4 +1,4 @@
-% To generate PDF, type ./run slimAttn
+% To generate PDF, type ./run slimAttn.tex
 
 \documentclass{article}
 \usepackage{arxiv}
@@ -8,26 +8,25 @@
 
 % shortcuts
 \newcommand{\mr}[2]{\multirow{#1}{*}{#2}}     % table multirow
-\newcommand{\mc}[2]{\multicolumn{#1}{c|}{#2}} % table multicolumn
-\newcommand{\mco}[2]{\multicolumn{#1}{c}{#2}} % table multicolumn without "|"
+\newcommand{\mc}[2]{\multicolumn{#1}{c}{#2}}  % table multicolumn
 \newcommand{\eR}[2]{$\in \mathbb{R}^{#1 \times #2}$} % element of R^{1x2}
 \def\fline{\Xhline{2\arrayrulewidth}} % fatline for table
 
 \title{Slim attention: cut your context memory in half without \\ loss of accuracy --- \emph{K-cache is all you need for MHA}}
 %\title{Slim attention: halving context memory in transformers with \\ no accuracy loss --- \emph{K-cache is all you need for MHA}}
 
-\author{Nils Graef\thanks{\texttt{info@openmachine.ai}}, Andrew Wasielewski, TBD \\
+\author{Nils Graef\thanks{\texttt{info@openmachine.ai}}, Andrew Wasielewski \\
   \href{https://openmachine.ai}{OpenMachine}}
 
 \begin{document} \maketitle
 
 \begin{abstract}
-Slim attention shrinks the context memory size by 2x for transformer models with MHA (multi-head attention), which can speed up inference by up to 2x for large context windows. Slim attention is an exact, mathematically identical implementation of the standard attention mechanism and therefore doesn’t compromise model accuracy. In other words, slim attention losslessly compresses the context memory by a factor of 2. For encoder-decoder transformers, the context memory size can be reduced even further: For the Whisper models for example, we reduce the context memory by 8x, which can speed up token generation by 5x for batch size 64. And for rare cases where the MHA projection dimension is larger than $d_{\text{model}}$, the memory can be reduced by a factor of 32 for the T5-11B model for example. See \citep{tricks} for code and \citep{slim-video} for a podcast-video about this paper.
+Slim attention shrinks the context memory size by 2x for transformer models with MHA (multi-head attention), which can speed up inference by up to 2x for large context windows. Slim attention is an exact, mathematically identical implementation of the standard attention mechanism and therefore doesn’t compromise model accuracy. In other words, slim attention losslessly compresses the context memory by a factor of 2. For encoder-decoder transformers, the context memory size can be reduced even further: For the Whisper models for example, we reduce the context memory by 8x, which can speed up token generation by 5x for batch size 64. And for rare cases where the MHA projection dimension is larger than $d_{\text{model}}$, the memory can be reduced by a factor of 32 for the T5-11B model for example. See \citep{tricks} for code and \citep{slim-video} for a YouTube video about this paper.
 \end{abstract}
 
 Fig. \ref{fig1} illustrates how slim attention computes the value (V) projections from the key (K) projections in a mathematical equivalent way without hurting model accuracy. Therefore, we only need to store the keys in memory, instead of storing both keys and values. This reduces the size of the context memory (aka KV-cache) by half. Alternatively, slim attention can double the context window size without increasing context memory. However, calculating V from K on-the-fly requires additional compute, which we will discuss below.
 \begin{figure}[h!] \centering  % the [h!] tries to place the picture right here
-  \includegraphics[scale=0.9]{../doc/fig/slimAttn_fig1.pdf}
+  \includegraphics[scale=0.88]{../doc/fig/slimAttn_fig1.pdf}
   \caption{Mathematically identical implementations of multi-headed self-attention with square weight matrices \eR{d}{d}. \emph{Left}: vanilla version. \emph{Right}: proposed version where values V are computed from keys K with $W_{KV} = W_K^{-1} W_V$. The $\triangleq$ symbol denotes mathematical identity.}
 \label{fig1} \end{figure}
 
@@ -39,30 +38,30 @@ Slim attention is applicable for transformers that use MHA (multi-head attention
 %\begin{tabular}{l|l|l|c|c|c|c|c|c|c} \fline
 \begin{tabular}{lllccccccc} \fline
   \thead[l]{Year} & \thead[l]{Publisher} & \thead[l]{Model} & \thead{Params} & \thead{$d$} & \thead{layers} & \thead{$h$} & \thead{$d_k$} & \thead{context \\ length} & \thead{context \\ memory} \\ \hline
-  \mr{16}{2024} & \mr{2}{Meta}  & CodeLlama-7B \citep{code-llama}        & 7B & 4,096  & \mco{2}{32}             & \mr{2}{128} & \mr{2}{16k}  & 4.3B  \\ %\cline{3-7} \cline{10-10}
-                &               & CodeLlama-13B \citep{code-llama}       & 13B   & 5,120         & \mco{2}{40}             &             &              & 6.7B  \\ \cline{2-10}
+  \mr{16}{2024} & \mr{2}{Meta}  & CodeLlama-7B \citep{code-llama}        & 7B & 4,096  & \mc{2}{32}              & \mr{2}{128} & \mr{2}{16k}  & 4.3B  \\ %\cline{3-7} \cline{10-10}
+                &               & CodeLlama-13B \citep{code-llama}       & 13B   & 5,120         & \mc{2}{40}              &             &              & 6.7B  \\ \cline{2-10}
                 & Google        & CodeGemma-7B \citep{codeGemma}         & 8.5B  & 3,072         & 28         & 16         & 256         & \mr{3}{8k}   & 1.9B  \\ \cline{2-8} \cline{10-10}
                 & Cohere        & aya-23-35B \citep{aya}                 & 35B   & 8,192         & 40         & 64         & 128         &              & 5.4B  \\ \cline{2-8} \cline{10-10}
          & \mr{2}{HuggingFace}  & SmolLM2-1.7B \citep{smollm}            & 1.7B  & \mr{2}{2,048} & \mr{2}{24} & \mr{2}{32} & \mr{2}{64}  &              & 0.8B  \\ \cline{9-9}
          &                      & SmolVLM \citep{smolvlm}                & 2.3B  &               &            &            &             & 16k          & 1.6B  \\ \cline{2-10}
-         & Together AI          & Evo-1-131k \citep{evo}                 & 6.5B  & 4,096         & \mco{2}{32}             & 128         & \mr{2}{128k} & \textbf{34.4B} \\ \cline{2-8} \cline{10-10}
-         & \mr{2}{Microsoft}    & Phi-3-mini-128k \citep{phi3}           & 3.8B  & 3,072         & \mco{2}{32}             & 96          &              & \textbf{25.8B} \\ \cline{9-9}
+         & Together AI          & Evo-1-131k \citep{evo}                 & 6.5B  & 4,096         & \mc{2}{32}              & 128         & \mr{2}{128k} & \textbf{34.4B} \\ \cline{2-8} \cline{10-10}
+         & \mr{2}{Microsoft}    & Phi-3-mini-128k \citep{phi3}           & 3.8B  & 3,072         & \mc{2}{32}              & 96          &              & \textbf{25.8B} \\ \cline{9-9}
          &                      & bitnet\_b1\_58-3B \citep{bitnet}       & 3.3B  & 3,200         & 26         & 32         & 100         & \mr{2}{2k}   & 0.3B  \\ \cline{2-8} \cline{10-10}
-         & Apple                & DCLM-7B \citep{dclm}                   & 6.9B  & 4,096         & \mco{2}{32}             & 128         &              & 0.5B  \\ \cline{2-10}
-         & \mr{2}{Allen AI}     & OLMo-1B \citep{olmo}                   & 1.3B  & 2,048         & \mco{2}{16}             & \mr{2}{128} & \mr{2}{4k}   & 0.3B  \\
-%        &                      & OLMo-2-1124-7B \citep{olmo}            & 7.3B  & 4,096         & \mco{2}{32}             &             &              & 1.1B  \\
-         &                      & OLMo-2-1124-13B \citep{olmo}           & 13.7B & 5,120         & \mco{2}{40}             &             &              & 1.7B  \\ \cline{2-10}
-         & \mr{2}{Amazon}       & Cronos-Bolt-tiny \citep{cronos}        & 9M    & 256           & \mco{2}{4}              & \mr{2}{64}  & \mr{2}{0.5k} & 1M    \\
-         &                      & Cronos-Bolt-base \citep{cronos}        & 205M  & 768           & \mco{2}{12}             &             &              & 9.4M  \\ \cline{2-10}
-         & Alibaba              & Qwen2-Audio-7B   \citep{qwen2-audio}   & 8.4B  & \mr{2}{4,096} & \mco{2}{\mr{2}{32}}     & \mr{5}{128} & 8k           & 2.1B  \\ \cline{2-4} \cline{9-10}
-         & \mr{2}{UW–Madison}   & llava-next-video-7B \citep{llava-next} & 7.1B  &               & \mco{2}{}               &             & \mr{2}{4k}   & 1.1B  \\ \cline{1-1} \cline{5-7}
-  \mr{3}{2023} &                & llava-vicuna-13B \citep{llava}         & 13.4B & 5,120         & \mco{2}{40}             &             &              & 1.7B  \\ \cline{2-7} \cline{9-10}
-         & \mr{2}{LMSYS}        & Vicuna-7B-16k \citep{vicuna}           & ~7B   & 4,096         & \mco{2}{32}             &             & \mr{2}{16k}  & 4.3B  \\
-         &                      & Vicuna-13B-16k \citep{vicuna}          & ~13B  & 5,120         & \mco{2}{40}             &             &              & 6.7B  \\ \hline
-  \mr{4}{2022} & \mr{2}{Google} & Flan-T5-base \citep{flan}              & 248M  & 768           & \mco{2}{12}             & \mr{5}{64}  & \mr{2}{0.5k} & 9.4M  \\
+         & Apple                & DCLM-7B \citep{dclm}                   & 6.9B  & 4,096         & \mc{2}{32}              & 128         &              & 0.5B  \\ \cline{2-10}
+         & \mr{2}{Allen AI}     & OLMo-1B \citep{olmo}                   & 1.3B  & 2,048         & \mc{2}{16}              & \mr{2}{128} & \mr{2}{4k}   & 0.3B  \\
+%        &                      & OLMo-2-1124-7B \citep{olmo}            & 7.3B  & 4,096         & \mc{2}{32}              &             &              & 1.1B  \\
+         &                      & OLMo-2-1124-13B \citep{olmo}           & 13.7B & 5,120         & \mc{2}{40}              &             &              & 1.7B  \\ \cline{2-10}
+         & \mr{2}{Amazon}       & Cronos-Bolt-tiny \citep{cronos}        & 9M    & 256           & \mc{2}{4}               & \mr{2}{64}  & \mr{2}{0.5k} & 1M    \\
+         &                      & Cronos-Bolt-base \citep{cronos}        & 205M  & 768           & \mc{2}{12}              &             &              & 9.4M  \\ \cline{2-10}
+         & Alibaba              & Qwen2-Audio-7B   \citep{qwen2-audio}   & 8.4B  & \mr{2}{4,096} & \mc{2}{\mr{2}{32}}      & \mr{5}{128} & 8k           & 2.1B  \\ \cline{2-4} \cline{9-10}
+         & \mr{2}{UW–Madison}   & llava-next-video-7B \citep{llava-next} & 7.1B  &               & \mc{2}{}                &             & \mr{2}{4k}   & 1.1B  \\ \cline{1-1} \cline{5-7}
+  \mr{3}{2023} &                & llava-vicuna-13B \citep{llava}         & 13.4B & 5,120         & \mc{2}{40}              &             &              & 1.7B  \\ \cline{2-7} \cline{9-10}
+         & \mr{2}{LMSYS}        & Vicuna-7B-16k \citep{vicuna}           & ~7B   & 4,096         & \mc{2}{32}              &             & \mr{2}{16k}  & 4.3B  \\
+         &                      & Vicuna-13B-16k \citep{vicuna}          & ~13B  & 5,120         & \mc{2}{40}              &             &              & 6.7B  \\ \hline
+  \mr{4}{2022} & \mr{2}{Google} & Flan-T5-base \citep{flan}              & 248M  & 768           & \mc{2}{12}              & \mr{5}{64}  & \mr{2}{0.5k} & 9.4M  \\
          &                      & Flan-T5-XXL  \citep{flan}              & 11.3B & 4,096         & 24         & 64         &             &              & 101M  \\ \cline{2-7} \cline{9-10}
          & \mr{3}{OpenAI}       & Whisper-tiny \citep{whisper}           & 38M   & 384           & 4          & 6          & & \mr{2}{\makecell{enc: 1500 \\ dec: 448}} & 6M \\
-%        &                      & Whisper-small \citep{whisper}          & 242M  & 768           & \mco{2}{12}             &             &              & 36M   \\
+%        &                      & Whisper-small \citep{whisper}          & 242M  & 768           & \mc{2}{12}              &             &              & 36M   \\
          &                      & Whisper-large-v3 \citep{whisper}       & 1.5B  & 1,280         & 32         & 20         &             &              & 160M  \\ \cline{1-1} \cline{9-9}
   2019   &                      & GPT-2 XL \citep{gpt2}                  & 1.6B  & 1,600         & 48         & 25         &             & 1k           & 157M  \\ \fline
 \end{tabular} \label{tab1} \end{table} \endgroup
@@ -90,6 +89,8 @@ For MHA, the weight matrices $W_K$ and $W_V$ are usually square matrices \eR{d}{
 \label{eq6} \end{equation}
 and $W_{KV,i}$ \eR{d}{d_v}. Fig. \ref{fig1} illustrates the modified attention scheme that calculates V from K according to equation (\ref{eq6}). For inference, $W_{KV} = W_K^{-1} W_V$ can be precomputed offline and stored in the parameter file instead of $W_V$. This requires that $W_K$ is invertible (i.e. non-singular). In general, any square matrix can be inverted if its determinant is non-zero. It’s extremely unlikely that a large matrix has a determinant that is exactly 0.
 
+\textbf{Related work.} Slim attention is somewhat similar to DeepSeek’s multi-head latent attention (MLA) \citep{deepseek-v2}. Unlike MLA, slim attention is an exact implementation of existing MHA models (including models with RoPE).
+
 \section{K-cache is all you need}
 Inference consists of the following two phases, which are illustrated in Fig. \ref{fig2} for the vanilla MHA with KV-cache, where $p$ is the number of prompt-tokens (aka input-tokens) and $n$ is the total number of current tokens including input-tokens and generated tokens, so $n = p+1, \ldots, n_{max}$ and $n_{max}$ is the context window length:
 \begin{itemize}[topsep=-1pt, itemsep=-1pt]
@@ -97,7 +98,7 @@ Inference consists of the following two phases, which are illustrated in Fig. \r
   \item During the \textbf{generate-phase} (aka decoding phase), each output-token is generated sequentially (aka autoregressively). For each iteration of the generate-phase, only one K and V-vector is calculated and stored in the KV-cache, while all the previously stored KV-vectors are read from the cache.
 \end{itemize}
 \begin{figure}[h!] \centering
-  \includegraphics[scale=0.9]{../doc/fig/slimAttn_fig2.pdf}
+  \includegraphics[scale=0.88]{../doc/fig/slimAttn_fig2.pdf}
   \caption{Standard MHA with KV-cache during (a) prompt-phase and (b) generate-phase.}
 \label{fig2} \end{figure}
 
@@ -114,7 +115,7 @@ Equation (\ref{eq7}) can be computed in two different ways:
 \end{itemize}
 
 \begin{figure}[h!] \centering
-  \includegraphics[scale=0.9]{../doc/fig/slimAttn_fig3.pdf}
+  \includegraphics[scale=0.88]{../doc/fig/slimAttn_fig3.pdf}
   \caption{Slim attention without V-cache during (a) prompt-phase; (b) unoptimized and (c) optimized generate-phase.}
 \label{fig3} \end{figure}
 
@@ -125,7 +126,7 @@ During the prompt-phase, Fig. \ref{fig3}(a) has the exact same computational com
 \begin{table}[h!] \centering
 \caption{\textbf{Complexity per token} per layer during the generate-phase for batch size 1}
 \begin{tabular}{lcccccc} \fline
-                                  & \mco{3}{Projection complexity}    & \mco{3}{MHA complexity}      \\
+                                  & \mc{3}{Projection complexity}     & \mc{3}{MHA complexity}       \\
                                   & OPs         & reads   & intensity & OPs     & reads  & intensity \\ \hline
   Vanilla, see Fig. \ref{fig2}(b) & $8d^2$      & $4d^2$  & 2          & $4nd$  & $2nd$  & 2         \\
   Unoptimized, Fig. \ref{fig3}(b) & $(2n+6)d^2$ & $4d^2$  & $(n+3)/2$  & $2nd$  & $nd$   & 2         \\
@@ -136,14 +137,14 @@ During the prompt-phase, Fig. \ref{fig3}(a) has the exact same computational com
 %\begin{table}[h!] \centering
 %\caption{\textbf{Complexity per token} per layer during the generate-phase for batch size 1}
 %\begin{tabular}{lcccccc} \fline
-%                                  & \mco{3}{Projection complexity}           & \mco{3}{MHA complexity}              \\
+%                                  & \mc{3}{Projection complexity}           & \mc{3}{MHA complexity}              \\
 %                                  & compute           & reads   & intensity  & compute         & reads  & intensity \\ \hline
 %  Vanilla, see Fig. \ref{fig2}(b) & $O(4 d^2)$        & $4d^2$  & 1          & $O(2nd)$         & $2nd$  & 1         \\
 %  Unoptimized, Fig. \ref{fig3}(b) & $O((n + 3) d^2)$  & $4d^2$  & $(n+3)/4$  & $O(2nd)$         & $nd$   & 2         \\
 %  Optimized, Fig. \ref{fig3}(c)   & $O(4d^2)$         & $4d^2$  & 1          & $O((h + 1) nd)$  & $nd$   & $h+1$     \\ \fline
 %\end{tabular} \label{tab2} \end{table} \endgroup
 
-Table \ref{tab3} shows the arithmetic intensity (now defined as OPs per memory byte) of various SoCs, TPUs, and GPUs, which vary from 93 to 583. A system is memory bound (i.e. limited by memory bandwidth) if the arithmetic intensity of the executed program is below the chip’s arithmetic intensity. Here, the arithmetic intensity of slim attention is 2 or $2h$, see Table \ref{tab2}, where $h$ is the number of attention heads, which ranges between 16 and 64 for the models listed in Table \ref{tab1}. So the peak arithmetic intensity (up to 128 for $h = 64$) is usually less than the system’s intensity (except for Apple's M4 Max), which means that the system is still memory bound during the token generation phase. Therefore, slim attention speeds up the processing by up to 2x as it reduces the context memory reads by half. Furthermore, slim attention enables processing all heads in parallel as a single matrix-matrix multiplication instead of multiple vector-matrix multiplications, which is usually more efficient and faster on many machines. And slim attention is also compatible with Flash Attention \cite{flash-attention}, which performs softmax and value accumulation in parallel.
+Table \ref{tab3} shows the arithmetic intensity (now defined as OPs per memory byte) of various SoCs, TPUs, and GPUs, which vary from 93 to 583. A system is memory bound (i.e. limited by memory bandwidth) if the arithmetic intensity of the executed program is below the chip’s arithmetic intensity. Here, the arithmetic intensity of slim attention is 2 or $2h$, see Table \ref{tab2}, where $h$ is the number of attention heads, which ranges between 16 and 64 for the models listed in Table \ref{tab1}. So the peak arithmetic intensity (up to 128 for $h = 64$) is usually less than the system’s intensity (except for Apple's M4 Max), which means that the system is still memory bound during the token generation phase. Therefore, slim attention speeds up the processing by up to 2x as it reduces the context memory reads by half. Furthermore, slim attention enables processing all heads in parallel as a single matrix-matrix multiplication instead of multiple vector-matrix multiplications, which is usually more efficient and faster on many machines. And slim attention is also compatible with Flash Attention \citep{flash-attention}, which performs softmax and value accumulation in parallel.
 \begingroup \renewcommand{\arraystretch}{1.3} % increase table row height by 1.3x
 \begin{table}[h!] \centering
 \caption{\textbf{TOPS\tablefootnote{tera-operations-per-second}, memory bandwidth, and arithmetic intensity} of popular chips}
@@ -233,7 +234,7 @@ In the equation above, everything on the right side of $W_K$ has to be the inver
 
 \textbf{Option 2} caches the X-matrix instead of KV or just K, where the X-matrix contains the input activations of the attention layer (before the projections). Recomputing all K-vectors from X by multiplying X with weight matrix $W_K$ would require $2 n d e$ operations and would be very expensive. A lower complexity option is illustrated in Fig. \ref{fig4}, which is similar to the trick illustrated in Fig. \ref{fig3}(c).
 \begin{figure}[h!] \centering
-  \includegraphics[scale=0.9]{../doc/fig/slimAttn_fig4.pdf}
+  \includegraphics[scale=0.88]{../doc/fig/slimAttn_fig4.pdf}
   \caption{Slim attention with X-cache (instead of KV or V-cache) for the generate-phase of transformers with non-square weight matrices with $e > d$.}
 \label{fig4} \end{figure}
 Recall that for the $i$-th head ($i = 1, \ldots, h$), the softmax argument (without the scaling factor $1/\sqrt{d_k}$) is $A_i = Q_i K_i^\top$, where $Q_i = X W_{Q,i}$ and $K_i = X W_{K,i}$. For the generate-phase, there is only one input-vector $x_n$ for the query, but there are $n$ input-vectors $X$ for the key and value projections. We can take advantage of this and modify $A$ as follows (which uses the trick $(B C)^\top = C^\top B^\top$ for transposing the product of arbitrary matrices $B$ and $C$):
@@ -285,7 +286,7 @@ The \textbf{baseline} implementation consists of the following three phases:
 \end{itemize}
 
 \begin{figure}[h!] \centering
-  \includegraphics[scale=0.9]{../doc/fig/slimAttn_fig5.pdf}
+  \includegraphics[scale=0.88]{../doc/fig/slimAttn_fig5.pdf}
   \caption{Slim attention with a single X-cache that is shared among all cross-attention layers for the generate-phase of encoder-decoder transformers.}
 \label{fig5} \end{figure}
 
@@ -295,7 +296,7 @@ The table below lists the cache size savings and speedups during the generate-ph
 
 \begingroup \renewcommand{\arraystretch}{1.3} % increase table row height by 1.3x
 \begin{table} \centering \begin{tabular}{lcccccl} \fline
-  & \mco{5}{\thead{Whisper models}} & \\
+  & \mc{5}{\thead{Whisper models}} & \\
   & \thead{tiny} & \thead{base} & \thead{small} & \thead{medium} & \thead{large} & \thead[l]{Notes} \\ \hline
   Params   & 38M   & 73M   & 242M  & 764M   & 1.5B  & number of parameters                     \\
   Layers   & 4     & 6     & 12    & 24     & 32    & number of layers                         \\
@@ -337,7 +338,8 @@ There is a further optimization, which is a hybrid of options 1 and 2, where one
 %Future work should investigate which of the presented optimizations are applicable for training of LLMs.
 
 \section{Conclusion}
-Slim attention offers a simple trick for halving the context memory of existing MHA transformer models without sacrificing accuracy. Future work includes integrating slim attention into popular frameworks such as HuggingFace Transformers \cite{HFtransformers}, llama.cpp \cite{llama-cpp},  vLLM \citep{vLLM}, llamafile \citep{llamafile}, Ollama \citep{ollama}, and combining it with existing context memory management schemes such as PagedAttention \citep{pagedAttn} and other compression schemes such as Dynamic Memory Compression DMC \cite{DMC} and VL-cache \citep{VL-cache}.
+Slim attention offers a simple trick for halving the context memory of existing MHA transformer models without sacrificing accuracy. Future work includes integrating slim attention into popular frameworks such as HuggingFace Transformers \citep{HFtransformers}, llama.cpp \citep{llama-cpp},  vLLM \citep{vLLM}, llamafile \citep{llamafile}, Ollama \citep{ollama}, SGLang \citep{sglang}, and combining it with existing context memory management schemes such as PagedAttention \citep{pagedAttn} and other compression schemes such as Dynamic Memory Compression DMC \citep{DMC} and VL-cache \citep{VL-cache}.
+Please also see our forthcoming paper about matrix-shrink \citep{matShrink}, which reduces the sizes of attention matrices and proposes a simplification of DeepSeek's MLA scheme.
 
 %\section*{Acknowledgements}
 %We would like to thank TBD for helpful feedback on this work.
@@ -356,32 +358,37 @@ TODO: add figure
 \subsection*{Additional MHA transformers}
 The table below lists additional transformer model with MHA, similar to Table \ref{tab1}. See HuggingFace for more details on these models.
 
+% shortcuts (only letters are allowed in macro names, no numbers and dashes)
+\def\DeepSeekvl {\href{https://huggingface.co/deepseek-ai/deepseek-vl2-tiny}  {DeepSeek-vl2-tiny}}
+\def\MiniCPM    {\href{https://huggingface.co/openbmb/MiniCPM-V-2}            {MiniCPM-V2}}
+\def\UltraLM    {\href{https://huggingface.co/openbmb/UltraLM-65b}            {UltraLM-65B}}
+% TODO: add more links here
+
 \begingroup \renewcommand{\arraystretch}{1.3} % increase table row height by 1.3x
 \begin{table}[h!] \centering
 \begin{tabular}{lllccccc} \fline
   \thead[l]{Year} & \thead[l]{Publisher} & \thead[l]{Model} & \thead{Params} & \thead{$d$} & \thead{layers} & \thead{$h$} & \thead{$d_k$} \\ \hline
   2025 & Metagene       & METAGENE-1 \citep{metagene}       & 6.5B           & 4096        & 32             & 32          & 128 \\
-  % 2025 & Stability AI & Stable-codec-speech-16k           & 953M           &
   2024 & Useful Sensors & Moonshine-base \citep{moonshine}  & 61M            & 416         & 8              & 8           & 52  \\
   2024 & Moondream      & Moondream-2                       & 1.9B           & 2048        & 24             & 32          & 64  \\
-  %2024 & Apple          & DCLM-7B \citep{dclm}              & 6.9B           & 4096        & 32             & 32          & 128 \\
   2024 & Stability AI   & Stable-Code-3B                    & 2.8B           & 2560        & 32             & 32          & 80  \\
   2024 & Stability AI   & Stable-LM2-1.6B                   & 1.6B           & 2048        & 24             & 32          & 64  \\
   2024 & NVIDIA         & OpenMath-CodeLlama-13B            & 13B            & 5120        & 40             & 40          & 128 \\
   2024 & Microsoft      & MAIRA-2                           & 6.9B           & 4096        & 32             & 32          & 128 \\
-  %2024 & Together AI    & Evo-1-131k                        & 6.5B           & 4096        & 32             & 32          & 128 \\
-  % this model has 34.4B context memory!!!
   2024 & Pansophic      & Rocket-3B                         & 2.8B           & 2560        & 32             & 32          & 80  \\
   2024 & OpenLM Research & OpenLLaMA-13B                    & 13B            & 5120        & 40             & 40          & 128 \\
   2024 & Google         & TimesFM-1.0-200M                  & 200M           & 1280        & 20             & 16          & 80  \\
   2024 & Google         & MetricX-24-hybrid-XXL             & 13B            & 4096        & 24             & 64          & 64  \\
-  % 2024 & Stanford     & BioMedLM 2.7B                     & 2.7B           &
+  2024 & DeepSeek       & \DeepSeekvl                       & 3.4B           & 1280        & 12             & 10          & 128 \\
+  2024 & OpenBMB        & \MiniCPM                          & 3.4B           & 2304        & 40             & 36          & 64  \\
+  2023 & OpenBMB        & \UltraLM                          & 65B            & 8192        & 80             & 64          & 128 \\
   2023 & Together AI    & LLaMA-2-7B-32K                    & 7B             & 4096        & 32             & 32          & 128 \\
   2023 & Databricks     & Dolly-v2-12B                      & 12B            & 5120        & 36             & 40          & 128 \\
   2023 & Mosaic ML      & MPT-7B-8K                         & 7B             & 4096        & 32             & 32          & 128 \\
   2023 & Mosaic ML      & MPT-30B                           & 30B            & 7168        & 48             & 64          & 112 \\
-  2022 & BigScience     & BLOOM                             & 176B           & 14,336      & 70             & 112         & 128 \\
-  \fline
+  2022 & BigScience     & BLOOM                             & 176B           & 14,336      & 70             & 112         & 128 \\ \fline
+  % 2025 & Stability AI & Stable-codec-speech-16k           & 953M
+  % 2024 & Stanford     & BioMedLM 2.7B                     & 2.7B
 \end{tabular} \end{table} \endgroup
 
 \end{document}
