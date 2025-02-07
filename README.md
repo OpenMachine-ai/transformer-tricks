@@ -7,7 +7,7 @@
 
 A collection of tricks to simplify and speed up transformer models:
 - Slim attention: [[paper]](https://docs.google.com/viewer?url=https://raw.githubusercontent.com/OpenMachine-ai/transformer-tricks/refs/heads/main/doc/slimAttn.pdf), [[video]](https://youtu.be/uVtk3B6YO4Y), [[podcast]](https://notebooklm.google.com/notebook/ac47a53c-866b-4271-ab79-bc48d1b41722/audio), [[notebook]](https://colab.research.google.com/github/OpenMachine-ai/transformer-tricks/blob/main/notebooks/slimAttn_paper.ipynb), [[code-readme]](doc/slimAttn.md)
-- Matrix-shrink \[work in progress\]: [[paper]](https://docs.google.com/viewer?url=https://raw.githubusercontent.com/OpenMachine-ai/transformer-tricks/refs/heads/main/doc/matShrink.pdf) 
+- Matrix-shrink \[work in progress\]: [[paper]](https://docs.google.com/viewer?url=https://raw.githubusercontent.com/OpenMachine-ai/transformer-tricks/refs/heads/main/doc/matShrink.pdf)
 - Flash normalization: [[paper]](https://arxiv.org/abs/2407.09577), [[podcast]](https://notebooklm.google.com/notebook/0877599c-720c-49b5-b451-8a41af592dd1/audio), [[notebook]](https://colab.research.google.com/github/OpenMachine-ai/transformer-tricks/blob/main/notebooks/flashNorm_paper.ipynb), [[code-readme]](doc/flashNorm.md)
 - Precomputing the first layer: [[paper]](https://arxiv.org/abs/2402.13388), [[podcast]](https://notebooklm.google.com/notebook/7794278e-de6a-40fc-ab1c-3240a40e55d5/audio)
 - Removing weights from skipless transformers: [[paper]](https://arxiv.org/abs/2404.12362), [[podcast]](https://notebooklm.google.com/notebook/0875eef7-094e-4c30-bc13-90a1a074c949/audio), [[notebook]](https://colab.research.google.com/github/OpenMachine-ai/transformer-tricks/blob/main/notebooks/removeWeights_paper.ipynb)
@@ -48,7 +48,7 @@ Please subsribe to our [[newsletter]](https://transformertricks.substack.com) on
 
 ## Contributing
 Before making a change to this repo, please do the following:
-- Format your code by typing `autopep8 *.py`. It's using the config in  `pyproject.toml`.
+- Format your code by typing `autopep8 *.py`. It's using the config in  `pyproject.toml`
 - Whenever you change `transformer_tricks.py`, publish a new version of the package as follows:
   - First, update the version number in `pyproject.toml` and in `requirements.txt`
   - Then, push the package to PyPi by typing `./push_pypi.sh`

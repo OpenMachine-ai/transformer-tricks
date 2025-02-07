@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Make sure to increment the version number in pyproject.toml before
-# running this script! See below link for more details:
+# Make sure to increment the version number in pyproject.toml and
+# requirements.txt before running this script! See below link for details:
 # https://packaging.python.org/en/latest/tutorials/packaging-projects/
 #
 # Setup: install build and twine via 'pip3 install build twine'
