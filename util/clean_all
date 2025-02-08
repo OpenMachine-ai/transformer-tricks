@@ -1,0 +1,14 @@
+#!/bin/bash
+
+# cleans up the entire repo by removing generated files
+# usage: util/clean_all  (run from the root dir of this repo)
+
+# clean up ./util
+cd util
+rm -rf pypi
+cd -
+
+# clean up ./tex
+cd tex
+./clean
+cd -

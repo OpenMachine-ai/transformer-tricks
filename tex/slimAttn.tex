@@ -7,7 +7,7 @@
 \usepackage{tablefootnote}
 
 % shortcuts
-\newcommand{\mr}[2]{\multirow{#1}{*}{#2}}     % table multirow
+\newcommand{\mr}[2]{\multirow{#1}{*}{#2}}     % table multi-row
 \newcommand{\mc}[2]{\multicolumn{#1}{c}{#2}}  % table multicolumn
 \newcommand{\eR}[2]{$\in \mathbb{R}^{#1 \times #2}$} % element of R^{1x2}
 \def\fline{\Xhline{2\arrayrulewidth}} % fatline for table
@@ -341,8 +341,8 @@ There is a further optimization, which is a hybrid of options 1 and 2, where one
 Slim attention offers a simple trick for halving the context memory of existing MHA transformer models without sacrificing accuracy. Future work includes integrating slim attention into popular frameworks such as HuggingFace Transformers \citep{HFtransformers}, llama.cpp \citep{llama-cpp},  vLLM \citep{vLLM}, llamafile \citep{llamafile}, Ollama \citep{ollama}, SGLang \citep{sglang}, and combining it with existing context memory management schemes such as PagedAttention \citep{pagedAttn} and other compression schemes such as Dynamic Memory Compression DMC \citep{DMC} and VL-cache \citep{VL-cache}.
 Please also see our forthcoming paper about matrix-shrink \citep{matShrink}, which reduces the sizes of attention matrices and proposes a simplification of DeepSeek's MLA scheme.
 
-%\section*{Acknowledgements}
-%We would like to thank TBD for helpful feedback on this work.
+\section*{Acknowledgments}
+We would like to thank Imo Udom, Mitchell Baker, and Mozilla for supporting this work.
 
 % TODO: alternatively, place appendix before references
 \bibliographystyle{unsrtnat}

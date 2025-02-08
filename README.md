@@ -40,7 +40,7 @@ The papers are accompanied by the following Jupyter notebooks:
 
 ---
 ## Newsletter
-Please subsribe to our [[newsletter]](https://transformertricks.substack.com) on substack to get the latest news about this project. We will never send you more than one email per month.
+Please subscribe to our [[newsletter]](https://transformertricks.substack.com) on substack to get the latest news about this project. We will never send you more than one email per month.
 
 [![Substack](https://img.shields.io/badge/Substack-FF6719?logo=substack&logoColor=fff)](https://transformertricks.substack.com)
 

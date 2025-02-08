@@ -1,0 +1,25 @@
+#!/bin/bash
+
+# spell check all tex and markdown files
+# usage: util/spell_check  (run from the root dir of this repo)
+
+# notes:
+#  - option -M is for markdown; -t is for tex
+#  - file util/.aspell is our personal dictionary
+#  - however, aspell seems to have a bug, the personal dictionary file
+#    must be located in the same dir from which you call aspell, that's
+#    why we first do 'cd util'
+
+cd util
+
+# all markdown files
+for file in ../*.md ../*/*.md; do
+  aspell -d en_US -l en_US --personal=./.aspell -M -c "$file"
+done
+
+# all tex files
+for file in ../tex/*.tex; do
+  aspell -d en_US -l en_US --personal=./.aspell -t -c "$file"
+done
+
+cd -

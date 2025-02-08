@@ -7,9 +7,10 @@
 \usepackage{tablefootnote}
 
 % shortcuts
+\newcommand{\WW}[1]{W_\text{#1}}                    % for W_\text{...}
 \newcommand{\eR}[2]{$\in \mathbb{R}^{#1 \times #2}$}  % element of R^{1x2}
 \newcommand{\mc}[2]{\multicolumn{#1}{c}{#2}}        % table multicolumn
-\def\fline{\Xhline{2\arrayrulewidth}}               % fatline for table
+\def\fline{\Xhline{2\arrayrulewidth}}               % fat-line for table
 
 \title{[work in progress]: \\ Matrix-shrink for transformers without loss of accuracy}
 
@@ -19,13 +20,13 @@
 \begin{document} \maketitle
 
 \begin{abstract}
-Matrix-shrink uses matrix inversion to reduce weight matrices in a mathematically equivalent way and thus without compromising the model accuracy. Matrix-shrink speeds up both inference and training. It can be used for inference of existing models without fine-tuning or re-training. We also propose a simplified MLA (multi-head latent attention) scheme. See \citep{tricks} for code.
+Matrix-shrink reduces the number of weights for back-to-back matrices. It uses matrix inversion to reduce weights in a mathematically equivalent way and thus without compromising model accuracy. Matrix-shrink is applicable to both inference and training. It can be used for inference of existing models without fine-tuning or re-training. We also propose a simplified MLA (multi-head latent attention) scheme. See \citep{tricks} for code and more transformer tricks.
 \end{abstract}
 
-For two back-to-back weight matrices $W_A$ and $W_B$, Fig. \ref{fig1} illustrates how we can reduce the size of $W_B$ in a mathematically equivalent way.
+For two back-to-back weight matrices $W_A$ and $W_B$, Fig. \ref{fig1} illustrates how we can reduce the size of $W_B$ in a mathematically equivalent way by using matrix inversion.
 \begin{figure}[h!] \centering  % the [h!] tries to place the picture right here
   \includegraphics[scale=0.88]{../doc/fig/matShrink_fig1.pdf}
-  \caption{Mathematically equivalent implementations of two back-to-back weight matrices $W_A$ and $W_B$ with rank $r$, where $d > r$ and $e > r$. We can split $W_B$ into two submatrices $W_{B1}$ \eR{r}{r} and $W_{B2}$. We can eliminate $W_{B1}$ if it is invertible by merging it into $W_A$ as $W_A^\ast = W_A W_{B1}$ and by changing $W_{B2}$ to $W_{B2}^\ast = W_{B1}^{-1} W_{B2}$. This saves $r^2$ weights and $r^2$ multiply operarions per token $x$.}
+  \caption{Mathematically equivalent implementations of two back-to-back weight matrices $W_A$ and $W_B$ with rank $r$, where $d > r$ and $e > r$. We can split $W_B$ into two submatrices $W_{B1}$ \eR{r}{r} and $W_{B2}$. We can eliminate $W_{B1}$ if it is invertible by merging it into $W_A$ as $W_A^\ast = W_A W_{B1}$ and by changing $W_{B2}$ to $W_{B2}^\ast = W_{B1}^{-1} W_{B2}$. This saves $r^2$ weights and $r^2$ multiply operations per token $x$.}
 \label{fig1} \end{figure}
 
 Matrix-shrink reduces the number of weights for the following back-to-back weight matrices:
@@ -35,9 +36,9 @@ Matrix-shrink reduces the number of weights for the following back-to-back weigh
   \item The Q and K projections for each attention-head (without the RoPE portion)
   \item The latent projections of MLA (multi-head latent attention)
 \end{itemize}
-\textbf{Related work.} Matrix-shrink is somewhat similar to slim attention \citep{slimAttn} in its use of matrix inversion to compute projections from each other. TODO: also mention papers about matrix approximation / compression schemes such as SVD and others.
+\textbf{Related work.} Matrix-shrink is similar to slim attention \citep{slimAttn} in its use of matrix inversion to compute projections from each other. TODO: also mention papers about matrix approximation / compression schemes such as SVD and others.
 
-\textbf{Alternative way.} Alternatively, we can split matrix $W_A$ into two submatrices $W_{A1}$ \eR{r}{r} and $W_{A2}$ such that $W_A = [W_{A1}; W_{A2}]$. We can then eliminate $W_{A1}$ if it is invertible as $W = [W_{A1}; W_{A2}] W_B = [I; W_{A2}^\ast] W_B^\ast$ with identiy matrix $I$ \eR{r}{r} and where $W_B^\ast = W_{A1} W_B$ and $W_{A2}^\ast = W_{A2} W_{A1}^{-1}$, see Fig. \ref{fig2}.
+\textbf{Alternative way.} Alternatively, we can split matrix $W_A$ into two submatrices $W_{A1}$ \eR{r}{r} and $W_{A2}$ such that $W_A = [W_{A1}; W_{A2}]$. We can then eliminate $W_{A1}$ if it is invertible as $W = [W_{A1}; W_{A2}] W_B = [I; W_{A2}^\ast] W_B^\ast$ with identity matrix $I$ \eR{r}{r} and where $W_B^\ast = W_{A1} W_B$ and $W_{A2}^\ast = W_{A2} W_{A1}^{-1}$, see Fig. \ref{fig2}.
 \begin{figure}[h!] \centering
   \includegraphics[scale=0.88]{../doc/fig/matShrink_fig2.pdf}
   \caption{Alternative way of shrinking $W_A$ instead of $W_B$}
@@ -47,7 +48,7 @@ Matrix-shrink reduces the number of weights for the following back-to-back weigh
 Note that the value (V) and output (O) projections for head $i$ of multi-head attention (MHA) are two back-to-back weight matrices $W_{V,i}$ and $W_{O,i}$. Therefore, we can apply the matrix-shrink scheme to each head. Specifically:
 \begin{itemize}[topsep=-1pt, itemsep=-1pt]
   \item For the vanilla MHA with $h$ heads, each head has dimension $d_k = d / h$, and $d = d_\text{model}$.
-  \item So for the dimensiosn $r$ and $e$ of Fig. \ref{fig1}, we have  $r = d / h$ and $e = d$.
+  \item So for the dimensions $r$ and $e$ of Fig. \ref{fig1}, we have  $r = d / h$ and $e = d$.
   \item This saves $r^2 = d^2 / h^2$ weights for each head, so $d^2 / h$ weights in total.
   \item Note: for single-head attention (where $h = 1$), we can save $2 d^2$ weights (i.e. we can merge the V and O weight matrices into a single $d \times d$ matrix; and the Q and K weight matrices into a single $d \times d$ matrix if there is no RoPE).
 \end{itemize}
@@ -69,8 +70,8 @@ For many models that use RoPE, we can also apply this trick as follows: Many imp
 \section{Matrix-shrink for MLA}
 DeepSeek's MLA (multi-head latent attention) scheme \citep{deepseek-v2} has two latent projections, one for Q (queries) and one for KV (keys and values). We can apply matrix-shrink to each of them:
 \begin{itemize}[topsep=-1pt, itemsep=-1pt]
-  \item The Q-latent projection and query (Q) projections are two back-to-back weight matrices $W_{DQ}$ and $W_{UQ}$.
-  \item The KV-latent projection and key/value (KV) projections are two back-to-back weight matrices $W_{DKV}$ and the union of $W_{UK}$ and $W_{UV}$.
+  \item The Q-latent projection and query (Q) projections are two back-to-back weight matrices $\WW{DQ}$ and $\WW{UQ}$.
+  \item The KV-latent projection and key/value (KV) projections are two back-to-back weight matrices $\WW{DKV}$ and the union of $\WW{UK}$ and $\WW{UV}$.
 \end{itemize}
 We can also apply matrix-shrink to each V-O head and the non-RoPE portion of the Q-K heads. Specifically, we can apply the matrix-shrink to the MLA weight matrices in the following order:
 \begin{enumerate}[topsep=-1pt, itemsep=-1pt]
@@ -91,17 +92,17 @@ We are using the following parameter names similar to \citep{deepseek-v2}:
   \item For Q (query):
   \begin{itemize}[topsep=-1pt, itemsep=-1pt]
     \item $r_\text{Q}$: rank of Q-latent projection
-    \item $W_{DQ}$: down-projection for Q
-    \item $W_{UQ}$: up-projection for Q-part without RoPE (aka NoPE)
-    \item $W_{QR}$: up-projection for Q-part with RoPE
+    \item $\WW{DQ}$: down-projection for Q
+    \item $\WW{UQ}$: up-projection for Q-part without RoPE (aka NoPE)
+    \item $\WW{QR}$: up-projection for Q-part with RoPE
   \end{itemize}
   \item For KV (key-value):
   \begin{itemize}[topsep=-1pt, itemsep=-1pt]
     \item $r_\text{KV}$: rank of KV-latent projection
-    \item $W_{KR}$: projection for K-part with RoPE (has its own cache, used for all queries as MQA)
-    \item $W_{DKV}$: down-projection for KV
-    \item $W_{UK}$: up-projection for K-part without RoPE (aka NoPE)
-    \item $W_{UV}$: up-projection for V
+    \item $\WW{KR}$: projection for K-part with RoPE (has its own cache, used for all queries as MQA)
+    \item $\WW{DKV}$: down-projection for KV
+    \item $\WW{UK}$: up-projection for K-part without RoPE (aka NoPE)
+    \item $\WW{UV}$: up-projection for V
   \end{itemize}
 \end{itemize}
 
@@ -136,11 +137,12 @@ In this section we propose a simplification for DeepSeek’s MLA (multi-head lat
 Fig. \ref{fig3} shows the K and V projections of MLA and the proposed simplification:
 \begin{itemize}[topsep=-1pt, itemsep=-1pt]
   \item Fig. \ref{fig3}(a) shows the MLA projections for K (keys) and V (values). Note that a single $d_\text{ROPE}$ head is shared among all query-heads, where $d_\text{ROPE} = 64$ or $32$ usually.
-  \item Fig. \ref{fig3}(b) shows the mathematically equivalent version with matrix-shrink applied to the weight matrices $W_{DKV}$ and $W_{UK}$.
-  \item Fig. \ref{fig3}(c) shows the proposed simplified MLA scheme where the $d_\text{ROPE}$ units (or channels) are sourced directly from the latent cache, instead of having a separate cache and $W_{KR}$:
+  \item Fig. \ref{fig3}(b) shows the mathematically equivalent version with matrix-shrink applied to the weight matrices $\WW{DKV}$ and $\WW{UK}$.
+  \item Fig. \ref{fig3}(c) shows the proposed simplified MLA scheme where the $d_\text{ROPE}$ units (or channels) are sourced directly from the latent cache, instead of having a separate cache and $\WW{KR}$:
   \begin{itemize}[topsep=-1pt, itemsep=-1pt]
-    \item The rank $s$ of the simplified scheme could be larger than $r$ (e.g. $s = r + d_\text{ROPE}$) or slightly lower than this (e.g. $s = r$).
     \item Note that this simplified scheme is not mathematically identical to the standard MLA scheme shown in Fig. \ref{fig3}(a).
+    \item The rank $s$ of the simplified scheme could be larger than $r$ (e.g. $s = r + d_\text{ROPE}$) or slightly lower than this (e.g. $s = r$).
+    \item Advantages include: If $s > r$, then there is more usable rank for the keys and values. So the cached latent space is better utilized. And if $s < r + d_\text{ROPE}$ then the total cache size is reduced.
   \end{itemize}
 \end{itemize}
 
@@ -153,7 +155,7 @@ In some cases, we can first use SVD (singular value decomposition) to compress t
 %\section{Conclusion}
 %Slim attention offers a simple trick for halving the context memory of existing MHA transformer models without sacrificing accuracy. Future work includes integrating slim attention into popular frameworks such as HuggingFace Transformers \citep{HFtransformers}, llama.cpp \citep{llama-cpp},  vLLM \citep{vLLM}, llamafile \citep{llamafile}, Ollama \citep{ollama}, SGLang \citep{sglang}, and combining it with existing context memory management schemes such as PagedAttention \citep{pagedAttn} and other compression schemes such as Dynamic Memory Compression DMC \citep{DMC} and VL-cache \citep{VL-cache}.
 
-%\section*{Acknowledgements}
+%\section*{Acknowledgments}
 %We would like to thank TBD for helpful feedback on this work.
 
 \bibliographystyle{unsrtnat}

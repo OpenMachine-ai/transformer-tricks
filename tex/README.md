@@ -4,7 +4,8 @@ This folder contains the latex files for the Transformer Tricks papers. The flow
     - Copy each drawing into a separate google drawing file and adjust the bounding box and "download" as PDF. This PDF is then used by latex.
     - For references, see the comments in file `references.bib`
 3) Type `./run foo.tex` to create PDF.
-4) Submit to arXiv:
+4) Use spell checker as follows: `cd ..; util/spell_check`
+5) Submit to arXiv:
     - To submit `foo.tex`, type: `./submit foo.tex`
     - To double-check if everything works, run `pdflatex foo` two times (or sometimes three times) as follows:
       `cd foo_submit` and `pdflatex foo && pdflatex foo`
