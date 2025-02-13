@@ -1,6 +1,7 @@
-transformers==4.48.0
+numpy==1.26.4
+transformers>=4.48.0
 datasets==2.19.2
-transformer-tricks>=0.3.2
+transformer-tricks>=0.3.3
 accelerate>=0.9.0
 safetensors>=0.4.5
 huggingface-hub>=0.25.1
