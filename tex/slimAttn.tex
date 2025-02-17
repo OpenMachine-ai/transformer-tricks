@@ -21,7 +21,7 @@
 \begin{document} \maketitle
 
 \begin{abstract}
-Slim attention shrinks the context memory size by 2x for transformer models with MHA (multi-head attention), which can speed up inference by up to 2x for large context windows. Slim attention is an exact, mathematically identical implementation of the standard attention mechanism and therefore doesn’t compromise model accuracy. In other words, slim attention losslessly compresses the context memory by a factor of 2. For encoder-decoder transformers, the context memory size can be reduced even further: For the Whisper models for example, we reduce the context memory by 8x, which can speed up token generation by 5x for batch size 64. And for rare cases where the MHA projection dimension is larger than $d_{\text{model}}$, the memory can be reduced by a factor of 32 for the T5-11B model for example. See \citep{tricks} for code and more transformer tricks, and \citep{slim-video} for a YouTube video about this paper.
+Slim attention shrinks the context memory size by 2x for transformer models with MHA (multi-head attention), which can speed up inference by up to 2x for large context windows. Slim attention is an exact, mathematically identical implementation of the standard attention mechanism and therefore doesn’t compromise model accuracy. In other words, slim attention losslessly compresses the context memory by a factor of 2. For encoder-decoder transformers, the context memory size can be reduced even further: For the Whisper models for example, slim attention reduces the context memory by 8x, which can speed up token generation by 5x for batch size 64 for example. And for rare cases where the MHA projection dimension is larger than $d_{\text{model}}$, the memory can be reduced by a factor of 32 for the T5-11B model for example. See \citep{tricks} for code and more transformer tricks, and \citep{slim-video} for a YouTube video about this paper.
 \end{abstract}
 
 Fig. \ref{fig1} illustrates how slim attention computes the value (V) projections from the key (K) projections in a mathematical equivalent way without hurting model accuracy. Therefore, we only need to store the keys in memory, instead of storing both keys and values. This reduces the size of the context memory (aka KV-cache) by half. Alternatively, slim attention can double the context window size without increasing context memory. However, calculating V from K on-the-fly requires additional compute, which we will discuss below.
@@ -30,7 +30,7 @@ Fig. \ref{fig1} illustrates how slim attention computes the value (V) projection
   \caption{Mathematically identical implementations of multi-headed self-attention with square weight matrices \eR{d}{d}. \emph{Left}: vanilla version. \emph{Right}: proposed version where values V are computed from keys K with $W_{KV} = W_K^{-1} W_V$. The $\triangleq$ symbol denotes mathematical identity.}
 \label{fig1} \end{figure}
 
-Slim attention is applicable for transformers that use MHA (multi-head attention \citep{vanilla}) instead of MQA (multi-query attention \citep{MQA}) or GQA (grouped query attention \citep{GQA}), which includes LLMs such as CodeLlama-7B and Aya-23-35B, SLMs such as Phi-3-mini and SmolLM2-1.7B, VLMs (vision language models) such as LLAVA, audio-language models such as Qwen2-Audio-7B, and encoder-decoder transformer models such as Whisper \citep{whisper} and T5 \citep{T5}. Table \ref{tab1} lists various MHA transformer models ranging from 9 million to 35 billion parameters. The last column of Table \ref{tab1} specifies the KV-cache size (in number of activations) for each model to support its maximum context length, where the KV-cache size equals $2 h d_k \cdot \text{layers} \cdot \text{context\_length}$.
+Slim attention is applicable to transformers that use MHA (multi-head attention \citep{vanilla}) instead of MQA (multi-query attention \citep{MQA}) or GQA (grouped query attention \citep{GQA}), which includes LLMs such as CodeLlama-7B and Aya-23-35B, SLMs such as Phi-3-mini and SmolLM2-1.7B, VLMs (vision language models) such as LLAVA, audio-language models such as Qwen2-Audio-7B, and encoder-decoder transformer models such as Whisper \citep{whisper} and T5 \citep{T5}. Table \ref{tab1} lists various MHA transformer models ranging from 9 million to 35 billion parameters. The last column of Table \ref{tab1} specifies the KV-cache size (in number of activations) for each model to support its maximum context length, where the KV-cache size equals $2 h d_k \cdot \text{layers} \cdot \text{context\_length}$.
 
 \begingroup \renewcommand{\arraystretch}{1.3} % increase table row height by 1.3x
 \begin{table}[h!] \centering
@@ -48,7 +48,7 @@ Slim attention is applicable for transformers that use MHA (multi-head attention
          & \mr{2}{Microsoft}    & Phi-3-mini-128k \citep{phi3}           & 3.8B  & 3,072         & \mc{2}{32}              & 96          &              & \textbf{25.8B} \\ \cline{9-9}
          &                      & bitnet\_b1\_58-3B \citep{bitnet}       & 3.3B  & 3,200         & 26         & 32         & 100         & \mr{2}{2k}   & 0.3B  \\ \cline{2-8} \cline{10-10}
          & Apple                & DCLM-7B \citep{dclm}                   & 6.9B  & 4,096         & \mc{2}{32}              & 128         &              & 0.5B  \\ \cline{2-10}
-         & \mr{2}{Allen AI}     & OLMo-1B \citep{olmo}                   & 1.3B  & 2,048         & \mc{2}{16}              & \mr{2}{128} & \mr{2}{4k}   & 0.3B  \\
+         & \mr{2}{Ai2}          & OLMo-1B \citep{olmo}                   & 1.3B  & 2,048         & \mc{2}{16}              & \mr{2}{128} & \mr{2}{4k}   & 0.3B  \\
 %        &                      & OLMo-2-1124-7B \citep{olmo}            & 7.3B  & 4,096         & \mc{2}{32}              &             &              & 1.1B  \\
          &                      & OLMo-2-1124-13B \citep{olmo}           & 13.7B & 5,120         & \mc{2}{40}              &             &              & 1.7B  \\ \cline{2-10}
          & \mr{2}{Amazon}       & Cronos-Bolt-tiny \citep{cronos}        & 9M    & 256           & \mc{2}{4}               & \mr{2}{64}  & \mr{2}{0.5k} & 1M    \\
@@ -65,9 +65,9 @@ Slim attention is applicable for transformers that use MHA (multi-head attention
          &                      & Whisper-large-v3 \citep{whisper}       & 1.5B  & 1,280         & 32         & 20         &             &              & 160M  \\ \cline{1-1} \cline{9-9}
   2019   &                      & GPT-2 XL \citep{gpt2}                  & 1.6B  & 1,600         & 48         & 25         &             & 1k           & 157M  \\ \fline
 \end{tabular} \label{tab1} \end{table} \endgroup
-For long contexts, the KV-cache can be larger than the parameter memory. For batch size 1 and 1 byte (FP8) per parameter and activation, the Phi-3-mini-128k model for example has a 3.8GB parameter memory and requires 25GB for its KV-cache to support a context length of 128K tokens. For a batch size of 16 for example, the KV-cache grows to 16 $\cdot$ 25GB = 400GB. Therefore, memory bandwidth and capacity become the bottleneck for supporting long context.
+For long contexts, the KV-cache can be even larger than the parameter memory: For batch size 1 and 1 byte (FP8) per parameter and activation, the Phi-3-mini-128k model for example has a 3.8GB parameter memory and requires 25GB for its KV-cache to support a context length of 128K tokens. For a batch size of 16 for example, the KV-cache grows to 16 $\cdot$ 25GB = 400GB. Therefore, memory bandwidth and capacity become the bottleneck for supporting long context.
 
-For a memory bound system with batch size 1, the time to generate each token takes as long as it takes reading all parameters and KV-caches from memory. Therefore, slim attention can speed up the token generation by up to 2x for long contexts. For the Phi-3-min-128k model with 3.8GB parameters for example, slim attention reduces the KV-cache size from 25GB to 12.5GB, which reduces the total memory from 28.8GB to 16.3GB, and thus speeds up the token generation by up to 1.8x for batch size 1 (the maximum speedup happens for the generation of the very last token of the 128K tokens). And for batch size 16 for example, the speedup is (400+3.8) / (200+3.8) = 2x.
+For a memory bound system with batch size 1, generating each token takes as long as reading all (activated) parameters and all KV-caches from memory. Therefore, slim attention can speed up the token generation by up to 2x for long contexts. For the Phi-3-min-128k model with 3.8GB parameters for example, slim attention reduces the KV-cache size from 25GB to 12.5GB, which reduces the total memory from 28.8GB to 16.3GB, and thus speeds up the token generation by up to 1.8x for batch size 1 (the maximum speedup happens for the generation of the very last token of the 128K tokens). And for batch size 16 for example, the speedup is (400+3.8) / (200+3.8) = 2x.
 
 %\section{Calculate V from K}
 The vanilla transformer \citep{vanilla} defines the self-attention $Y$ of input $X$ as follows, where $h$ is the number of heads:
@@ -92,10 +92,10 @@ and $W_{KV,i}$ \eR{d}{d_v}. Fig. \ref{fig1} illustrates the modified attention s
 \textbf{Related work.} Slim attention is somewhat similar to DeepSeek’s multi-head latent attention (MLA) \citep{deepseek-v2}. Unlike MLA, slim attention is an exact implementation of existing MHA models (including models with RoPE).
 
 \section{K-cache is all you need}
-Inference consists of the following two phases, which are illustrated in Fig. \ref{fig2} for the vanilla MHA with KV-cache, where $p$ is the number of prompt-tokens (aka input-tokens) and $n$ is the total number of current tokens including input-tokens and generated tokens, so $n = p+1, \ldots, n_{max}$ and $n_{max}$ is the context window length:
+Inference consists of the following two phases, which are illustrated in Fig. \ref{fig2} for the vanilla MHA with KV-cache, where $p$ is the number of input-tokens and $n$ is the total number of current tokens including input-tokens and generated tokens, so $n = p+1, \ldots, n_{max}$ and $n_{max}$ is the context window length:
 \begin{itemize}[topsep=-1pt, itemsep=-1pt]
   \item During the \textbf{prompt-phase} (aka prefill phase), all $p$ input-tokens are batched up and processed in parallel. In this phase, the K and V projections are stored in the KV-cache.
-  \item During the \textbf{generate-phase} (aka decoding phase), each output-token is generated sequentially (aka autoregressively). For each iteration of the generate-phase, only one K and V-vector is calculated and stored in the KV-cache, while all the previously stored KV-vectors are read from the cache.
+  \item During the \textbf{generate-phase} (aka decoding phase), each output-token is generated sequentially (aka autoregressively). For each iteration of the generate-phase, only one new K-vector and one new V-vector are calculated and stored in the KV-cache, while all the previously stored KV-vectors are read from the cache.
 \end{itemize}
 \begin{figure}[h!] \centering
   \includegraphics[scale=0.88]{../doc/fig/slimAttn_fig2.pdf}
@@ -110,8 +110,8 @@ Fig. \ref{fig3} illustrates slim attention, which only has a K-cache because V i
 \label{eq7} \end{equation}
 Equation (\ref{eq7}) can be computed in two different ways:
 \begin{itemize}[topsep=-1pt, itemsep=-1pt]
-  \item Option 1: Compute $V_i = K W_{KV,i}$ first, and then multiply it with $\text{softmax}(\cdot)$. This option is used by Fig. \ref{fig3}(a) and \ref{fig3}(b). Complexity: multiplying $K$ \eR{n}{d} with $W_{KV,i}$ \eR{d}{d_k} takes $2 n d d_k$ OPs\footnote{In general, multiplying two matrices with dimensions $m \times n$ and $n \times p$ takes $mnp$ MULs (two-operand multiply operations) and $mp(n-1)$ ADDs, so in total approximately $2mnp$ operations or OPs (two-operand operations).}, and multiplying $\text{softmax}(\cdot)$ \eR{1}{n} with the $n \times d_k$ result takes $2 n d_k$ OPs.
-  \item Option 2: First multiply $\text{softmax}(\cdot)$ with $K$, and then multiply the result by $W_{KV,i}$.  This option is illustrated in Fig. \ref{fig3}(c). During the generate-phase, this option has lower compute complexity than option 1: multiplying $\text{softmax}(\cdot)$ with $K$ takes $2nd$ OPs, and multiplying the result with $W_{KV,i}$ takes $2dd_k$ OPs.
+  \item \textbf{Option 1 (unoptimized)}: Compute $V_i = K W_{KV,i}$ first, and then multiply it with $\text{softmax}(\cdot)$. This option is used by Fig. \ref{fig3}(a) and \ref{fig3}(b). Complexity: multiplying $K$ \eR{n}{d} with $W_{KV,i}$ \eR{d}{d_k} takes $2 n d d_k$ OPs\footnote{In general, multiplying two matrices with dimensions $m \times n$ and $n \times p$ takes $mnp$ MULs (two-operand multiply operations) and $mp(n-1)$ ADDs, so in total approximately $2mnp$ operations or OPs (two-operand operations).}, and multiplying $\text{softmax}(\cdot)$ \eR{1}{n} with the $n \times d_k$ result takes $2 n d_k$ OPs.
+  \item \textbf{Option 2 (optimized)}: First multiply $\text{softmax}(\cdot)$ with $K$, and then multiply the result by $W_{KV,i}$.  This option is illustrated in Fig. \ref{fig3}(c). During the generate-phase, this option has lower compute complexity than option 1: multiplying $\text{softmax}(\cdot)$ with $K$ takes $2nd$ OPs, and multiplying the result with $W_{KV,i}$ takes $2dd_k$ OPs.
 \end{itemize}
 
 \begin{figure}[h!] \centering
@@ -119,7 +119,9 @@ Equation (\ref{eq7}) can be computed in two different ways:
   \caption{Slim attention without V-cache during (a) prompt-phase; (b) unoptimized and (c) optimized generate-phase.}
 \label{fig3} \end{figure}
 
-During the prompt-phase, Fig. \ref{fig3}(a) has the exact same computational complexity as the vanilla scheme shown in Fig. \ref{fig2}(a). However, during the generate-phase, the proposed scheme has a slightly higher complexity than the vanilla scheme. Table \ref{tab2} specifies the complexity per token per layer during the generate-phase for batch size 1. The columns labeled ``OPs'', ``reads'', and ``intensity'' specify the computational complexity (as number of OPs), the number of memory reads, and the arithmetic intensity, resp. We define the arithmetic intensity here as number of OPs per each activation or parameter read from memory. Specifically, the projection complexity includes calculating $X W_Q$, $X W_K$, $X W_V$, and multiplying with weight matrices $W_O$ and $W_{KV}$. And the memory reads for projections include reading all four weight matrices; while the memory reads of the MHA include reading the K-cache (and the V-cache for the vanilla implementation).
+Option 2 above uses the same associativity trick as MLA, see appendix C of \citep{deepseek-v2}. During the prompt-phase, Fig. \ref{fig3}(a) has the same computational complexity as the vanilla scheme shown in Fig. \ref{fig2}(a). However, during the generate-phase, the proposed scheme has a slightly higher complexity than the vanilla scheme.
+
+Table \ref{tab2} specifies the complexity per token per layer during the generate-phase for batch size 1. The columns labeled ``OPs'', ``reads'', and ``intensity'' specify the computational complexity (as number of OPs), the number of memory reads, and the arithmetic intensity, resp. We define the arithmetic intensity here as number of OPs per each activation or parameter read from memory. Specifically, the projection complexity includes calculating $X W_Q$, $X W_K$, $X W_V$, and multiplying with weight matrices $W_O$ and $W_{KV}$. And the memory reads for projections include reading all four weight matrices; while the memory reads of the MHA include reading the K-cache (and the V-cache for the vanilla implementation).
 %So for the optimized version (option 2), the arithmetic intensity is 2 for weight multiplications (projections) and $2h$ for the MHA multiplications. For a system with enough buffering, the average arithmetic intensity will be lower than $2h$: For $n = 1000$ and $d = 1000$ for example, the number of memory reads for projections is $4d^2 = 4 \cdot 1000^2$ and $nd = 1000^2$, so the projection-compute phase is 4 times longer than the MHA-compute phase, thus the average arithmetic intensity is
 
 \begingroup \renewcommand{\arraystretch}{1.3} % increase table row height by 1.3x
@@ -260,7 +262,7 @@ In general, calculating K from V is not only possible for self-attention (see Fi
 \end{itemize}
 The \textbf{baseline} implementation consists of the following three phases:
 \begin{itemize}[topsep=-1pt, itemsep=-1pt]
-  \item During the \textbf{prompt-phase}, only the encoder is active. All $p$ prompt-tokens are batched up and processed in parallel. This phase is identical to the prompt-phase of a decoder-only transformer albeit without a causal mask (and is also identical to the entire inference of an encoder-only transformer such as BERT).
+  \item During the \textbf{prompt-phase}, only the encoder is active. All $p$ input-tokens are batched up and processed in parallel. This phase is identical to the prompt-phase of a decoder-only transformer albeit without a causal mask (and is also identical to the entire inference of an encoder-only transformer such as BERT).
   \item During the \textbf{cross-phase}, we take the output of the encoder (which is a $p \times d$ matrix) and precompute the KV projections for the decoder’s cross-attention and store them in cross context memory (aka cross KV-cache).
   \item The \textbf{generate-phase} is similar to the generate-phase of a decoder-only transformer with the following difference: There is a cross-attention block for each layer, which reads keys and values from the cross KV-cache. In addition, the self-attention blocks have their own self KV-cache (which is not the same as the cross KV-cache).
 \end{itemize}
@@ -282,7 +284,7 @@ The \textbf{baseline} implementation consists of the following three phases:
   \item Recomputing all K-vectors could be done by multiplying $E$ \eR{p}{d} with weight matrix $W_K$ \eR{d}{d}, which requires $2 p d^2$ operations and would be very expensive. A lower complexity option is illustrated in Fig. \ref{fig5}, which is similar to Fig. \ref{fig4}. The main difference is that all cross-attention layers share the same E-cache. And on many machines, this E-cache might fit into on-chip SRAM so that it doesn’t need to be re-read for each layer during the generate-phase.
   \item As with Fig. \ref{fig4} in the previous section, Fig. \ref{fig5} doesn’t support RoPE, but other (and potentially better) relative PE schemes such as RPE, FIRE, and NoPE.
   \item This scheme doesn’t calculate V from K and therefore is not limited to MHA only or to projection matrices that can be inverted.
-  \item Similar to option 1 (and unlike the baseline), the cross-$W_V$ and $W_K$ parameters need to be read from memory for each generated token during the generate-phase. Therefore for batch size 1, this scheme only makes sense if the KV-cache is larger than the number of cross-$W_V$ and $W_K$ parameters, which is the case for all Whispers models (because they use $p = 1500$ prompt-tokens, and $d$ of the largest Whisper model is smaller than 1500). And for batch sizes larger than 1, this option usually makes sense because the parameter reads are amortized among all the inferences of the batch.
+  \item Similar to option 1 (and unlike the baseline), the cross-$W_V$ and $W_K$ parameters need to be read from memory for each generated token during the generate-phase. Therefore for batch size 1, this scheme only makes sense if the KV-cache is larger than the number of cross-$W_V$ and $W_K$ parameters, which is the case for all Whispers models (because they use $p = 1500$ input-tokens, and $d$ of the largest Whisper model is smaller than 1500). And for batch sizes larger than 1, this option usually makes sense because the parameter reads are amortized among all the inferences of the batch.
 \end{itemize}
 
 \begin{figure}[h!] \centering
@@ -342,11 +344,7 @@ Slim attention offers a simple trick for halving the context memory of existing 
 Please also see our forthcoming paper about matrix-shrink \citep{matShrink}, which reduces the sizes of attention matrices and proposes a simplification of DeepSeek's MLA scheme.
 
 \section*{Acknowledgments}
-We would like to thank Imo Udom, Mitchell Baker, and Mozilla for supporting this work.
-
-% TODO: alternatively, place appendix before references
-\bibliographystyle{unsrtnat}
-\bibliography{references}
+We would like to thank \href{https://scholar.google.com/citations?user=KEhvGNMAAAAJ&hl=en}{Dirk Groeneveld (Ai2)} and \href{https://scholar.google.com/citations?user=Be2fl8sAAAAJ&hl=en}{Zhiqiang Xie (Stanford, SGLang)} for helpful discussions on this work. And special thanks to Imo Udom, Mitchell Baker, and Mozilla for supporting this work.
 
 \section*{Appendix}
 
@@ -359,9 +357,10 @@ TODO: add figure
 The table below lists additional transformer model with MHA, similar to Table \ref{tab1}. See HuggingFace for more details on these models.
 
 % shortcuts (only letters are allowed in macro names, no numbers and dashes)
-\def\DeepSeekvl {\href{https://huggingface.co/deepseek-ai/deepseek-vl2-tiny}  {DeepSeek-vl2-tiny}}
-\def\MiniCPM    {\href{https://huggingface.co/openbmb/MiniCPM-V-2}            {MiniCPM-V2}}
-\def\UltraLM    {\href{https://huggingface.co/openbmb/UltraLM-65b}            {UltraLM-65B}}
+\def\DeepSeekvl {\href{https://huggingface.co/deepseek-ai/deepseek-vl2-tiny}  {DeepSeek-vl2-tiny }}
+\def\OLMoE      {\href{https://huggingface.co/allenai/OLMoE-1B-7B-0125}       {OLMoE-1B-7B-0125 }}
+\def\MiniCPM    {\href{https://huggingface.co/openbmb/MiniCPM-V-2}            {MiniCPM-V2 }}
+\def\UltraLM    {\href{https://huggingface.co/openbmb/UltraLM-65b}            {UltraLM-65B }}
 % TODO: add more links here
 
 \begingroup \renewcommand{\arraystretch}{1.3} % increase table row height by 1.3x
@@ -369,6 +368,7 @@ The table below lists additional transformer model with MHA, similar to Table \r
 \begin{tabular}{lllccccc} \fline
   \thead[l]{Year} & \thead[l]{Publisher} & \thead[l]{Model} & \thead{Params} & \thead{$d$} & \thead{layers} & \thead{$h$} & \thead{$d_k$} \\ \hline
   2025 & Metagene       & METAGENE-1 \citep{metagene}       & 6.5B           & 4096        & 32             & 32          & 128 \\
+  2025 & Ai2            & \OLMoE \citep{olmoe}              & 6.9B           & 2048        & 16             & 16          & 128 \\
   2024 & Useful Sensors & Moonshine-base \citep{moonshine}  & 61M            & 416         & 8              & 8           & 52  \\
   2024 & Moondream      & Moondream-2                       & 1.9B           & 2048        & 24             & 32          & 64  \\
   2024 & Stability AI   & Stable-Code-3B                    & 2.8B           & 2560        & 32             & 32          & 80  \\
@@ -390,5 +390,8 @@ The table below lists additional transformer model with MHA, similar to Table \r
   % 2025 & Stability AI & Stable-codec-speech-16k           & 953M
   % 2024 & Stanford     & BioMedLM 2.7B                     & 2.7B
 \end{tabular} \end{table} \endgroup
+
+\bibliographystyle{unsrtnat}
+\bibliography{references}
 
 \end{document}

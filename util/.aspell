@@ -1,5 +1,6 @@
-personal_ws-1.1 en 221 
+personal_ws-1.1 en 227 
 ADDs
+Ai
 Alibaba
 Aya
 Belenko
@@ -32,6 +33,7 @@ GPUs
 GQA
 Gemma
 Graef
+Groeneveld
 HFtransformers
 HuggingFace
 Imo
@@ -64,6 +66,7 @@ Nils
 NoPE
 NumPy
 OLMo
+OLMoE
 OPs
 Ollama
 OpenAI
@@ -122,6 +125,8 @@ VK
 VL
 VLMs
 Wasielewski
+Xie
+Zhiqiang
 Zürich
 abq
 activations
@@ -181,6 +186,7 @@ num
 nvidia
 ollama
 olmo
+olmoe
 openelm
 pagedAttn
 params
