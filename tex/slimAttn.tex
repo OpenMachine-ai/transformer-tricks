@@ -142,13 +142,13 @@ Table \ref{tab3} shows the arithmetic intensity (now defined as OPs per memory b
 \caption{\textbf{TOPS\tablefootnote{tera-operations-per-second}, memory bandwidth, and arithmetic intensity} of popular chips}
 \begin{tabular}{lccc} \fline
   Chip & \makecell{TOPS \\ (int8)} & \makecell{Theoretical memory \\ bandwidth (GB/s)} & \makecell{Arithmetic intensity \\ (OPs per byte)} \\ \hline
-  Rockchip RK3588 & 6         & 19      & 316 \\
-  Apple A18 \citep{apple-wiki}       & 35        & 60      & 583 \\
-  Apple M4 Max \citep{apple-wiki}    & 38        & 410     & 93  \\
-  Google TPU v4 \citep{TPU-wiki}  & 275       & 1,200   & 229 \\
-  Google TPU v5p \citep{TPU-wiki}  & 918       & 2,765   & 332 \\
-  NVIDIA H200  \citep{nvidia-wiki}   & 1,980     & 4,800   & 413 \\
-  NVIDIA B200 \citep{nvidia-wiki}    & 4,500     & 8,000   & 563 \\ \fline
+  Rockchip RK3588                  & 6      & 19      & 316 \\
+  Apple A18 \citep{apple-wiki}     & 35     & 60      & 583 \\
+  Apple M4 Max \citep{apple-wiki}  & 38     & 410     & 93  \\
+  Google TPU v4 \citep{TPU-wiki}   & 275    & 1,200   & 229 \\
+  Google TPU v5p \citep{TPU-wiki}  & 918    & 2,765   & 332 \\
+  NVIDIA H200 \citep{nvidia-wiki}  & 1,980  & 4,800   & 413 \\
+  NVIDIA B200 \citep{nvidia-wiki}  & 4,500  & 8,000   & 563 \\ \fline
 \end{tabular} \label{tab3} \end{table} \endgroup
 
 \section{Taking advantage of softmax sparsities}
@@ -343,7 +343,27 @@ Instead of calculating V from K, it's also possible to calculate K from V and th
 
 TODO: add figure
 
-\subsection*{Additional MHA transformers}
+\subsection*{MHA complexity}
+This section derives the number of OPs for the column labeled MHA complexity of Table \ref{tab2}. Recall that multiplying two matrices with dimensions $m \times n$ and $n \times p$ takes $mnp$ MULs (two-operand multiply operations) and $mp(n-1)$ ADDs, so in total approximately $2mnp$ operations or OPs (two-operand operations). The table below specifies the number of OPs per attention head for computing the softmax arguments and the weighted sums.
+\begingroup \renewcommand{\arraystretch}{1.3} % increase table row height by 1.3x
+\begin{table}[h!] \centering \begin{tabular}{lccc} \fline
+                         & Term & Dimensions of MatMul  & OPs per attention head                     \\ \hline
+  Softmax argument       & $Q_i K_i^\top$               & $(1 \times d_k)(d_k \times n)$   & $2d_k n$ \\
+  Weighted sum of $V_i$  & $\text{softmax}(\cdot) V_i$  & $(1 \times n)(n \times d_k)$    & $2nd_k$  \\
+  Weighted sum of $K$    & $\text{softmax}(\cdot) K$    & $(1 \times n)(n \times d)$      & $2nd$    \\ \fline
+\end{tabular} \end{table} \endgroup
+
+The table below shows the total number of MHA OPs for the three cases of Table \ref{tab2} (i.e. for Vanilla, unoptimized Fig. \ref{fig3}(b), and optimized Fig. \ref{fig3}(c)). Note that $d_k = d / h$.
+\begingroup \renewcommand{\arraystretch}{1.3} % increase table row height by 1.3x
+\begin{table}[h!] \centering \begin{tabular}{lccc} \fline
+                                  & \mc{2}{OPs per attention head}    &                              \\
+                                  & softmax argument  & weighted sum  & Total OPs                    \\ \hline
+  Vanilla, see Fig. \ref{fig2}(b) & $2d_k n$          & $2n d_k$       & $h(2d_k n + 2nd_k) = 4nd$    \\
+  Unoptimized, Fig. \ref{fig3}(b) & $2d_k n$          & $2n d_k$       & $4nd$                        \\
+  Optimized, Fig. \ref{fig3}(c)   & $2d_k n$          & $2n d$         & $h(2d_k n + 2nd) = 2nd(h+1)$ \\ \fline
+\end{tabular} \end{table} \endgroup
+
+\subsection*{Additional MHA models}
 The table below lists additional transformer model with MHA, similar to Table \ref{tab1}. See HuggingFace for more details on these models.
 
 % shortcuts (only letters are allowed in macro names, no numbers and dashes)
