@@ -34,7 +34,7 @@ Slim attention is applicable to transformers that use MHA (multi-head attention 
 
 \begingroup \renewcommand{\arraystretch}{1.3} % increase table row height by 1.3x
 \begin{table}[h!] \centering
-\caption{\textbf{Various transformers with MHA} (instead of MQA or GQA) and their maximum KV-cache sizes (in number of activations) based on their respective maximum context length. $h$ is the number of attention heads, $d$ is the embedding dimension (aka hidden size), and $d_k$ is the head dimension. See appendix for more MHA models.}
+\caption{\textbf{Various transformers with MHA} (instead of MQA or GQA) and their maximum KV-cache sizes (in number of activations) based on their respective maximum context length. $h$ is the number of attention-heads, $d$ is the embedding dimension (aka hidden size), and $d_k$ is the head dimension. See appendix for more MHA models.}
 %\begin{tabular}{l|l|l|c|c|c|c|c|c|c} \fline
 \begin{tabular}{lllccccccc} \fline
   \thead[l]{Year} & \thead[l]{Publisher} & \thead[l]{Model} & \thead{Params} & \thead{$d$} & \thead{layers} & \thead{$h$} & \thead{$d_k$} & \thead{context \\ length} & \thead{context \\ memory} \\ \hline
@@ -81,7 +81,7 @@ The vanilla transformer \citep{vanilla} defines the self-attention $Y$ of input 
   \text{head}_i = \text{attention} \left( Q_i, K_i, V_i \right) = \text{softmax} \left( \frac{Q_i K_i^\top}{\sqrt{d_k}} \right) V_i \label{eq2}
 \end{equation}
 
-with $W_Q = \text{concat}(W_{Q,1}, \ldots, W_{Q,h})$, $W_K = \text{concat}(W_{K,1}, \ldots, W_{K,h})$, and $W_V = \text{concat}(W_{V,1}, \ldots, W_{V,h})$, and without the causal mask for simplicity. The matrices $Q, K, V, W_Q, W_K$, and $W_V$ are split into $h$ submatrices, one for each attention head. Input $X$, output $Y$, queries $Q$, keys $K$, and values $V$ are \eR{n}{d}, where $n$ is the current sequence length (in tokens) and $d = d_{\text{model}}$ is the dimension of the embeddings.
+with $W_Q = \text{concat}(W_{Q,1}, \ldots, W_{Q,h})$, $W_K = \text{concat}(W_{K,1}, \ldots, W_{K,h})$, and $W_V = \text{concat}(W_{V,1}, \ldots, W_{V,h})$, and without the causal mask for simplicity. The matrices $Q, K, V, W_Q, W_K$, and $W_V$ are split into $h$ submatrices, one for each attention-head. Input $X$, output $Y$, queries $Q$, keys $K$, and values $V$ are \eR{n}{d}, where $n$ is the current sequence length (in tokens) and $d = d_{\text{model}}$ is the dimension of the embeddings.
 
 For MHA, the weight matrices $W_K$ and $W_V$ are usually square matrices \eR{d}{d}, which allows us to calculate V from K as follows: Refactoring equation (\ref{eq4}) as $X = K W_K^{-1}$ lets us reconstruct $X$ from $K$, which we can then plug into equation (\ref{eq5}) to get
 \begin{equation}
@@ -89,7 +89,7 @@ For MHA, the weight matrices $W_K$ and $W_V$ are usually square matrices \eR{d}{
 \label{eq6} \end{equation}
 and $W_{KV,i}$ \eR{d}{d_v}. Fig. \ref{fig1} illustrates the modified attention scheme that calculates V from K according to equation (\ref{eq6}). For inference, $W_{KV} = W_K^{-1} W_V$ can be precomputed offline and stored in the parameter file instead of $W_V$. This requires that $W_K$ is invertible (i.e. non-singular). In general, any square matrix can be inverted if its determinant is non-zero. It’s extremely unlikely that a large matrix has a determinant that is exactly 0.
 
-\textbf{Related work.} Slim attention is somewhat similar to DeepSeek’s multi-head latent attention (MLA) \citep{deepseek-v2}. Unlike MLA, slim attention is an exact implementation of existing MHA models (including models with RoPE).
+\textbf{Related work.} Slim attention is somewhat similar to DeepSeek’s multi-head latent attention (MLA) \citep{deepseek-v2}. Unlike MLA, slim attention is an exact post-training implementation of existing MHA models (including models with RoPE).
 
 \section{K-cache is all you need}
 Inference consists of the following two phases, which are illustrated in Fig. \ref{fig2} for the vanilla MHA with KV-cache, where $p$ is the number of input-tokens and $n$ is the total number of current tokens including input-tokens and generated tokens, so $n = p+1, \ldots, n_{max}$ and $n_{max}$ is the context window length:
@@ -122,9 +122,6 @@ Equation (\ref{eq7}) can be computed in two different ways:
 Option 2 above uses the same associativity trick as MLA, see appendix C of \citep{deepseek-v2}. During the prompt-phase, Fig. \ref{fig3}(a) has the same computational complexity as the vanilla scheme shown in Fig. \ref{fig2}(a). However, during the generate-phase, the proposed scheme has a slightly higher complexity than the vanilla scheme.
 
 Table \ref{tab2} specifies the complexity per token per layer during the generate-phase for batch size 1. The columns labeled ``OPs'', ``reads'', and ``intensity'' specify the computational complexity (as number of OPs), the number of memory reads, and the arithmetic intensity, resp. We define the arithmetic intensity here as number of OPs per each activation or parameter read from memory. Specifically, the projection complexity includes calculating $X W_Q$, $X W_K$, $X W_V$, and multiplying with weight matrices $W_O$ and $W_{KV}$. And the memory reads for projections include reading all four weight matrices; while the memory reads of the MHA include reading the K-cache (and the V-cache for the vanilla implementation). See appendix for more details on MHA complexity.
-
-%So for the optimized version (option 2), the arithmetic intensity is 2 for weight multiplications (projections) and $2h$ for the MHA multiplications. For a system with enough buffering, the average arithmetic intensity will be lower than $2h$: For $n = 1000$ and $d = 1000$ for example, the number of memory reads for projections is $4d^2 = 4 \cdot 1000^2$ and $nd = 1000^2$, so the projection-compute phase is 4 times longer than the MHA-compute phase, thus the average arithmetic intensity is
-
 \begingroup \renewcommand{\arraystretch}{1.3} % increase table row height by 1.3x
 \begin{table}[h!] \centering
 \caption{\textbf{Complexity per token} per layer during the generate-phase for batch size 1}
@@ -136,7 +133,9 @@ Table \ref{tab2} specifies the complexity per token per layer during the generat
   Optimized, Fig. \ref{fig3}(c)   & $8d^2$      & $4d^2$  & 2          & $2nd(h+1)$ & $nd$   & $2h+2$    \\ \fline
 \end{tabular} \label{tab2} \end{table} \endgroup
 
-Table \ref{tab3} shows the arithmetic intensity (now defined as OPs per memory byte) of various SoCs, TPUs, and GPUs, which vary from 93 to 583. A system is memory bound (i.e. limited by memory bandwidth) if the arithmetic intensity of the executed program is below the chip’s arithmetic intensity. Here, the maximum arithmetic intensity of slim attention is $2h+2$, see Table \ref{tab2}, where $h$ is the number of attention heads, which ranges between 16 and 64 for the models listed in Table \ref{tab1}. So the peak arithmetic intensity (up to 130 for $h = 64$) is usually less than the system’s intensity (except for Apple's M4 Max), which means that the system is still memory bound during the token generation phase. Therefore, slim attention speeds up the processing by up to 2x as it reduces the context memory reads by half. Furthermore, slim attention enables processing all heads in parallel as a single matrix-matrix multiplication instead of multiple vector-matrix multiplications, which is usually more efficient and faster on many machines. And slim attention is also compatible with Flash Attention \citep{flash-attention}, which performs softmax and value accumulation in parallel.
+Note that for batch-size $B$, the arithmetic intensity of the vanilla transformer during the generate-phase is $2B$ for the FFNs and the attention-projections, but only 2 for the remaining attention operations (softmax arguments and weighted sum of V) because each of the $B$ tokens has its own KV cache.
+
+Table \ref{tab3} shows the arithmetic intensity (now defined as OPs per memory byte) of various SoCs, TPUs, and GPUs, which vary from 93 to 583. A system is memory bound (i.e. limited by memory bandwidth) if the arithmetic intensity of the executed program is below the chip’s arithmetic intensity. Here, the maximum arithmetic intensity of slim attention is $2h+2$, see Table \ref{tab2}, where $h$ is the number of attention-heads, which ranges between 16 and 64 for the models listed in Table \ref{tab1}. So the peak arithmetic intensity (up to 130 for $h = 64$) is usually less than the system’s intensity (except for Apple's M4 Max), which means that the system is still memory bound during the token generation phase. Therefore, slim attention speeds up the processing by up to 2x as it reduces the context memory reads by half. Furthermore, slim attention enables processing all heads in parallel as a single matrix-matrix multiplication instead of multiple vector-matrix multiplications, which is usually more efficient and faster on many machines. And slim attention is also compatible with Flash Attention \citep{flash-attention}, which performs softmax and value accumulation in parallel.
 \begingroup \renewcommand{\arraystretch}{1.3} % increase table row height by 1.3x
 \begin{table}[h!] \centering
 \caption{\textbf{TOPS\tablefootnote{tera-operations-per-second}, memory bandwidth, and arithmetic intensity} of popular chips}
@@ -234,7 +233,7 @@ Recall that for the $i$-th head ($i = 1, \ldots, h$), the softmax argument (with
   A_i = Q_i K_i^\top = x_n W_{Q,i} (X W_{K,i})^\top = (x_n W_{Q,i} W_{K,i}^\top) X^\top
 \end{equation*}
 
-For each iteration of the generate-phase, we now have to calculate the term $x_n W_{Q,i} W_{K,i}^\top$ only once for each attention head, which is independent of the sequence length. Calculating this term involves multiplying the $d$-dimensional vector $x_n$ with matrices $W_{Q,i}$ \eR{d}{d_k} and $W_{K,i}^\top$ \eR{d_k}{d}, which requires $2 d e$ multiplications for the $h$ heads, so $4 d e$ operations in total (where we count a multiply-add operation as 2 operations).
+For each iteration of the generate-phase, we now have to calculate the term $x_n W_{Q,i} W_{K,i}^\top$ only once for each attention-head, which is independent of the sequence length. Calculating this term involves multiplying the $d$-dimensional vector $x_n$ with matrices $W_{Q,i}$ \eR{d}{d_k} and $W_{K,i}^\top$ \eR{d_k}{d}, which requires $2 d e$ multiplications for the $h$ heads, so $4 d e$ operations in total (where we count a multiply-add operation as 2 operations).
 
 This scheme also works for projection layers with biases (as used by the Whisper models for example). Recall from the previous section that we can eliminate the biases from the key and value projections, but not from the query projection. Adding a constant query bias-vector $b$ to the equation above is straightforward and also illustrated in Fig. \ref{fig4}:
 \begin{equation*}
@@ -330,7 +329,7 @@ There is a further optimization, which is a hybrid of options 1 and 2, where one
 %Future work should investigate which of the presented optimizations are applicable for training of LLMs.
 
 \section{Conclusion}
-Slim attention offers a simple trick for halving the context memory of existing MHA transformer models without sacrificing accuracy. Future work includes integrating slim attention into popular frameworks such as HuggingFace Transformers \citep{HFtransformers}, llama.cpp \citep{llama-cpp},  vLLM \citep{vLLM}, llamafile \citep{llamafile}, Ollama \citep{ollama}, SGLang \citep{sglang}, and combining it with existing context memory management schemes such as PagedAttention \citep{pagedAttn} and other compression schemes such as Dynamic Memory Compression DMC \citep{DMC} and VL-cache \citep{VL-cache}.
+Slim attention offers a simple trick for halving the context memory of existing MHA transformer models without sacrificing accuracy. Slim attention is a post-training, exact implementation of existing models, so it doesn't require any fine-tuning or training from scratch. Future work includes integrating slim attention into popular frameworks such as HuggingFace Transformers \citep{HFtransformers}, llama.cpp \citep{llama-cpp},  vLLM \citep{vLLM}, llamafile \citep{llamafile}, Ollama \citep{ollama}, SGLang \citep{sglang}, and combining it with existing context memory management schemes such as PagedAttention \citep{pagedAttn} and other compression schemes such as Dynamic Memory Compression DMC \citep{DMC} and VL-cache \citep{VL-cache}.
 Please also see our forthcoming paper about matrix-shrink \citep{matShrink}, which reduces the sizes of attention matrices and proposes a simplification of DeepSeek's MLA scheme.
 
 \section*{Acknowledgments}
@@ -338,33 +337,46 @@ We would like to thank \href{https://scholar.google.com/citations?user=KEhvGNMAA
 
 \section*{Appendix}
 
-\subsection*{Alternative scheme: V-cache is all you need}
-Instead of calculating V from K, it's also possible to calculate K from V and thereby eliminate the K-cache (instead of the V-cache). This scheme is illustrated in the figure below, where $W_{VK} = W_V^{-1} W_K$. However, this scheme does not support RoPE.
-
-TODO: add figure
-
 \subsection*{MHA complexity}
-This section derives the number of OPs for the column labeled MHA complexity of Table \ref{tab2}. Recall that multiplying two matrices with dimensions $m \times n$ and $n \times p$ takes $mnp$ MULs (two-operand multiply operations) and $mp(n-1)$ ADDs, so in total approximately $2mnp$ operations or OPs (two-operand operations). The table below specifies the number of OPs per attention head for computing the softmax arguments and the weighted sums.
+This section derives the number of OPs (two-operand operations) for the column labeled ``MHA complexity'' of Table \ref{tab2}, which is the MHA-complexity per token per attention layer during the generate-phase. Recall that multiplying two matrices (MatMul) with dimensions $m \times n$ and $n \times p$ entails computing $m p$ dot-products of length $n$, where each dot-product takes $n$ MULs (two-operand multiply operations) and $n-1$ ADDs (two-operand add operations). In total, the entire MatMul requires $mnp$ MULs and $mp(n-1)$ ADDs, so $mp(2n-1)$ OPs, which is approximately $2mnp$ OPs.
 \begingroup \renewcommand{\arraystretch}{1.3} % increase table row height by 1.3x
 \begin{table}[h!] \centering \begin{tabular}{lccc} \fline
-                         & Term & Dimensions of MatMul  & OPs per attention head                     \\ \hline
-  Softmax argument       & $Q_i K_i^\top$               & $(1 \times d_k)(d_k \times n)$   & $2d_k n$ \\
-  Weighted sum of $V_i$  & $\text{softmax}(\cdot) V_i$  & $(1 \times n)(n \times d_k)$    & $2nd_k$  \\
-  Weighted sum of $K$    & $\text{softmax}(\cdot) K$    & $(1 \times n)(n \times d)$      & $2nd$    \\ \fline
+                         & Term & Dimensions of MatMul   & OPs per attention-head                     \\ \hline
+  Softmax argument       & $Q_i K_i^\top$                & $(1 \times d_k)(d_k \times n)$   & $2d_k n$ \\
+  Weighted sum of $V_i$  & $\text{softmax}() \cdot V_i$  & $(1 \times n)(n \times d_k)$    & $2nd_k$  \\
+  Weighted sum of $K$    & $\text{softmax}() \cdot K$    & $(1 \times n)(n \times d)$      & $2nd$    \\ \fline
 \end{tabular} \end{table} \endgroup
 
-The table below shows the total number of MHA OPs for the three cases of Table \ref{tab2} (i.e. for Vanilla, unoptimized Fig. \ref{fig3}(b), and optimized Fig. \ref{fig3}(c)). Note that $d_k = d / h$.
+The table above specifies the number of OPs per attention-head for computing the softmax arguments and the weighted sums. Note that the table below is for the generate-phase where all MatMuls are actually vector-matrix products.
+
+The table below shows the total number of MHA OPs across all attention-heads for the three cases of Table \ref{tab2} (i.e. for Vanilla, unoptimized Fig. \ref{fig3}(b), and optimized Fig. \ref{fig3}(c)). Note that $d_k = d / h$.
 \begingroup \renewcommand{\arraystretch}{1.3} % increase table row height by 1.3x
 \begin{table}[h!] \centering \begin{tabular}{lccc} \fline
-                                  & \mc{2}{OPs per attention head}    &                              \\
+                                  & \mc{2}{OPs per attention-head}    &                              \\
                                   & softmax argument  & weighted sum  & Total OPs                    \\ \hline
   Vanilla, see Fig. \ref{fig2}(b) & $2d_k n$          & $2n d_k$       & $h(2d_k n + 2nd_k) = 4nd$    \\
   Unoptimized, Fig. \ref{fig3}(b) & $2d_k n$          & $2n d_k$       & $4nd$                        \\
   Optimized, Fig. \ref{fig3}(c)   & $2d_k n$          & $2n d$         & $h(2d_k n + 2nd) = 2nd(h+1)$ \\ \fline
 \end{tabular} \end{table} \endgroup
 
-\subsection*{Additional MHA models}
-The table below lists additional transformer model with MHA, similar to Table \ref{tab1}. See HuggingFace for more details on these models.
+\subsection*{Alternative scheme: V-cache is all you need}
+Instead of calculating V from K, it's also possible to calculate K from V and thereby eliminate the K-cache (instead of the V-cache). This alternative scheme is illustrated in Fig. \ref{fig6}, where $W_{VK} = W_V^{-1} W_K$. However, this scheme does not support RoPE.
+\begin{figure}[h!] \centering
+  \includegraphics[scale=0.88]{../doc/fig/slimAttn_fig6.pdf}
+  \caption{Alternative scheme during generate-phase}
+\label{fig6} \end{figure}
+
+\subsection*{Slim Attention for GQA (such as Gemma2-9B)}
+Slim attention is not limited to MHA only. In general, slim attention reduces the KV cache size whenever the width of the KV-cache ($d_\text{cache}$) is larger than $d_\text{model}$, where $d_\text{cache} = h_{KV} (d_K + d_V)$, where $h_{KV}$ is the number of KV-heads. In this case, slim attention can compress the KV-cache size by the compression factor $c = d_\text{cache} / d_\text{model}$. Usually, this compression factor $c$ is 2. In some cases, $c$ is larger than 2, for example CodeGemma-7B has $c = 2*4096 / 3072 = 2.67$.
+
+And for Gemma2-9B, which utilizes GQA instead of MHA, the compression factor $c$ is 1.33. In this case where the compression factor is smaller than 2 and larger than 1, the application of slim attention is not straight forward. The figure below shows how we can implement slim attention for this case, where $e = h_{KV} d_K$ is the projection dimension of the $d \times e$ weight matrices and $d/2 < e < d$. Note that $W_K^\ast$ has $d^2$ parameters, while the original $W_K$ has only $d e$ parameters, which is a disadvantage.
+\begin{figure}[h!] \centering
+  \includegraphics[scale=0.88]{../doc/fig/slimAttn_fig7.pdf}
+  %\caption{TODO}
+\label{fig7} \end{figure}
+
+\subsection*{More MHA models}
+The table below lists additional transformer models with MHA, similar to Table \ref{tab1}. See HuggingFace for more details on these models.
 
 % shortcuts (only letters are allowed in macro names, no numbers and dashes)
 \def\DeepSeekvl {\href{https://huggingface.co/deepseek-ai/deepseek-vl2-tiny}  {DeepSeek-vl2-tiny }}

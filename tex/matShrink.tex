@@ -108,21 +108,21 @@ We are using the following parameter names similar to \citep{deepseek-v2}:
 
 % shortcuts (only letters are allowed in macro names, no numbers and dashes)
 \def\dsRone     {\href{https://huggingface.co/deepseek-ai/DeepSeek-R1}         {DeepSeek-R1}}
+\def\pplRone    {\href{https://huggingface.co/perplexity-ai/r1-1776}           {R1-1776}}
 \def\dsVthree   {\href{https://huggingface.co/deepseek-ai/DeepSeek-V3}         {V3}}
 \def\dsVtwoFive {\href{https://huggingface.co/deepseek-ai/DeepSeek-V2.5}       {DeepSeek-V2.5}}
 \def\dsVtwoL    {\href{https://huggingface.co/deepseek-ai/DeepSeek-V2-Lite}    {DeepSeek-V2-lite}}
-%\def\dsVLtwoS   {\href{https://huggingface.co/deepseek-ai/deepseek-vl2-small}  {DeepSeek-VL2-small}}
+\def\dsVLtwoS   {\href{https://huggingface.co/deepseek-ai/deepseek-vl2-small}  {DeepSeek-VL2-small}}
 \def\MiniCPM    {\href{https://huggingface.co/openbmb/MiniCPM3-4B}             {MiniCPM3-4B}}
 
 \begingroup \renewcommand{\arraystretch}{1.3} % increase table row height by 1.3x
 \begin{table}[h!] \centering
-\begin{tabular}{llcccccccc} \fline
-  \thead[l]{Publisher} & \thead[l]{model} & \thead{params} & $d$ & $r_\text{Q}$ & $r_\text{KV}$ & $h$
-                       & $d_\text{NOPE}$ & $h \cdot d_\text{NOPE}$ & $d_\text{ROPE}$ \\ \hline
-  DeepSeek & \dsRone and \dsVthree  & 685B  & 7,168  & 1,536  & 512  & 128  & 128  & 16,384  & 64 \\
-  DeepSeek & \dsVtwoFive            & 236B  & 5,120  & 1,536  & 512  & 128  & 128  & 16,384  & 64 \\
-  DeepSeek & \dsVtwoL               & 16B   & 2,048  & N/A    & 512  & 16   & 128  & 2,048   & 64 \\
-  OpenBMB  & \MiniCPM               & 4B    & 2,560  & 768    & 256  & 40   & 64   & 2,560   & 32 \\ \fline
+\begin{tabular}{lcccccccc} \fline
+  \thead[l]{Model} & \thead{Params} & $d$ & $r_\text{Q}$ & $r_\text{KV}$ & $h$ & $d_\text{NOPE}$ & $h \cdot d_\text{NOPE}$ & $d_\text{ROPE}$ \\ \hline
+  Perplexity \pplRone, \dsRone, and \dsVthree  & 685B  & 7,168  & 1,536  & 512  & 128  & 128  & 16,384  & 64 \\
+  \dsVtwoFive                                 & 236B  & 5,120  & 1,536  & 512  & 128  & 128  & 16,384  & 64 \\
+  \dsVtwoL, \dsVLtwoS                      & 16B   & 2,048  & N/A    & 512  & 16   & 128  & 2,048   & 64 \\
+  OpenBMB \MiniCPM                            & 4B    & 2,560  & 768    & 256  & 40   & 64   & 2,560   & 32 \\ \fline
 \end{tabular} \end{table} \endgroup
 
 TODO: add savings to the table above (or a new table)
