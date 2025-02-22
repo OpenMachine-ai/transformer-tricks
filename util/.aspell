@@ -1,4 +1,4 @@
-personal_ws-1.1 en 231 
+personal_ws-1.1 en 236 
 ADDs
 Ai
 Alibaba
@@ -6,12 +6,14 @@ Aya
 Belenko
 BigScience
 Bilinear
+BioMedLM
+BitNet
 Chebyshev
 Chronos
 Clapp
 CodeGemma
 CodeLlama
-Cronos
+CrisperWhisper
 DCLM
 DKV
 DMC
@@ -44,6 +46,7 @@ LLAVA
 LLM
 LLMs
 LLaMA
+LLaVA
 LM
 LMSYS
 LayerNorm
@@ -64,6 +67,7 @@ MiniCPM
 Mixtral
 MoE
 Moondream
+NeXT
 Nils
 NoPE
 NumPy
@@ -140,11 +144,11 @@ aya
 bilinear
 bitnet
 chebyshev
+chronos
 codeGemma
 concat
 config
 cpp
-cronos
 datapath
 dclm
 dec
@@ -188,6 +192,7 @@ nd
 nonsingular
 num
 nvidia
+nyra
 ollama
 olmo
 olmoe
