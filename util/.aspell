@@ -1,4 +1,4 @@
-personal_ws-1.1 en 236 
+personal_ws-1.1 en 246 
 ADDs
 Ai
 Alibaba
@@ -70,6 +70,7 @@ Moondream
 NeXT
 Nils
 NoPE
+Noam
 NumPy
 OLMo
 OLMoE
@@ -114,6 +115,7 @@ SRAM
 SVD
 SWA
 SciPy
+Shazeer
 SmolLM
 SmolVLM
 SoCs
@@ -142,6 +144,7 @@ autoregressive
 autoregressively
 aya
 bilinear
+biomedLM
 bitnet
 chebyshev
 chronos
@@ -183,8 +186,11 @@ lllccccc
 lllccccccc
 longformer
 losslessly
+maira
 matShrink
 metagene
+metricX
+miniCPMv
 minimax
 mnp
 multinomial
@@ -196,6 +202,7 @@ nyra
 ollama
 olmo
 olmoe
+openMath
 openelm
 pagedAttn
 params
@@ -225,11 +232,14 @@ smolvlm
 softmax
 sparsities
 stLayer
+stableCode
+stableLM
 submatrices
 substack
 summarization
 tera
 th
+timesFM
 un
 unoptimized
 unsrtnat

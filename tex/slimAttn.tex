@@ -357,7 +357,7 @@ Slim attention offers a simple trick for halving the context memory of existing 
 Please also see our forthcoming paper about matrix-shrink \citep{matShrink}, which reduces the sizes of attention matrices and proposes a simplification of DeepSeek's MLA scheme.
 
 \section*{Acknowledgments}
-We would like to thank \href{https://scholar.google.com/citations?user=KEhvGNMAAAAJ&hl=en}{Dirk Groeneveld (Ai2)} and \href{https://scholar.google.com/citations?user=Be2fl8sAAAAJ&hl=en}{Zhiqiang Xie (Stanford, SGLang)} for helpful discussions on this work. And special thanks to Imo Udom, Mitchell Baker, and Mozilla for supporting this work.
+We would like to thank \href{https://scholar.google.com/citations?user=KEhvGNMAAAAJ&hl=en}{Dirk Groeneveld (Ai2)} and \href{https://scholar.google.com/citations?user=Be2fl8sAAAAJ&hl=en}{Zhiqiang Xie (Stanford, SGLang)} for helpful discussions on this work. We are particularly grateful to \href{https://scholar.google.com/citations?user=wsGvgA8AAAAJ&hl=en}{Noam Shazeer} for his positive feedback on slim attention. And special thanks to Imo Udom, Mitchell Baker, and Mozilla for supporting this work.
 
 \section*{Appendix}
 
@@ -433,25 +433,25 @@ The table below lists additional transformer models with MHA, similar to Table \
   2025 & Metagene        & \METAGENE \citep{metagene}       & 6.5B           & 4096        & 32             & 32          & 128 \\
   2025 & Ai2             & \OLMoE \citep{olmoe}             & 6.9B           & 2048        & 16             & 16          & 128 \\
   2024 & DeepSeek        & \DeepSeekvl                      & 3.4B           & 1280        & 12             & 10          & 128 \\
-  2024 & nyra health     & \Crisper                         & 1.6B           & 1280        & 32             & 20          & 64  \\
+  2024 & nyra health     & \Crisper \citep{crisper}         & 1.6B           & 1280        & 32             & 20          & 64  \\
   2024 & Useful Sensors  & \Moonshine \citep{moonshine}     & 61M            & 416         & 8              & 8           & 52  \\
   2024 & Moondream       & \Moondream                       & 1.9B           & 2048        & 24             & 32          & 64  \\
-  2024 & Stability AI    & \StableCode                      & 2.8B           & 2560        & 32             & 32          & 80  \\
-  2024 & Stability AI    & \StableLM                        & 1.6B           & 2048        & 24             & 32          & 64  \\
-  2024 & NVIDIA          & \OpenMath                        & 13B            & 5120        & 40             & 40          & 128 \\
-  2024 & Microsoft       & \MAIRA                           & 6.9B           & 4096        & 32             & 32          & 128 \\
+  2024 & Stability AI    & \StableCode \citep{stableCode}   & 2.8B           & 2560        & 32             & 32          & 80  \\
+  2024 & Stability AI    & \StableLM \citep{stableLM}       & 1.6B           & 2048        & 24             & 32          & 64  \\
+  2024 & NVIDIA          & \OpenMath \citep{openMath}       & 13B            & 5120        & 40             & 40          & 128 \\
+  2024 & Microsoft       & \MAIRA \citep{maira2}            & 6.9B           & 4096        & 32             & 32          & 128 \\
   2024 & Pansophic       & \Rocket                          & 2.8B           & 2560        & 32             & 32          & 80  \\
   2024 & OpenLM Research & \OpenLlama                       & 13B            & 5120        & 40             & 40          & 128 \\
-  2024 & Google          & \TimesFM                         & 200M           & 1280        & 20             & 16          & 80  \\
-  2024 & Google          & \MetricX                         & 13B            & 4096        & 24             & 64          & 64  \\
-  2024 & Stanford        & \BioMedLM                        & 2.7B           & 2560        & 32             & 20          & 128 \\
-  2024 & OpenBMB         & \MiniCPM                         & 3.4B           & 2304        & 40             & 36          & 64  \\
+  2024 & Google          & \TimesFM \citep{timesFM}         & 200M           & 1280        & 20             & 16          & 80  \\
+  2024 & Google          & \MetricX \citep{metricX}         & 13B            & 4096        & 24             & 64          & 64  \\
+  2024 & Stanford        & \BioMedLM \citep{biomedLM}       & 2.7B           & 2560        & 32             & 20          & 128 \\
+  2024 & OpenBMB         & \MiniCPM \citep{miniCPMv2}       & 3.4B           & 2304        & 40             & 36          & 64  \\
   2023 & OpenBMB         & \UltraLM                         & 65B            & 8192        & 80             & 64          & 128 \\
   2023 & Together AI     & \TogetherAI                      & 7B             & 4096        & 32             & 32          & 128 \\
   2023 & Databricks      & \Dolly                           & 12B            & 5120        & 36             & 40          & 128 \\
   2023 & Mosaic ML       & \MPTseven                        & 7B             & 4096        & 32             & 32          & 128 \\
   2023 & Mosaic ML       & \MPTthirty                       & 30B            & 7168        & 48             & 64          & 112 \\
-  2022 & BigScience      & \BLOOM                           & 176B           & 14,336      & 70             & 112         & 128 \\ \fline
+  2022 & BigScience      & \BLOOM \citep{bloom}             & 176B           & 14,336      & 70             & 112         & 128 \\ \fline
 \end{tabular} \end{table} \endgroup
 
 \bibliographystyle{unsrtnat}
