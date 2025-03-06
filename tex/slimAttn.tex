@@ -353,7 +353,7 @@ There is a further optimization, which is a hybrid of options 1 and 2, where one
 %Future work should investigate which of the presented optimizations are applicable for training of LLMs.
 
 \section{Conclusion}
-Slim attention offers a simple trick for halving the context memory of existing MHA transformer models without sacrificing accuracy. Slim attention is a post-training, exact implementation of existing models, so it doesn't require any fine-tuning or training from scratch. Future work includes integrating slim attention into popular frameworks such as HuggingFace Transformers \citep{HFtransformers}, llama.cpp \citep{llama-cpp},  vLLM \citep{vLLM}, llamafile \citep{llamafile}, Ollama \citep{ollama}, SGLang \citep{sglang}, and combining it with existing context memory management schemes such as PagedAttention \citep{pagedAttn} and other compression schemes such as Dynamic Memory Compression DMC \citep{DMC} and VL-cache \citep{VL-cache}.
+Slim attention offers a simple trick for halving the context memory of existing MHA transformer models without sacrificing accuracy. Slim attention is a post-training, exact implementation of existing models, so it doesn't require any fine-tuning or training from scratch. Future work includes integrating slim attention into popular frameworks such as HuggingFace Transformers \citep{HFtransformers}, llama.cpp \citep{llama-cpp},  vLLM \citep{vLLM}, llamafile \citep{llamafile}, LM Studio \citep{lmstudio}, Ollama \citep{ollama}, SGLang \citep{sglang}, and combining it with existing context memory management schemes such as PagedAttention \citep{pagedAttn} and other compression schemes such as Dynamic Memory Compression DMC \citep{DMC} and VL-cache \citep{VL-cache}.
 Please also see our forthcoming paper about matrix-shrink \citep{matShrink}, which reduces the sizes of attention matrices and proposes a simplification of DeepSeek's MLA scheme.
 
 \section*{Acknowledgments}
@@ -383,7 +383,7 @@ The table below shows the total number of MHA OPs across all attention-heads for
   Optimized, Fig. \ref{fig3}(c)   & $2nd_k$          & $2nd$         & $h(2nd_k + 2nd) = 2nd(h+1)$ \\ \fline
 \end{tabular} \end{table} \endgroup
 
-\subsection*{Alternative scheme: V-cache is all you need}
+\subsection*{Alternative scheme: \emph{all you need is V-cache}}
 Instead of calculating V from K, it's also possible to calculate K from V and thereby eliminate the K-cache (instead of the V-cache). This alternative scheme is illustrated in Fig. \ref{fig6}, where $W_{VK} = W_V^{-1} W_K$. However, this scheme does not support RoPE.
 \begin{figure}[h!] \centering
   \includegraphics[scale=0.88]{../doc/fig/slimAttn_fig6.pdf}
@@ -405,6 +405,9 @@ The table below lists additional transformer models with MHA, similar to Table \
 % shortcuts (only letters are allowed in macro names, no numbers and dashes)
 \def\METAGENE   {\href{https://huggingface.co/metagene-ai/METAGENE-1}                   {METAGENE-1 }}
 \def\OLMoE      {\href{https://huggingface.co/allenai/OLMoE-1B-7B-0125}                 {OLMoE-1B-7B-0125 }}
+\def\llmcomp    {\href{https://huggingface.co/facebook/llm-compiler-13b}                {llm-compiler-13B }}
+\def\drama      {\href{https://huggingface.co/facebook/drama-base}                      {DRAMA-base }}
+\def\chameleon  {\href{https://huggingface.co/facebook/chameleon-7b (Meta)}             {Chameleon-7B }}
 \def\DeepSeekvl {\href{https://huggingface.co/deepseek-ai/deepseek-vl2-tiny}            {DeepSeek-vl2-tiny }}
 \def\Crisper    {\href{https://huggingface.co/nyrahealth/CrisperWhisper}                {CrisperWhisper }}
 \def\Moonshine  {\href{https://huggingface.co/UsefulSensors/moonshine-base}             {Moonshine-base }}
@@ -432,6 +435,9 @@ The table below lists additional transformer models with MHA, similar to Table \
   \thead[l]{Year} & \thead[l]{Publisher} & \thead[l]{Model} & \thead{Params} & \thead{$d$} & \thead{layers} & \thead{$h$} & \thead{$d_k$} \\ \hline
   2025 & Metagene        & \METAGENE \citep{metagene}       & 6.5B           & 4096        & 32             & 32          & 128 \\
   2025 & Ai2             & \OLMoE \citep{olmoe}             & 6.9B           & 2048        & 16             & 16          & 128 \\
+  2025 & Meta            & \drama \citep{drama}             & 212M           & 768         & 12             & 12          & 64  \\
+  2024 & Meta            & \chameleon \citep{chameleon}     & 7B             & 4096        & 32             & 32          & 128 \\
+  2024 & Meta            & \llmcomp \citep{llmCompiler}     & 13B            & 5120        & 40             & 40          & 128 \\
   2024 & DeepSeek        & \DeepSeekvl                      & 3.4B           & 1280        & 12             & 10          & 128 \\
   2024 & nyra health     & \Crisper \citep{crisper}         & 1.6B           & 1280        & 32             & 20          & 64  \\
   2024 & Useful Sensors  & \Moonshine \citep{moonshine}     & 61M            & 416         & 8              & 8           & 52  \\
@@ -453,6 +459,9 @@ The table below lists additional transformer models with MHA, similar to Table \
   2023 & Mosaic ML       & \MPTthirty                       & 30B            & 7168        & 48             & 64          & 112 \\
   2022 & BigScience      & \BLOOM \citep{bloom}             & 176B           & 14,336      & 70             & 112         & 128 \\ \fline
 \end{tabular} \end{table} \endgroup
+
+% TODO, add more:
+%  https://huggingface.co/facebook/musicgen-stereo-melody-large
 
 \bibliographystyle{unsrtnat}
 \bibliography{references}
