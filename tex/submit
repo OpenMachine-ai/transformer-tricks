@@ -17,11 +17,18 @@ DIR="$file"_submit
 
 rm -Rf "$DIR" "$DIR".tar.gz
 mkdir "$DIR"
-mkdir -p "$DIR"/tex "$DIR"/doc/fig
 
 ./run "$file"
 
-cp arxiv.sty references.bib "$file".bbl "$file".tex "$DIR"/tex
-cp ../doc/fig/"$file"_fig* "$DIR"/doc/fig
+cp arxiv.sty references.bib "$file".bbl "$file".tex "$DIR"
+cp ../doc/fig/"$file"_fig* "$DIR"
+
+# modify the figure-paths in the tex file: ../doc/fig/ -> ./
+sed -i "" "s,../doc/fig/,./,g" "$DIR"/"$file".tex
+# the two quotes (empty string) at the beginning of sed are for running on mac
+
+# TODO: it might also work without the sed command, but only if the tar.gz
+# archive is flat and has only one directory to the tex file (right now the
+# archive includes the directory 'foo_submit')
 
 tar -czvf "$DIR".tar.gz "$DIR"

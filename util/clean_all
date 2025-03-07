@@ -11,4 +11,5 @@ cd -
 # clean up ./tex
 cd tex
 ./clean
+\rm -rf *_submit *_submit.tar.gz
 cd -

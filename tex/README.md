@@ -13,4 +13,5 @@ This folder contains the latex files for the Transformer Tricks papers. The flow
    - Notes for filling out the abstract field in the online form:
      - Make sure to remove citations or replace them by `arXiv:YYMM.NNNNN`
      - You can add hyperlinks to the abstract as follows: `See https://github.com/blabla for code`
+     - You can force a new paragraph in the abstract by typing a carriage return followed by one white space in the new line (i.e. indent the new line after the carriage return)
    - Keep in mind: papers that are short (e.g. 6 pages or less) are automatically put on `hold` and need to be reviewed by a moderator, which can take several weeks.
