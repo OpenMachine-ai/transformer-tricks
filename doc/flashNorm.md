@@ -37,7 +37,6 @@ TODO: [our HuggingFace repo](https://huggingface.co/open-machine/FlashNorm)
 ```shell
 # setup
 git clone https://github.com/OpenMachine-ai/transformer-tricks.git
-cd python
 pip3 install --quiet -r requirements.txt
 
 # run tests
