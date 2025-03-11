@@ -2,7 +2,7 @@
 # before and after the conversion.
 # Usage: python3 flashNorm_example.py
 
-# !wget -q https://raw.githubusercontent.com/OpenMachine-ai/transformer-tricks/refs/heads/main/python/flashNorm_modeling_llama.py
+# !wget -q https://raw.githubusercontent.com/OpenMachine-ai/transformer-tricks/refs/heads/main/flashNorm_modeling_llama.py
 # %pip install --quiet transformer_tricks
 import transformer_tricks as tt
 
