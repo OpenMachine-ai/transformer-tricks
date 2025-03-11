@@ -1,13 +1,3 @@
 coming soon
 
-<embed src="https://drive.google.com/viewerng/viewer?embedded=true&url=https://raw.githubusercontent.com/OpenMachine-ai/transformer-tricks/refs/heads/main/doc/fig/slimAttn_fig1.pdf">
-
-
-
-xfun::embed_file("fig/slimAttn_fig1.pdf")
-
-<object data="fig/slimAttn_fig1.pdf" type="application/pdf" width="700px" height="700px">
-    <embed src="fig/slimAttn_fig1.pdf">
-        <p>This browser does not support PDFs. Please download the PDF to view it: <a href="fig/slimAttn_fig1.pdf">Download PDF</a>.</p>
-    </embed>
-</object>
+For now, see the [[notebook]](https://colab.research.google.com/github/OpenMachine-ai/transformer-tricks/blob/main/notebooks/slimAttn_paper.ipynb)
