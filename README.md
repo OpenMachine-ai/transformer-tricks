@@ -25,6 +25,12 @@ Install the transformer tricks package:
 pip install transformer-tricks
 ```
 
+Alternatively, to run from latest repo:
+```bash
+git clone https://github.com/OpenMachine-ai/transformer-tricks.git
+pip3 install --quiet -r requirements.txt
+```
+
 ---
 
 ## Documentation
