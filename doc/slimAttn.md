@@ -1,6 +1,6 @@
 coming soon
 
-<embed src="https://drive.google.com/viewerng/viewer?embedded=true&url=https://raw.githubusercontent.com/OpenMachine-ai/transformer-tricks/refs/heads/main/doc/fig/slimAttn_fig1.pdf" width="500" height="375">
+<embed src="https://drive.google.com/viewerng/viewer?embedded=true&url=https://raw.githubusercontent.com/OpenMachine-ai/transformer-tricks/refs/heads/main/doc/fig/slimAttn_fig1.pdf">
 
 
 
