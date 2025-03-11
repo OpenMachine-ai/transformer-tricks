@@ -1,4 +1,4 @@
-Click on the icons below to run the notebooks in your browser:
+Click on the icons below to run the notebooks in your browser. You can hit 'cancel' when it says 'Notebook does not have secret access' because we don't need an HF_TOKEN:
 - flashNorm_example.ipynb:   <a href="https://colab.research.google.com/github/OpenMachine-ai/transformer-tricks/blob/main/notebooks/flashNorm_example.ipynb"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Colab" height="20"></a>
 - flashNorm_paper.ipynb:     <a href="https://colab.research.google.com/github/OpenMachine-ai/transformer-tricks/blob/main/notebooks/flashNorm_paper.ipynb"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Colab" height="20"></a>
 - removeWeights_paper.ipynb: <a href="https://colab.research.google.com/github/OpenMachine-ai/transformer-tricks/blob/main/notebooks/removeWeights_paper.ipynb"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Colab" height="20"></a>
