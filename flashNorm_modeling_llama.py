@@ -10,7 +10,7 @@
 #    sed -i 's/from \.\.\./from transformers./'
 #    sed -i 's/from \.configuration_llama import LlamaConfig/from transformers import LlamaConfig/'
 #  - All changes (except for the import changes at the beginning) are marked
-#    by a preceeding comment saying '# FlashNorm change:'
+#    by a preceding comment saying '# FlashNorm change:'
 #--------------------------------------------------------------------------------
 
 # coding=utf-8
