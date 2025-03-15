@@ -65,6 +65,6 @@ Before making a change to this repo, please do the following:
 
 ---
 
-<h3 align="center"> Please give us a ⭐ if you like this repo, thanks! </h3>
+### Please give us a ⭐ if you like this repo, and check out [TinyFive](https://github.com/OpenMachine-ai/tinyfive)
 
 ---
