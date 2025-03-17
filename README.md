@@ -48,7 +48,7 @@ The papers are accompanied by the following Jupyter notebooks:
 
 ---
 ## Newsletter
-Please subscribe to our [[newsletter]](https://transformertricks.substack.com) on substack to get the latest news about this project. We will never send you more than one email per month.
+Please subscribe to our [newsletter](https://transformertricks.substack.com) on substack to get the latest news about this project. We will never send you more than one email per month.
 
 [![Substack](https://img.shields.io/badge/Substack-FF6719?logo=substack&logoColor=fff)](https://transformertricks.substack.com)
 
@@ -56,6 +56,11 @@ Please subscribe to our [[newsletter]](https://transformertricks.substack.com) o
 
 ## Contributing
 We pay cash for high-impact contributions. Please check out [CONTRIBUTING](doc/CONTRIBUTING.md) for how to get involved.
+
+---
+
+## Sponsors
+The Transformer Tricks project is currently sponsored by [OpenMachine](https://openmachine.ai). We'd love to hear from you if you'd like to join us in supporting this project.
 
 ---
 
