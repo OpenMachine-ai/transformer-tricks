@@ -1,4 +1,4 @@
-personal_ws-1.1 en 249 
+personal_ws-1.1 en 253 
 ADDs
 Ai
 Alibaba
@@ -23,6 +23,7 @@ DeepMind
 DeepSeek
 DeepSeek's
 Dmitry
+DyT
 ETH
 Evo
 FFN
@@ -125,7 +126,9 @@ TODO
 TPU
 TPUs
 TTFT
+Tanh
 TimesFM
+TinyFive
 UQ
 UW
 Udom
@@ -223,6 +226,7 @@ pypi
 quantizable
 qwen
 readme
+reddit
 removeWeights
 repo
 rms

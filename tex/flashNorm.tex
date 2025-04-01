@@ -21,16 +21,17 @@
 \def\cosi{\cos{(\cdot)}}              % cos(.)
 \def\sini{\sin{(\cdot)}}              % sin(.)
 
-\title{Flash normalization: fast RMSNorm for LLMs}
+%\title{Flash normalization: fast RMSNorm for LLMs}
+\title{Flash normalization: fast normalization for LLMs}
 
-\author{Nils Graef, Matthew Clapp, Andrew Wasielewski \\
-  \href{https://openmachine.ai}{OpenMachine}, San Francisco Bay Area, \texttt{info@openmachine.ai}}
+\author{Nils Graef\thanks{\texttt{info@openmachine.ai}}, Matthew Clapp, Andrew Wasielewski \\
+  \href{https://openmachine.ai}{OpenMachine}}
 
 \begin{document} \maketitle
 
 \begin{abstract}
 RMSNorm \citep{rms} is used by many LLMs such as Llama, Mistral, and OpenELM \citep{LLaMA, mistral, openelm}.
-This paper details FlashNorm, which is an exact but faster implementation of RMSNorm followed by linear layers. See \citep{hfFlashNorm, tricks, remove, precompute} for code and more transformer tricks.
+This paper details FlashNorm, which is an exact but faster implementation of RMSNorm followed by linear layers. FlashNorm also speeds up Layer Normalization \citep{layerNorm} and its recently proposed replacement Dynamic Tanh (DyT) \citep{DyT}. See \citep{slimAttn, tricks, remove, precompute} for code and more transformer tricks.
 \end{abstract}
 
 \section{Flash normalization}
@@ -167,7 +168,7 @@ For the example $n = 512, m = 128$ and batch 1, Fig. \ref{fig8} shows timing dia
 \section{Experiments and conclusions}
 Refer to \citep{hfFlashNorm, tricks} for Python code that demonstrates the mathematical equivalency of the optimizations presented in this paper. The overall speedup of FlashNorm is modest: We measured a throughput of 204 tokens per second for OpenELM-270M with 4-bit weight quantization using the MLX framework on an M1 MacBook Air. This throughput increases to only 225 tokens per second when we remove RMSNorm entirely. Therefore, the maximum possible speedup of any RMSNorm optimization is $\leq$ 10\% for this model.
 
-For many applications, the main advantage of FlashNorm is simplification. This is similar to the simplifications we get from using RMSNorm over LayerNorm \citep{layerNorm}, and from Llama's removal of biases from all linear layers.
+For many applications, the main advantage of FlashNorm is simplification. This is similar to the simplifications we get from using RMSNorm over Layer Normalization (LayerNorm \citep{layerNorm}), and from PaLM's removal of bias-parameters from all linear layers  \citep{PaLM}.
 
 Future work should investigate which of the presented optimizations are applicable for training of LLMs.
 
@@ -176,9 +177,6 @@ Future work should investigate which of the presented optimizations are applicab
 
 \section*{Acknowledgments}
 We would like to thank Dmitry Belenko for helpful feedback on this work.
-
-\bibliographystyle{unsrtnat}
-\bibliography{references}
 
 \section*{Appendix}
 
@@ -209,5 +207,8 @@ with new normalization weights $g_i^\ast = \sqrt{n} \cdot g_i$ . These new norma
   = \sqrt{\f1n} \cdot \text{RSSe}(\a)
 \end{equation*}
 where $\text{RSSe}(\a) = \sqrt{n \epsilon + \sas}$.
+
+\bibliographystyle{unsrtnat}
+\bibliography{references}
 
 \end{document}
