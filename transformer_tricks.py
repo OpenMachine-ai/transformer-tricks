@@ -19,7 +19,7 @@ def quiet_hf():
   """reduce verbosity of HuggingFace"""
   logging.set_verbosity_error()
   utils.logging.disable_progress_bar()
-  datasets.disable_progress_bars()
+  datasets.logging.disable_progress_bar()
   os.environ['TOKENIZERS_PARALLELISM'] = 'true'
   os.environ['HF_HUB_VERBOSITY'] = 'error'
   # for more env variables, see link below

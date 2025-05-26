@@ -1,7 +1,5 @@
 # config file for creating the PyPi package. See
 # https://packaging.python.org/en/latest/tutorials/packaging-projects/
-# TODO: I'm actually not sure if it requires Python 3.6, it might also
-# work with older or only with a newer version
 
 [build-system]
 requires = ["hatchling"]
@@ -10,27 +8,22 @@ build-backend = "hatchling.build"
 [project]
 name = "transformer-tricks"
 # version numbering A.B.C: A is major version, B is minor version, and C is patch
-version = "0.3.3"
+version = "0.3.4"
 authors = [
   {name="Open Machine", email="info@openmachine.ai"},
 ]
 description = "A collection of tricks to speed up LLMs, see our transformer-tricks papers on arXiv"
 readme = "README.md"
-requires-python = ">=3.6"
+requires-python = ">=3.11"
 classifiers = [
   "Programming Language :: Python :: 3",
   "License :: OSI Approved :: MIT License",
   "Operating System :: OS Independent",
 ]
 dependencies = [
-  "numpy==1.26.4",
-  "transformers>=4.48.0",
-  "datasets==2.19.2",
-  "accelerate>=0.9.0",
-  "safetensors>=0.4.5",
-  "huggingface-hub>=0.25.1",
-  "torch>=2.4.1",
-  "tqdm>=4.64.1",
+  "transformers>=4.52.3",
+  "accelerate>=1.7.0",
+  "datasets>=3.6.0",
 ]
 
 [project.urls]
