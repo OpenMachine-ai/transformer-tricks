@@ -28,6 +28,8 @@ pip install transformer-tricks
 Alternatively, to run from latest repo:
 ```bash
 git clone https://github.com/OpenMachine-ai/transformer-tricks.git
+python3 -m venv .venv
+source .venv/bin/activate
 pip3 install --quiet -r requirements.txt
 ```
 
