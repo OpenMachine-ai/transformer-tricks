@@ -1,9 +1,39 @@
 % To generate PDF, type ./run flashNorm
 
 \documentclass{article}
-\usepackage{arxiv}
-\usepackage[numbers]{natbib} % for author-year citation style: \usepackage{natbib}
-\numberwithin{equation}{section} % numbering of equations as 2.1 (for section 2, equation 1)
+
+\usepackage[preprint, nonatbib]{neurips_2025}
+% for submission to neurips:
+%     \usepackage[nonatbib]{neurips_2025}
+% to compile a preprint version, e.g., for submission to arXiv:
+%     \usepackage[preprint, nonatbib]{neurips_2025}
+% to compile a camera-ready version, add the [final] option, e.g.:
+%     \usepackage[final, nonatbib]{neurips_2025}
+
+\usepackage[utf8]{inputenc} % allow utf-8 input
+\usepackage[T1]{fontenc}    % use 8-bit T1 fonts
+%% I removed this: \usepackage{hyperref}       % hyperlinks
+\usepackage{url}            % simple URL typesetting
+\usepackage{booktabs}       % professional-quality tables
+\usepackage{amsfonts}       % blackboard math symbols
+\usepackage{nicefrac}       % compact symbols for 1/2, etc.
+\usepackage{microtype}      % microtypography
+\usepackage{xcolor}         % colors
+
+%% I added the following packages
+\usepackage[hidelinks,colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue]{hyperref}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{makecell}
+\usepackage{multirow}
+%\usepackage{tablefootnote}
+\usepackage{enumitem}
+\usepackage{pythonhighlight}  % for python listings
+\usepackage[numbers]{natbib}
+\usepackage{caption}
+\captionsetup[figure]{skip=5pt}  % reduce the space between figure and caption
+%\captionsetup[table]{skip=10pt}  % default is 10pt
 
 % shortcuts
 \newcommand{\mat}[1]{\mathbf{#1}}     % shortcut for matrix
@@ -31,7 +61,7 @@
 %\title{Flash normalization: fast normalization for LLMs}
 %\title{Flash normalization: fast RMSNorm for LLMs}
 
-\author{Nils Graef\thanks{\texttt{info@openmachine.ai}}, Matthew Clapp, Andrew Wasielewski \\
+\author{Nils Graef\thanks{\texttt{info@openmachine.ai}}, Andrew Wasielewski, Matthew Clapp \\
   \href{https://openmachine.ai}{OpenMachine}}
 
 \begin{document} \maketitle
@@ -200,10 +230,7 @@ Refer to \citep{hfFlashNorm, tricks} for Python code that demonstrates the mathe
 
 For many applications, the main advantage of FlashNorm is simplification. This is similar to the simplifications we get from using RMSNorm over Layer Normalization (LayerNorm \citep{layerNorm}), and from PaLM's removal of bias-parameters from all linear layers  \citep{PaLM}.
 
-Future work should investigate which of the presented optimizations are applicable for training of LLMs.
-
-%\section{Future work}
-%Future work should investigate which of the presented optimizations are applicable for speeding up training of LLMs.
+Future work includes integrating FlashNorm into popular frameworks such as HuggingFace Transformers \citep{HFtransformers}, whisper.cpp \citep{whisper-cpp}, llama.cpp \citep{llama-cpp}, vLLM \citep{vLLM}, llamafile \citep{llamafile}, LM Studio \citep{lmstudio}, Ollama \citep{ollama}, SGLang \citep{sglang}, and combining it with parameter quantization.
 
 \section*{Acknowledgments}
 We would like to thank Dmitry Belenko for helpful feedback on this work.
