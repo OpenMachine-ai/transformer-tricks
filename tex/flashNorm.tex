@@ -67,8 +67,7 @@
 \begin{document} \maketitle
 
 \begin{abstract}
-RMSNorm \citep{rms} is used by many LLMs such as Llama, Mistral, and OpenELM \citep{LLaMA, mistral, openelm}.
-This paper presents FlashNorm, which is an exact but faster implementation of RMSNorm followed by linear layers. FlashNorm also speeds up Layer Normalization \citep{layerNorm} and its recently proposed replacement Dynamic Tanh (DyT) \citep{DyT}. FlashNorm also reduces the number of parameter tensors by simply merging the normalization weights with the weights of the next linear layer. See \citep{slimAttn, tricks, remove, precompute} for code and more transformer tricks.
+This paper presents FlashNorm, which is an exact but faster implementation of RMSNorm followed by linear layers. RMSNorm \citep{rms} is used by many LLMs such as Llama, Mistral, and OpenELM \citep{LLaMA, mistral, openelm}. FlashNorm also speeds up Layer Normalization \citep{layerNorm} and its recently proposed replacement Dynamic Tanh (DyT) \citep{DyT}. FlashNorm also reduces the number of parameter tensors by simply merging the normalization weights with the weights of the next linear layer. See \citep{slimAttn, tricks, remove, precompute} for code and more transformer tricks.
 \end{abstract}
 
 \section{Flash normalization}
