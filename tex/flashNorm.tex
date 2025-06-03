@@ -33,7 +33,7 @@
 \usepackage[numbers]{natbib}
 \usepackage{caption}
 \captionsetup[figure]{skip=5pt}  % reduce the space between figure and caption
-%\captionsetup[table]{skip=10pt}  % default is 10pt
+%\captionsetup[table]{skip=10pt}
 
 % shortcuts
 \newcommand{\mat}[1]{\mathbf{#1}}     % shortcut for matrix
@@ -61,7 +61,7 @@
 %\title{Flash normalization: fast normalization for LLMs}
 %\title{Flash normalization: fast RMSNorm for LLMs}
 
-\author{Nils Graef\thanks{\texttt{info@openmachine.ai}}, Andrew Wasielewski, Matthew Clapp \\
+\author{Nils Graef\thanks{\texttt{info@openmachine.ai}}, \, Andrew Wasielewski, \, Matthew Clapp \\
   \href{https://openmachine.ai}{OpenMachine}}
 
 \begin{document} \maketitle
@@ -77,7 +77,7 @@ This paper presents FlashNorm, which is an exact but faster implementation of RM
 \label{fig1} \end{figure}
 
 RMSNorm \citep{rms} normalizes the elements  $a_i$ of vector $\a$ as $y_i = \frac{a_i}{\rms} \cdot g_i$ with $\rms = \sqrt{\f1n \sas}$ and normalization weights $g_i$. In transformer \citep{vanilla} and other neural networks, RMSNorm is often followed by a linear layer as illustrated in Fig. \ref{fig1}(a), which we optimize as follows:
-\begin{itemize}[topsep=-1pt, itemsep=-1pt]
+\begin{itemize}[topsep=-1pt]
   \item \textbf{Weightless normalization (aka non-parametric normalization)}: We merge the normalization weights $g_i$ into the linear layer with weights $\mat{W}$, resulting in a modified weight matrix $\W*$ with $W_{i,j}^\ast = g_i \cdot W_{i,j}$ as illustrated in Fig. \ref{fig1}(b). This works for linear layers with and without bias.
   \item \textbf{Deferred normalization}: Instead of normalizing before the linear layer, we normalize after the linear layer, as shown in Fig. \ref{fig1}(c). This only works if the linear layer is bias-free, which is the case for many LLMs such as Llama, Mistral, and OpenELM. Specifically, the output of the linear layer in Fig. \ref{fig1}(b) is $\vz = \left( \a \cdot \frac{1}{\rms} \right) \W*$, which is identical to $\vz = \left( \a \, \W* \right) \cdot \frac{1}{\rms}$ because matrix multiplication by a scalar is commutative. If the linear layer has a bias at its output, then the normalization (i.e. scaling by $\frac{1}{\rms}$) must be done before adding the bias.
 \end{itemize}
@@ -144,11 +144,11 @@ Fig. \ref{fig3}(a) shows an FFN with a GLU variant \citep{GLU} and flash normali
 
 \section{Flash normalization for attention with RoPE}
 Fig. \ref{fig5}(a) shows the Q and K linear layers with flash normalization followed by RoPE \citep{RoPE} and scaled dot-product attention \citep{vanilla}. More details on Figure \ref{fig5}:
-\begin{itemize}[topsep=-1pt, itemsep=-1pt]
+\begin{itemize}[topsep=-1pt]
   \item Q* and K* are the linear layers for Q (queries) and K (keys) fused with the normalization weights of the activation vector $\a$ (according to flash normalization).
   \item $h$ is the dimension of the attention heads.
   \item The boxes labeled cos, sin, and RoPE perform $\vy = \vx \cdot \cosi + \text{permute}(\vx) \cdot \sini$, where
-  \begin{itemize}[topsep=-1pt, itemsep=-1pt]
+  \begin{itemize}[topsep=-1pt]
     \item $\text{permute}(\vx) = (-x_2, x_1, -x_4, x_3, \dots, -x_h, x_{h-1})$, see equation (34) of \citep{RoPE} for more details.
     \item $\cosi = (\cos m \theta_1, \cos m \theta_1, \cos m \theta_2, \cos m \theta_2, \dots, \cos m \theta_{h/2}, \cos m \theta_{h/2})$ for position $m$.
     \item $\sini = (\sin m \theta_1, \sin m \theta_1, \sin m \theta_2, \sin m \theta_2, \dots, \sin m \theta_{h/2}, \sin m \theta_{h/2})$ for position $m$.
@@ -164,19 +164,19 @@ Fig. \ref{fig5}(a) shows the Q and K linear layers with flash normalization foll
 
 \section{Optimizations for QK-normalization with RoPE}
 Some LLMs use query-key normalization \citep{QKnorm}. For example, each layer of OpenELM \citep{openelm} has the following two sets of normalization weights:
-\begin{itemize}[topsep=-1pt, itemsep=-1pt]
+\begin{itemize}[topsep=-1pt]
   \item \verb+q_norm_weight+: query normalization weights for all heads of this layer
   \item \verb+k_norm_weight+: key normalization weights for all heads of this layer
 \end{itemize}
 Unfortunately, FlashNorm can't be applied for QK-normalization. But for the type of QK-normalization used in OpenELM, we can apply the following two optimizations detailed in the next sections:
-\begin{enumerate}[topsep=-1pt, itemsep=-1pt]
+\begin{enumerate}[topsep=-1pt]
   \item Eliminate the RMS calculation before the Q and K linear layers.
   \item Fuse the normalization weights with RoPE.
 \end{enumerate}
 
 \subsection{Eliminate RMS calculation before QK linear layers}
 Fig. \ref{fig6}(a) shows a linear layer with flash normalization followed by an additional normalization. The weights of the first normalization are already merged into the linear layer weights $\W*$. Note that $\RMS{s \cdot \a} = s \cdot \rms$ where $s$ is scalar and $\a$ is a vector. Due to this scale-invariance of the RMS function, the second multiplier (scaler $s_c$) in the pipeline of Fig. \ref{fig6}(a) cancels out the first multiplier (scaler $s_a$). Fig. \ref{fig6}(b) takes advantage of this property. We can express this by using the vectors $\a, \b, \c$ along the datapath in Fig. \ref{fig6} as follows:
-\begin{itemize}[topsep=-1pt, itemsep=-1pt]
+\begin{itemize}[topsep=-1pt]
   \item Note that $s_c = \frac{1}{\RMS{\c}} = \frac{1}{\RMS{\b \cdot s_a}} = \frac{1}{s_a \cdot \RMS{\b}} = \frac{s_b}{s_a}$.
   \item With above, we can show that the $y$ outputs of figures \ref{fig6}(a) and \ref{fig6}(b) are identical:
     \begin{equation*}
@@ -202,10 +202,10 @@ Fig. \ref{fig7}(a) illustrates QK-normalization with RoPE. If the QK-normalizati
 
 \section{Bottleneck of RMS normalization for batch 1}
 This section describes the compute bottleneck of RMS normalization that exists for batch size 1. This bottleneck is different from the bottleneck detailed in \citep{openelm}. Let’s consider a processor with one vector unit and one matrix unit:
-\begin{itemize}[topsep=-1pt, itemsep=-1pt]
+\begin{itemize}[topsep=-1pt]
   \item The matrix multiplications of the linear layers are performed by the matrix unit, while the vector unit performs vector-wise operations such as RMSNorm and FlashNorm.
   \item Let’s assume that the vector unit can perform $m$ operations per cycle and the matrix unit can perform $m^2$ operations per cycle, where $m$ is the processor width. Specifically:
-  \begin{itemize}[topsep=-1pt, itemsep=-1pt]
+  \begin{itemize}[topsep=-1pt]
     \item Multiplying an $n$-element vector with an $n \times n$ matrix takes $n^2$ MAD (multiply-add) operations, which takes $n^2/m^2$ cycles with our matrix unit.
     \item Calculating $1/\rms$ takes $n$ MAD operations (for squaring and adding) plus 2 scalar operations (for $\sqrt{n/x}$), which takes $n/m$ cycles with our vector unit if we ignore the 2 scalar operations.
     \item Scaling an $n$-element vector by a scaling factor takes $n$ multiply operations, which takes $n/m$ cycles.
@@ -213,7 +213,7 @@ This section describes the compute bottleneck of RMS normalization that exists f
 \end{itemize}
 
 For the example $n = 512, m = 128$ and batch 1, Fig. \ref{fig8} shows timing diagrams without and with deferred normalization:
-\begin{itemize}[topsep=-1pt, itemsep=-1pt]
+\begin{itemize}[topsep=-1pt]
   \item Without deferred normalization, the matrix unit has to wait for 8 cycles until the vector unit has calculated the RMS value and completed the scaling by $1/ \rms$ as illustrated in Fig. \ref{fig8}(a).
   \item As shown in Fig. \ref{fig8}(b), it is possible to start the matrix unit 3 cycles earlier if the weight matrix $\mat{W}$ is processed in row-major order for example. But the RMS calculation still presents a bottleneck.
   \item FlashNorm eliminates this bottleneck: With deferred normalization, the matrix unit computes the vector-matrix multiplication in parallel to the vector unit's RMS calculation as shown in Fig. \ref{fig8}(c). The scaling at the end can be performed in parallel to the matrix unit if $\mat{W}$ is processed in column-major order for example.
