@@ -18,6 +18,13 @@ For example, our FlashNorm removes the weights from RMSNorm and merges them with
 
 ---
 
+## Explainer videos
+
+[![bla](https://img.youtube.com/vi/uVtk3B6YO4Y/0.jpg)](https://www.youtube.com/watch?v=uVtk3B6YO4Y "Slim attention")
+[![bla](https://img.youtube.com/vi/GEuJv34_XgU/0.jpg)](https://www.youtube.com/watch?v=GEuJv34_XgU "Flash normalization")
+
+---
+
 ## Installation
 
 Install the transformer tricks package:
