@@ -21,7 +21,7 @@ mkdir "$DIR"
 ./run "$file"
 
 cp *.sty references.bib "$file".bbl "$file".tex "$DIR"
-cp ../doc/fig/"$file"_fig* "$DIR"
+cp ../doc/fig/"$file"_fig*.pdf "$DIR"
 
 # modify the figure-paths in the tex file: ../doc/fig/ -> ./
 sed -i "" "s,../doc/fig/,./,g" "$DIR"/"$file".tex
