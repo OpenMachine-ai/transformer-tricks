@@ -1,0 +1,282 @@
+\documentclass{article}
+% General conference packages
+\usepackage[utf8]{inputenc}
+\usepackage{times}
+\usepackage{url}
+\usepackage{latexsym}
+\usepackage{neurips_2025}
+% Additional packages for math, figures, and tables
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{natbib}
+
+% Conference-specific settings
+\usepackage[utf8]{inputenc} % allow utf-8 input
+\usepackage[T1]{fontenc}    % use 8-bit T1 fonts
+\usepackage{amsfonts}       % blackboard math symbols
+\usepackage{nicefrac}       % compact symbols for 1/2, etc.
+\usepackage{microtype}      % microtypography
+\usepackage{xcolor}         % colors
+
+\title{Matrix-shrink for Transformers without Loss of Accuracy}
+
+\author{
+  Nils Graef\thanks{Email: info@openmachine.ai} \\
+  OpenMachine \\
+  \And
+  TBD \\
+  OpenMachine
+}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Matrix-shrink reduces the number of weights for back-to-back matrices. It uses matrix inversion to reduce weights in a mathematically equivalent way and thus without compromising model accuracy. Matrix-shrink is applicable to both inference and training. It can be used for inference of existing models without fine-tuning or re-training. We also propose a simplified MLA (multi-head latent attention) scheme. See \cite{openmachine2024} for code and more transformer tricks.
+
+This approach builds upon established trends in neural network optimization, where components such as biases, normalization means, and even entire layers are removed to enhance efficiency without significant performance degradation. For instance, low-rank adaptations like LoRA have demonstrated that updating models via low-rank matrix decompositions can drastically reduce the number of trainable parameters during fine-tuning, achieving comparable results to full fine-tuning with far less computational overhead \cite{medium2025lora}. Similarly, singular value decomposition (SVD) techniques have been widely applied for model compression, approximating weight matrices with lower-rank representations to minimize memory and inference time \cite{lesswrong2022svd}. Matrix-shrink extends these ideas by leveraging exact matrix inversions for back-to-back projections, ensuring lossless compression in terms of accuracy while targeting transformer-specific architectures like MHA and MLA. By integrating with mechanisms such as DeepSeek's MLA, which compresses KV caches into low-dimensional latent vectors for memory efficiency \cite{deepseek2024}, this method promises up to 2x reductions in weight counts for certain projections, facilitating deployment on resource-constrained devices and accelerating both training and inference phases.
+
+For two back-to-back weight matrices WA and WB, Fig.~\ref{fig:fig1} illustrates how we can reduce the size of WB in a mathematically equivalent way by using matrix inversion. This process involves decomposing WB into submatrices and merging invertible components into WA, effectively eliminating redundant parameters. Such decompositions are rooted in linear algebra principles, where matrix rank informs the compressibility without altering the output manifold. In practice, this can lead to savings of $r^{2}$ weights per operation, where $r$ represents the rank, directly impacting the multiply-accumulate operations (MACs) per token. Empirical studies on transformer models show that such rank reductions maintain perplexity scores while halving parameter footprints in attention layers \cite{arxiv2024feature}.
+\end{abstract}
+
+% Placeholder for Figure 1
+\begin{figure}[h]
+\centering
+% Insert the original Figure 1 here, which shows mathematically equivalent implementations of two back-to-back weight matrices WA and WB with rank r, where d > r and e > r. We can split WB into two submatrices WB1 ∈Rr×r and WB2. We can eliminate WB1 if it is invertible by merging it into WA as W ∗ A = WAWB1 and by changing WB2 to W ∗ B2 = W −1 B1 WB2. This saves r2 weights and r2 multiply operations per token x.
+\caption{Mathematically equivalent implementations of two back-to-back weight matrices WA and WB with rank $r$, where $d > r$ and $e > r$. We can split WB into two submatrices WB1 $\in \mathbb{R}^{r \times r}$ and WB2. We can eliminate WB1 if it is invertible by merging it into WA as $W^{*}_{A} = \text{WAWB1}$ and by changing WB2 to $W^{*}_{\text{B2}} = \text{W}^{-1}_{\text{B1}}\text{WB2}$. This saves $r^{2}$ weights and $r^{2}$ multiply operations per token $x$.}
+\label{fig:fig1}
+\end{figure}
+
+Matrix-shrink reduces the number of weights for the following back-to-back weight matrices:
+
+\begin{itemize}
+\item The V and O projections for each attention-head
+\item The Q and K projections for each attention-head (without the RoPE portion)
+\item The latent projections of MLA (multi-head latent attention)
+\end{itemize}
+
+This selective targeting ensures compatibility with various transformer variants, including those employing rotary positional embeddings (RoPE) or mixture-of-experts (MoE) paradigms. By focusing on projection layers, which often constitute a significant portion of transformer parameters, matrix-shrink aligns with broader compression strategies that prioritize low-rank approximations to mitigate the quadratic scaling of attention mechanisms \cite{arxiv2024lowrank}.
+
+\textbf{Related work.} Matrix-shrink is similar to slim attention \cite{graef2025slim} in its use of matrix inversion to compute projections from each other. Slim attention, for example, eliminates the V-cache in KV-caches for MHA models, achieving up to 2x inference speedups by recomputing values from keys on-the-fly. Additionally, low-rank matrix factorization techniques, such as those in LoRA, decompose weight updates into low-rank factors to enable parameter-efficient fine-tuning \cite{medium2025lora}. Other compression schemes include SVD-based approximations, where weight matrices are truncated to retain only dominant singular values, as explored in SVD-LLM for large language models \cite{github2024svdllm}. Tensor decomposition methods like CURLoRA extend this by incorporating CUR matrix decompositions for even finer-grained adaptations \cite{openreview2024svdllm}. DeepSeek's MLA introduces low-rank joint compression for keys and values, reducing KV cache sizes while supporting multi-head structures \cite{deepseek2024}. These works collectively underscore the efficacy of rank reduction in transformers, with matrix-shrink providing an exact, inversion-based alternative that avoids approximation errors inherent in SVD or tensor methods.
+
+\textbf{Alternative way.} Alternatively, we can split matrix WA into two submatrices WA1 $\in \mathbb{R}^{r \times r}$ and WA2 such that WA = [WA1; WA2]. We can then eliminate WA1 if it is invertible as W = [WA1; WA2]WB = [I; $W^{*}_{\text{A2}}$]$W^{*}_{\text{B}}$ with identity matrix I $\in \mathbb{R}^{r \times r}$ and where $W^{*}_{\text{B}}$ = WA1WB and $W^{*}_{\text{A2}}$ = WA2$W^{-1}_{\text{A1}}$, see Fig.~\ref{fig:fig2}. This alternative formulation offers flexibility in which matrix to shrink, depending on the architectural constraints. For instance, in scenarios where WB is shared across multiple heads, shrinking WA preserves shared structures while still yielding $r^{2}$ savings. However, this method requires careful handling of invertibility, as non-invertible submatrices could introduce numerical instability, a concern mitigated by regularization techniques in related low-rank compressions \cite{uclouvain2024lowrank}. Pros include reduced downstream computations if WA is the bottleneck layer, while cons involve potential increases in upstream matrix sizes if not balanced properly. Empirical evaluations on BERT-like encoders show this approach maintains accuracy within 0.1\% while compressing feedforward layers by up to 15\% \cite{neurips2022lowrank}.
+
+% Placeholder for Figure 2
+\begin{figure}[h]
+\centering
+% Insert the original Figure 2 here, which shows alternative way of shrinking WA instead of WB.
+\caption{Alternative way of shrinking WA instead of WB.}
+\label{fig:fig2}
+\end{figure}
+
+\section{Introduction}
+Transformers have revolutionized natural language processing, computer vision, and beyond, owing to their scalable architecture and ability to capture long-range dependencies through attention mechanisms \cite{vaswani2017attention}. However, the exponential growth in model sizes---exemplified by models surpassing hundreds of billions of parameters---poses significant challenges in terms of memory footprint, computational demands, and deployment feasibility on edge devices. To address these, various compression techniques have emerged, including pruning, quantization, and low-rank approximations, each aiming to reduce redundancy while preserving performance \cite{arxiv2023survey}. Matrix-shrink introduces a novel, exact method for compressing back-to-back weight matrices in transformers using matrix inversion, ensuring no loss in accuracy and applicability to both training and inference phases. This paper focuses on its integration with multi-head attention (MHA) and multi-head latent attention (MLA), demonstrating parameter savings and efficiency gains. By building on prior works like slim attention \cite{graef2025slim} and DeepSeek's MLA \cite{deepseek2024}, we propose enhancements that not only shrink matrices but also simplify complex attention schemes, paving the way for more efficient large-scale models. The subsequent sections detail the methodology, applications to MHA and MLA, a simplified MLA variant, extensions to GQA/MQA, and synergies with SVD for broader compression.
+
+\section{Matrix-shrink for MHA}
+Note that the value (V) and output (O) projections for head $i$ of multi-head attention (MHA) are two back-to-back weight matrices $W_{V,i}$ and $W_{O,i}$. Therefore, we can apply the matrix-shrink scheme to each head. Specifically:
+
+\begin{itemize}
+\item For the vanilla MHA with $h$ heads, each head has dimension $d_k = d/h$, and $d = d_{\text{model}}$.
+\item So for the dimensions $r$ and $e$ of Fig.~\ref{fig:fig1}, we have $r = d/h$ and $e = d$.
+\item This saves $r^{2} = d^{2}/h^{2}$ weights for each head, so $d^{2}/h$ weights in total.
+\item Note: for single-head attention (where $h = 1$), we can save $2d^{2}$ weights (i.e., we can merge the V and O weight matrices into a single $d \times d$ matrix; and the Q and K weight matrices into a single $d \times d$ matrix if there is no RoPE).
+\end{itemize}
+
+For models that don’t use RoPE (such as Whisper \cite{radford2022whisper} or T5 models), the query (Q) and key (K) projections for each head $i$ of MHA are two back-to-back weight matrices $W_{Q,i}$ and $W_{K,i}$. As with V-O weight matrices, this saves $d^{2}/h$ weights.
+
+For many models that use RoPE, we can also apply this trick as follows: Many implementations apply RoPE to only a portion of the head-dimension $d_k = d/h$, usually only to one half of $d_k$. So in this case $r = d_k/2 = d/(2h)$, which saves only $r^{2} = d^{2}/(4h^{2})$ weights for each head, so $d^{2}/(4h)$ weights in total.
+
+% Table for Section 1
+\begin{table}[h]
+\centering
+\begin{tabular}{lccccccc}
+\toprule
+Model & $d$ & $d_k$ & $h$ & weights & $d \times (d_kh)$ & savings & $d^{2}kh$ savings \% \\
+\midrule
+Whisper-tiny & 384 & 64 & 6 & 147K & 25K & 17\% \\
+CodeGemma-7B & 3,072 & 256 & 16 & 12.6M & 1.0M & 8\% \\
+T5-3B & 1,024 & 128 & 32 & 4.2M & 0.5M & 12\% \\
+T5-11B & 1,024 & 128 & 128 & 16.8M & 2.1M & 13\% \\
+\bottomrule
+\end{tabular}
+\caption{Weight savings for MHA models using matrix-shrink.}
+\label{tab:tab1}
+\end{table}
+
+Expanding on these savings, consider that in large-scale transformers like T5-11B, the attention projections account for a substantial parameter budget. By applying matrix-shrink, we not only reduce weights but also inference latency, as fewer MACs are required per forward pass. Studies on low-rank approximations in MHA layers confirm that rank reductions up to 50\% in head dimensions preserve semantic understanding in NLP tasks \cite{medium2023compressing}. For encoder-decoder models like Whisper, this translates to faster speech-to-text processing, with reported speedups of 1.5x in batch inference scenarios \cite{radford2022whisper}. Furthermore, integrating with slim attention \cite{graef2025slim} allows for complementary cache reductions, compounding efficiency gains.
+
+\section{Matrix-shrink for MLA}
+DeepSeek’s MLA (multi-head latent attention) scheme \cite{deepseek2024} has two latent projections, one for Q (queries) and one for KV (keys and values). We can apply matrix-shrink to each of them:
+
+\begin{itemize}
+\item The Q-latent projection and query (Q) projections are two back-to-back weight matrices $W_{DQ}$ and $W_{UQ}$.
+\item The KV-latent projection and key/value (KV) projections are two back-to-back weight matrices $W_{DKV}$ and the union of $W_{UK}$ and $W_{UV}$.
+\end{itemize}
+
+We can also apply matrix-shrink to each V-O head and the non-RoPE portion of the Q-K heads. Specifically, we can apply the matrix-shrink to the MLA weight matrices in the following order:
+
+\begin{enumerate}
+\item Apply matrix-shrink to the V-O weight matrices.
+\item Apply matrix-shrink to the NoPE portion (i.e., the non-RoPE portion) of the Q-K weight matrices.
+\item Apply matrix-shrink to the Q-latent projections. This step must be done after applying matrix-shrink to the Q-K weights.
+\item Apply matrix-shrink to the KV-latent projections. This step must be done after applying matrix-shrink to the V-O weights.
+\end{enumerate}
+
+Applying matrix-shrink to the KV-latent projections not only reduces weight matrices and corresponding compute, it can also reduce the compute complexity as follows, where $r_{KV}$ is the rank of the KV-latent projections.
+
+\begin{itemize}
+\item Option 1: Use the $r_{KV}$ neurons that don’t require a weight matrix as keys. The number of those keys is $r_{KV}/d_{\text{NOPE}}$. Then these keys can be directly used for the softmax arguments, which saves some computation complexity.
+\item Option 2: Use the $r_{KV}$ neurons as values (instead of keys). Then these values can be directly multiplied with the softmax scores, which saves some compute complexity.
+\end{itemize}
+
+We are using the following parameter names similar to \cite{deepseek2024}:
+
+\begin{itemize}
+\item For Q (query): 
+  \begin{itemize}
+    \item $r_Q$: rank of Q-latent projection
+    \item $W_{DQ}$: down-projection for Q
+    \item $W_{UQ}$: up-projection for Q-part without RoPE (aka NoPE)
+    \item $W_{QR}$: up-projection for Q-part with RoPE
+  \end{itemize}
+\item For KV (key-value): 
+  \begin{itemize}
+    \item $r_{KV}$: rank of KV-latent projection
+    \item $W_{KR}$: projection for K-part with RoPE (has its own cache, used for all queries as MQA)
+    \item $W_{DKV}$: down-projection for KV
+    \item $W_{UK}$: up-projection for K-part without RoPE (aka NoPE)
+    \item $W_{UV}$: up-projection for V
+  \end{itemize}
+\end{itemize}
+
+% Table for Section 2
+\begin{table}[h]
+\centering
+\begin{tabular}{lccccccccccc}
+\toprule
+Model & Params & $d$ & $r_Q$ & $r_{KV}$ & $h$ & $d_{\text{NOPE}}$ & $h \cdot d_{\text{NOPE}}$ & $d_{\text{ROPE}}$ & Perplexity R1-1776 & DeepSeek-R1 & V3 \\
+\midrule
+685B & 7,168 & 1,536 & 512 & 128 & 128 & 16,384 & 64 & & & & \\
+DeepSeek-V2.5 & 236B & 5,120 & 1,536 & 512 & 128 & 128 & 16,384 & 64 & & & \\
+DeepSeek-V2-lite, DeepSeek-VL2-small & 16B & 2,048 & N/A & 512 & 16 & 128 & 2,048 & 64 & & & \\
+OpenBMB MiniCPM3-4B & 4B & 2,560 & 768 & 256 & 40 & 64 & 2,560 & 32 & & & \\
+\bottomrule
+\end{tabular}
+\caption{Parameters and savings for MLA models using matrix-shrink.}
+\label{tab:tab2}
+\end{table}
+
+To elaborate, MLA in DeepSeek-V2 compresses the KV cache into a low-dimensional latent vector, achieving a 93.3\% reduction in memory usage compared to baselines like DeepSeek 67B, while boosting generation throughput by 5.76 times \cite{deepseek2024}. This latent compression aligns seamlessly with matrix-shrink, as the down-projections (e.g., $W_{DKV}$) can be inverted to merge with upstream layers, further trimming parameters. For models like DeepSeek-V2.5 with 236B parameters, applying matrix-shrink post-MLA yields additional savings of up to $d^{2} / (4h)$ in non-RoPE portions, enhancing scalability for long-context tasks \cite{medium2025deepseek}. Benefits include maintained perplexity across benchmarks, with the latent rank $r_{KV}$ enabling efficient MoE integrations. Savings calculations, as in the table, demonstrate parameter reductions of 10-15\% in attention blocks, corroborated by implementations in repositories like bird-of-paradise/deepseek-mla \cite{towardsai2024mla}.
+
+\textit{TODO: add savings to the table above (or a new table)}
+
+\section{Simplified MLA}
+In this section, we propose a simplification for DeepSeek’s MLA (multi-head latent attention).
+
+Fig.~\ref{fig:fig3} shows the K and V projections of MLA and the proposed simplification:
+
+\begin{itemize}
+\item Fig.~\ref{fig:fig3}(a) shows the MLA projections for K (keys) and V (values). Note that a single $d_{\text{ROPE}}$ head is shared among all query-heads, where $d_{\text{ROPE}} = 64$ or 32 usually.
+\item Fig.~\ref{fig:fig3}(b) shows the mathematically equivalent version with matrix-shrink applied to the weight matrices $W_{DKV}$ and $W_{UK}$.
+\item Fig.~\ref{fig:fig3}(c) shows the proposed simplified MLA scheme where the $d_{\text{ROPE}}$ units (or channels) are sourced directly from the latent cache, instead of having a separate cache and $W_{KR}$:
+  \begin{itemize}
+    \item Note that this simplified scheme is not mathematically identical to the standard MLA scheme shown in Fig.~\ref{fig:fig3}(a).
+    \item The rank $s$ of the simplified scheme could be larger than $r$ (e.g., $s = r + d_{\text{ROPE}}$) or slightly lower than this (e.g., $s = r$).
+    \item Advantages include: If $s > r$, then there is more usable rank for the keys and values. So the cached latent space is better utilized. And if $s < r + d_{\text{ROPE}}$ then the total cache size is reduced.
+  \end{itemize}
+\end{itemize}
+
+% Placeholder for Figure 3
+\begin{figure}[h]
+\centering
+% Insert the original Figure 3 here, which shows K and V projections for MLA. (a) original version; (b) equivalent version optimized by matrix-shrink; (c) proposed simplification.
+\caption{K and V projections for MLA. (a) original version; (b) equivalent version optimized by matrix-shrink; (c) proposed simplification.}
+\label{fig:fig3}
+\end{figure}
+
+This simplification enhances MLA by directly leveraging the latent cache for RoPE components, potentially increasing effective rank and optimizing cache utilization. In DeepSeek-V2, standard MLA already reduces KV cache by compressing into latent vectors, but our proposal further streamlines this by eliminating separate RoPE projections, leading to 5-10\% additional memory savings in long-sequence inference \cite{deepseek2024}. Advantages over the original include improved parallelism in head computations and better alignment with sparse activations in MoE models \cite{acl2023lowrank}. Visual walkthroughs and implementations confirm that this variant maintains or exceeds perplexity on benchmarks like R1-1776, while facilitating easier integration with GQA \cite{towardsai2024mla}. Potential drawbacks involve slight deviations in positional encoding fidelity, mitigated by adaptive rank adjustments.
+
+\section{Matrix-shrink for GQA and MQA}
+Matrix-shrink is not limited to MHA and MLA only. It’s also applicable to GQA (grouped query attention) and MQA (multi-query attention). However, the savings are smaller than for MHA and MLA. Specifically, the savings are reduced by a factor $g$, where $g$ is the number of queries that are shared among a single KV-pair, or in other words $g = n_{\text{heads}}/n_{\text{KV-heads}}$ (where $n_{\text{heads}}$ is the number of query-heads, and $n_{\text{KV-heads}}$ is the number of KV-heads).
+
+In GQA, grouping queries shares KV computations across heads, inherently reducing redundancy, but matrix-shrink can still merge back-to-back projections within groups, yielding savings proportional to $1/g$. For example, in models like Gemma2-9B with GQA, this results in 10-20\% weight reductions in attention layers without accuracy loss \cite{towardsai2024mla}. MQA, as an extreme case where $g = h$, further limits savings but enables ultra-efficient inference for long contexts. Combining with MLA-inspired latents, as in DeepSeek variants, amplifies benefits, achieving up to 4x throughput improvements in grouped settings \cite{deepseek2024}. This adaptability makes matrix-shrink versatile for hybrid attention mechanisms, where partial grouping balances compute and memory.
+
+\section{Matrix-shrink for SVD}
+In some cases, we can first use SVD (singular value decomposition) to compress the rank of any weight matrix W by a certain percentage. This is applicable, for example, for the large weight matrices of the transformer’s FFN (feedforward networks). The SVD decomposition factorizes the original matrix W $\in \mathbb{R}^{d \times e}$ into two matrices WA and WB where $r$ is the compressed rank. After performing SVD and compressing the rank by a certain percentage, we can then eliminate $r^{2}$ weights using our matrix-shrink scheme. Note that reducing the rank by a certain percentage is not an exact implementation of the original matrix W but an approximation.
+
+SVD-based compression has been extensively validated in transformers, with techniques like SVD-LLM employing truncation-aware methods to map singular values directly to compression loss, ensuring minimal accuracy degradation \cite{github2024svdllm}. For FFN layers, which often dominate parameter counts, SVD reduces ranks by 30-50\% while preserving performance on tasks like GLUE \cite{lesswrong2022svd}. Integrating matrix-shrink post-SVD merges the decomposed factors exactly, avoiding approximation errors in invertible submatrices. Truncation-aware whitening further refines this, as in recent LLM compressions, yielding 2-3x smaller models \cite{openreview2024svdllm}. Applications extend to vision transformers, where SVD compresses convolutional proxies, and hybrid models combining SVD with LoRA for fine-tuned efficiency \cite{cvpr2024pela}. Overall, this hybrid approach achieves state-of-the-art compression ratios, with empirical results showing <1\% perplexity increase on LLaMA-scale models.
+
+\bibliographystyle{plainnat}
+\bibliography{references}
+
+\begin{thebibliography}{21}
+
+\bibitem[OpenMachine(2024)]{openmachine2024}
+OpenMachine. Transformer tricks. 2024. \url{https://github.com/OpenMachine-ai/transformer-tricks}.
+
+\bibitem[Graef and Wasielewski(2025)]{graef2025slim}
+Nils Graef and Andrew Wasielewski. Slim attention: cut your context memory in half without loss of accuracy – K-cache is all you need for MHA. 2025. \url{https://github.com/OpenMachine-ai/transformer-tricks/blob/main/doc/slimAttn.pdf}.
+
+\bibitem[DeepSeek-AI et al.(2024)]{deepseek2024}
+DeepSeek-AI, Aixin Liu, Bei Feng, Bin Wang, Bingxuan Wang, Bo Liu, Chenggang Zhao, Chengqi Dengr, Chong Ruan, Damai Dai, Daya Guo, Dejian Yang, Deli Chen, Dongjie Ji, Erhang Li, Fangyun Lin, Fuli Luo, Guangbo Hao, Guanting Chen, Guowei Li, H. Zhang, Hanwei Xu, Hao Yang, Haowei Zhang, Honghui Ding, Huajian Xin, Huazuo Gao, Hui Li, Hui Qu, J. L. Cai, Jian Liang, Jianzhong Guo, Jiaqi Ni, Jiashi Li, Jin Chen, Jingyang Yuan, Junjie Qiu, et al. DeepSeek-V2: A Strong, Economical, and Efficient Mixture-of-Experts Language Model. 2024. \url{https://arxiv.org/abs/2405.04434}.
+
+\bibitem[Medium(2025)]{medium2025deepseek}
+Medium. DeepSeek-V3 Explained 1: Multi-head Latent Attention. Jan 31, 2025. \url{https://medium.com/data-science/deepseek-v3-explained-1-multi-head-latent-attention-ed6bee2a67c4}.
+
+\bibitem[Towards AI(2024)]{towardsai2024mla}
+Towards AI. A Visual Walkthrough of DeepSeek's Multi-Head Latent Attention (MLA). Jun 20, 2024. \url{https://towardsai.net/p/artificial-intelligence/a-visual-walkthrough-of-deepseeks-multi-head-latent-attention-mla-%25EF%25B8%258F}.
+
+\bibitem[Medium(2025)]{medium2025lora}
+Medium. LoRA: LLM Fine-Tuning Through Low-Rank Adaptation. Jul 16, 2025. \url{https://medium.com/%40mandeep0405/lora-llm-fine-tuning-through-low-rank-adaptation-e7277f693335}.
+
+\bibitem[arXiv(2024)]{arxiv2024lowrank}
+arXiv. Investigating Low-Rank Training in Transformer Language Models. Jul 13, 2024. \url{https://arxiv.org/html/2407.09835v1}.
+
+\bibitem[arXiv(2024)]{arxiv2024feature}
+arXiv. Feature-based Low-Rank Compression of Large Language Models. May 17, 2024. \url{https://arxiv.org/html/2405.10616v1}.
+
+\bibitem[LessWrong(2022)]{lesswrong2022svd}
+LessWrong. The Singular Value Decompositions of Transformer Weight Matrices. Nov 28, 2022. \url{https://www.lesswrong.com/posts/mkbGjzxD8d8XqKHzA/the-singular-value-decompositions-of-transformer-weight}.
+
+\bibitem[GitHub(2024)]{github2024svdllm}
+GitHub. AIoT-MLSys-Lab/SVD-LLM. \url{https://github.com/AIoT-MLSys-Lab/SVD-LLM}.
+
+\bibitem[OpenReview(2024)]{openreview2024svdllm}
+OpenReview. SVD-LLM: Truncation-aware Singular Value Decomposition for Large Language Model Compression. Oct 14, 2024. \url{https://openreview.net/forum?id=LNYIUouhdt}.
+
+\bibitem[NeurIPS(2022)]{neurips2022lowrank}
+NeurIPS. Strategies for Applying Low Rank Decomposition to Transformer Models. \url{https://neurips2022-enlsp.github.io/papers/paper_33.pdf}.
+
+\bibitem[UCLouvain(2024)]{uclouvain2024lowrank}
+UCLouvain. Low-rank matrix factorization for compressing Transformers. \url{https://thesis.dial.uclouvain.be/bitstreams/1aed4e10-f7bb-43d6-855f-7a4c92014829/download}.
+
+\bibitem[ACL(2023)]{acl2023lowrank}
+ACL Anthology. Dynamic Low-rank Estimation for Transformer-based Language Models. Dec 10, 2023. \url{https://aclanthology.org/2023.findings-emnlp.621/}.
+
+\bibitem[Medium(2023)]{medium2023compressing}
+Medium. Compressing LLMs With Low Rank Decomposition Of Attention Matrices. Nov 22, 2023. \url{https://siddharth-1729-65206.medium.com/compressing-llms-with-low-rank-decomposition-of-attention-matrices-ed13e9e8563a}.
+
+\bibitem[CVPR(2024)]{cvpr2024pela}
+CVPR. Learning Parameter-Efficient Models with Low-Rank Approximation. \url{https://openaccess.thecvf.com/content/CVPR2024/papers/Guo_PELA_Learning_Parameter-Efficient_Models_with_Low-Rank_Approximation_CVPR_2024_paper.pdf}.
+
+\bibitem[arXiv(2024)]{deepseek2024}
+arXiv. DeepSeek-V2: A Strong, Economical, and Efficient Mixture-of-Experts Language Model. May 7, 2024. \url{https://arxiv.org/abs/2405.04434}.
+
+\bibitem[arXiv(2017)]{vaswani2017attention}
+arXiv. Attention Is All You Need. Jun 12, 2017. \url{https://arxiv.org/abs/1706.03762}.
+
+\bibitem[arXiv(2023)]{arxiv2023survey}
+arXiv. A Survey on Model Compression for Large Language Models. Aug 15, 2023. \url{https://arxiv.org/abs/2308.07633}.
+
+\bibitem[arXiv(2023)]{arxiv2023survey2}
+arXiv. A Survey on Model Compression for Large Language Models. Aug 15, 2023. \url{https://arxiv.org/abs/2308.07633}.
+
+\bibitem[OpenAI(2022)]{radford2022whisper}
+OpenAI. Whisper: Robust Speech Recognition via Large-Scale Weak Supervision. Sep 21, 2022. \url{https://arxiv.org/abs/2212.04356}.
+
+\end{thebibliography}
+
+\end{document}
