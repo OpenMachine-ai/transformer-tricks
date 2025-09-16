@@ -76,3 +76,5 @@ The Transformer Tricks project is currently sponsored by [OpenMachine](https://o
 ### Please give us a ⭐ if you like this repo, and check out [TinyFive](https://github.com/OpenMachine-ai/tinyfive)
 
 ---
+
+[![Star History Chart](https://api.star-history.com/svg?repos=OpenMachine-ai/transformer-tricks&type=Date)](https://www.star-history.com/#OpenMachine-ai/transformer-tricks&Date)
