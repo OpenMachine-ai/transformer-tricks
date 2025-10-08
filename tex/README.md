@@ -1,3 +1,5 @@
+# Create your paper
+
 This folder contains the latex files for the Transformer Tricks papers. The flow is as follows:
 1) Write first draft and drawings in Google docs.
 2) Create file `foo.tex` and copy text from the Google doc.
@@ -16,3 +18,14 @@ This folder contains the latex files for the Transformer Tricks papers. The flow
      - You can add hyperlinks to the abstract as follows: `See https://github.com/blabla for code`
      - You can force a new paragraph in the abstract by typing a carriage return followed by one white space in the new line (i.e. indent the new line after the carriage return)
    - Keep in mind: papers that are short (e.g. 6 pages or less) are automatically put on `hold` and need to be reviewed by a moderator, which can take several weeks.
+
+# Promote your paper
+- Post on social media: LinkedIn, twitter
+- Post on reddit and discord
+- Generate a podcast and YouTube video:
+  - We use Notebook LM to generate audio podcasts. We then manually create videos with this audio, see [here](https://www.youtube.com/@OpenMachine)
+  - Try generating videos and podcasts with the [arxiv paper reader](https://github.com/imelnyk/ArxivPapers), see videos [here](https://www.youtube.com/@ArxivPapers)
+ 
+# Submit to conference
+- We don't have any experience with this
+- It requires adding an introduction section and an extensive experiment section
