@@ -1,4 +1,4 @@
-personal_ws-1.1 en 308 
+personal_ws-1.1 en 312 
 ADDs
 AMS
 AMSTeX
@@ -59,6 +59,9 @@ LM
 LMSYS
 LaTeX
 LayerNorm
+LinkedIn
+LoRA
+MACs
 MAIRA
 MHA
 MLA
@@ -77,6 +80,7 @@ Mixtral
 MoE
 Moondream
 Mozer
+NLP
 NeXT
 NeurIPS
 Nils

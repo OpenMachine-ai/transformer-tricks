@@ -29,19 +29,17 @@
 \begin{document} \maketitle
 
 \begin{abstract}
-\citet{simplified} detailed a skipless transformer without the V and P (post-attention projection) linear layers, which reduces the total number of weights. However, this scheme is only applicable to MHA (multi-head attention) \cite{vanilla}, but not for MQA (multi-query attention) \cite{MQA} and GQA (grouped-query attention) \cite{GQA}. The latter schemes are used by many popular LLMs such as Llama 2, Mistral, Mixtral, PaLM, and Gemma \cite{Llama2, mistral, mixtral, PaLM, gemma}. Therefore, this micro-paper \cite{micro-paper} proposes mathematically equivalent versions that are suitable for MQA and GQA. For example, removing Q and P from a skipless version of Mistral-7B would remove 15\% of its weights (and thus reduce its compute and memory complexity). See \cite{tricks, precompute} for code and more transformer tricks.
+\citet{simplified} detailed a skipless transformer without the V and P (post-attention projection) linear layers, which reduces the total number of weights. However, this scheme is only applicable to MHA (multi-head attention) \cite{vanilla}, but not for MQA (multi-query attention) \cite{MQA} and GQA (grouped-query attention) \cite{GQA}. The latter schemes are used by many popular LLMs such as Llama 2, Mistral, Mixtral, PaLM, and Gemma \cite{Llama2, mistral, mixtral, PaLM, gemma}. Therefore, this micro-paper \cite{micro-paper} proposes mathematically equivalent versions that are suitable for MQA and GQA. For example, removing Q and P from a skipless version of Mistral-7B would remove 15\% of its weights, and thus reduce its compute and memory complexity. Watch our explainer video \citep{remove-video} and see \citep{tricks, slimAttn, flashNorm, precompute} for code and more transformer tricks.
 \end{abstract}
 
 \section{Vanilla transformer without skip connections}
-
-\citet{skipless} have shown how transformers without skip connections and normalization (see Figure \ref{fig1}(a)) can be trained successfully.
 
 \begin{figure}[h!] \centering % the [h!] tries to place the picture right here
   \includegraphics[scale=0.90]{../doc/fig/removeWeights_fig1.pdf}
   \caption{(a) Skipless vanilla transformer; equivalent versions with (b) Q and P merged into the FFN (feedforward network); (c) K and P merged into FFN; (d) V and P merged into FFN. $\M^*, \Q^*, \K^*, \V^*, \O^*$ are defined in table \ref{tab1}.}
 \label{fig1} \end{figure}
 
-Removing skip connections and normalization allows us to merge linear layers in a mathematically identical way as shown in Figures \ref{fig1}(b) to (d). This reduces the number of weights without changing the functionality as follows:
+\citet{skipless} have shown how transformers without skip connections and normalization (Figure \ref{fig1}(a)) can be trained successfully. Removing skip connections and normalization allows us to merge linear layers in a mathematically identical way as shown in Figures \ref{fig1}(b) to (d). This reduces the number of weights without changing the functionality as follows:
 \begin{itemize}[topsep=-1pt, itemsep=-1pt]
   \item Figure \ref{fig1}(b) is mathematically identical to Figure \ref{fig1}(a) and eliminates $2d^2$ weights per transformer block by merging $\P$ into $\M^*$ and $\Q$ into $\O^*$.
   \item For MHA where $e = d$, Figures \ref{fig1}(c) and (d) are mathematically identical to Figure \ref{fig1}(a) and eliminate $2d^2$ weights per transformer block by merging $\P$ into $\M^*$ and $\K$ or $\V$ into $\O^*$.
@@ -130,7 +128,11 @@ The table below lists the configurations and weight counts for Pythia-6.9B and M
 \section{Experiments}
 Refer to \cite{tricks} for Python code that demonstrates the numerical equivalency of the weight reduction illustrated in Figures \ref{fig1}(b) and \ref{fig2}(b). The code also confirms that all square matrices of Mistral-7B are invertible.
 
-\section{Future work}
+\section{Conclusion}
+A novel approach to optimizing skipless transformers by eliminating the query (Q) and post-attention projection (P) linear layers is presented. This method offers savings in computational cost, memory, and energy consumption by reducing the number of weights.
+
+Recently published skipless transformers such as \cite{skipless2, skipless} could be retrofitted post-training with the simplifications presented here. Skipless transformers with normalization layers could first eliminate the normalization layers by fine-tuning as described in \cite{remove-norm, remove-norm2} and then apply the weight fusion described in our work.
+
 Because skipless transformers are not very popular right now, future work should investigate whether removing P and Q (or K or V) is also beneficial for transformers with normalization and skip connections as illustrated in Figure \ref{fig4}. Adding normalization and skip connections again could simplify and speed up training relative to skipless transformers.
 
 \begin{figure} \centering

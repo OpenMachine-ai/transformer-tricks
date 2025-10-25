@@ -24,7 +24,7 @@ This folder contains the latex files for the Transformer Tricks papers. The flow
 - Post on reddit and discord
 - Generate a podcast and YouTube video:
   - We use Notebook LM to generate audio podcasts. We then manually create videos with this audio, see [here](https://www.youtube.com/@OpenMachine)
-  - Try generating videos and podcasts with the [arxiv paper reader](https://github.com/imelnyk/ArxivPapers), see videos [here](https://www.youtube.com/@ArxivPapers)
+  - Try generating videos and podcasts with the [arXiv paper reader](https://github.com/imelnyk/ArxivPapers), see videos [here](https://www.youtube.com/@ArxivPapers)
  
 # Submit to conference
 - We don't have any experience with this

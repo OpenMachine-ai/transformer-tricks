@@ -12,7 +12,7 @@ A collection of tricks to simplify and speed up transformer models:
 - Precomputing the first layer: [[paper]](https://arxiv.org/abs/2402.13388), [[video]](https://youtu.be/pUeSwnCOoNI), [[podcast]](https://notebooklm.google.com/notebook/7794278e-de6a-40fc-ab1c-3240a40e55d5/audio)
 - Removing weights from skipless transformers: [[paper]](https://arxiv.org/abs/2404.12362), [[video]](https://youtu.be/Tx_lMpphd2g), [[podcast]](https://notebooklm.google.com/notebook/0875eef7-094e-4c30-bc13-90a1a074c949/audio), [[notebook]](https://colab.research.google.com/github/OpenMachine-ai/transformer-tricks/blob/main/notebooks/removeWeights_paper.ipynb)
 
-Many of these tricks follow a recent trend of removing parts from neural networks such as [RMSNorm’s](https://arxiv.org/abs/1910.07467) removal of mean centering from LayerNorm, [PaLM's](https://arxiv.org/abs/2204.02311) removal of bias-parameters, [decoder-only transformer's](https://arxiv.org/abs/1801.10198) removal of the encoder stack, and of course [transformer’s](https://arxiv.org/abs/1706.03762) revolutionary removal of recurrent layers. 
+Many of these tricks follow a recent trend of removing parts from neural networks such as [RMSNorm’s](https://arxiv.org/abs/1910.07467) removal of mean centering from LayerNorm, [PaLM's](https://arxiv.org/abs/2204.02311) removal of bias-parameters, [decoder-only transformer's](https://arxiv.org/abs/1801.10198) removal of the encoder stack, and of course [transformer’s](https://arxiv.org/abs/1706.03762) revolutionary removal of recurrent layers.
 
 For example, our FlashNorm removes the weights from RMSNorm and merges them with the next linear layer. And slim attention removes the entire V-cache from the context memory for MHA transformers.
 
@@ -20,8 +20,10 @@ For example, our FlashNorm removes the weights from RMSNorm and merges them with
 
 ## Explainer videos
 
-[![bla](https://img.youtube.com/vi/uVtk3B6YO4Y/0.jpg)](https://www.youtube.com/watch?v=uVtk3B6YO4Y "Slim attention")
-[![bla](https://img.youtube.com/vi/GEuJv34_XgU/0.jpg)](https://www.youtube.com/watch?v=GEuJv34_XgU "Flash normalization")
+[![hey](https://img.youtube.com/vi/uVtk3B6YO4Y/0.jpg)](https://www.youtube.com/watch?v=uVtk3B6YO4Y "Slim attention")
+[![hey](https://img.youtube.com/vi/GEuJv34_XgU/0.jpg)](https://www.youtube.com/watch?v=GEuJv34_XgU "Flash normalization")
+[![hey](https://img.youtube.com/vi/pUeSwnCOoNI/0.jpg)](https://www.youtube.com/watch?v=pUeSwnCOoNI "Precomputing the first layer")
+[![hey](https://img.youtube.com/vi/Tx_lMpphd2g/0.jpg)](https://www.youtube.com/watch?v=Tx_lMpphd2g "Removing weights from skipless transformers")
 
 ---
 
