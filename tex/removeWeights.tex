@@ -17,25 +17,28 @@
 \def\y{\vec{y}}
 \def\z{\vec{z}}
 
-\title{Transformer tricks: Removing weights for skipless transformers}
+\title{KV-weights are all you need for skipless transformers}
+%\title{KV-weights are all you need for skipless transformers: lossless weight fusion for residual-free transformers}
+%\title{Lossless weight fusion for skipless transformers}
+%\title{Transformer tricks: Removing weights for skipless transformers}
 %\title{Transformer tricks: Removing weights from skipless transformers}
 %\title{Transformer tricks: Reducing weights for skipless transformers}
 %\title{Transformer tricks: Merging linear layers for skipless transformers}
 %\title{Transformer tricks: Eliminating linear layers}
 
-\author{Nils Graef \\ \href{https://openmachine.ai}{OpenMachine},
-  South San Francisco, CA 94080, \texttt{info@openmachine.ai}}
+\author{Nils Graef\thanks{\texttt{info@openmachine.ai}} \\
+  \href{https://openmachine.ai}{OpenMachine}}
 
 \begin{document} \maketitle
 
 \begin{abstract}
-\citet{simplified} detailed a skipless transformer without the V and P (post-attention projection) linear layers, which reduces the total number of weights. However, this scheme is only applicable to MHA (multi-head attention) \cite{vanilla}, but not for MQA (multi-query attention) \cite{MQA} and GQA (grouped-query attention) \cite{GQA}. The latter schemes are used by many popular LLMs such as Llama 2, Mistral, Mixtral, PaLM, and Gemma \cite{Llama2, mistral, mixtral, PaLM, gemma}. Therefore, this micro-paper \cite{micro-paper} proposes mathematically equivalent versions that are suitable for MQA and GQA. For example, removing Q and P from a skipless version of Mistral-7B would remove 15\% of its weights, and thus reduce its compute and memory complexity. Watch our explainer video \citep{remove-video} and see \citep{tricks, slimAttn, flashNorm, precompute} for code and more transformer tricks.
+\citet{simplified} detailed a skipless transformer without the V and P (post-attention projection) linear layers, which reduces the total number of weights. However, this scheme is only applicable to MHA (multi-head attention) \cite{vanilla}, but not for MQA (multi-query attention) \cite{MQA} and GQA (grouped-query attention) \cite{GQA}. The latter schemes are used by many popular LLMs such as Llama 2, Mistral, Mixtral, PaLM, and Gemma \cite{Llama2, mistral, mixtral, PaLM, gemma}. Therefore, this micro-paper \cite{micro-paper} proposes mathematically equivalent versions that are suitable for MQA and GQA. For example, removing Q and P from a skipless version of Mistral-7B would remove 15\% of its weights, and thus reduce its compute and memory complexity. Watch our explainer video \citep{remove-video} and see \citep{tricks, slimAttn, precompute} for code and more transformer tricks.
 \end{abstract}
 
 \section{Vanilla transformer without skip connections}
 
 \begin{figure}[h!] \centering % the [h!] tries to place the picture right here
-  \includegraphics[scale=0.90]{../doc/fig/removeWeights_fig1.pdf}
+  \includegraphics[scale=0.87]{../doc/fig/removeWeights_fig1.pdf}
   \caption{(a) Skipless vanilla transformer; equivalent versions with (b) Q and P merged into the FFN (feedforward network); (c) K and P merged into FFN; (d) V and P merged into FFN. $\M^*, \Q^*, \K^*, \V^*, \O^*$ are defined in table \ref{tab1}.}
 \label{fig1} \end{figure}
 
@@ -71,14 +74,14 @@ Figure \ref{fig2} details how the linear layers are merged:
 Table \ref{tab1} specifies how the new weight matrices ($\M^*, \Q^*, \K^*, \V^*, \O^*$) of Figure \ref{fig1} are calculated from the original ones. For the first transformer block ($i = 1$), we use the input embedding instead of $\O$ (because there is no $\O$ for $i = 1$).
 
 \begingroup \begin{table} [h!] \centering  % the [h!] tries to place the picture right here
-\renewcommand{\arraystretch}{1.3}  % increase table row height by 1.3x
-\begin{tabular}{c|c|c|c}
+\renewcommand{\arraystretch}{1.2}  % increase table row height
+\begin{tabular}{cccc} \hline
          & Figure 1(b)     & Figure 1(c)     & Figure 1(d)    \\ \hline
-  $\O^*$ & $\O \Q$         & $\O \K$         & $\O \V$        \\ \hline
-  $\Q^*$ & 1 (eliminated)  & $\K^{-1} \Q$    & $\V^{-1} \Q$   \\ \hline
-  $\K^*$ & $\Q^{-1} \K$    & 1 (eliminated)  & $\V^{-1} \K$   \\ \hline
-  $\V^*$ & $\Q^{-1} \V$    & $\K^{-1} \V$    & 1 (eliminated) \\ \hline
-  $\M^*$ & \multicolumn{3}{c}{$\P \M$}
+  $\O^*$ & $\O \Q$         & $\O \K$         & $\O \V$        \\
+  $\Q^*$ & 1 (eliminated)  & $\K^{-1} \Q$    & $\V^{-1} \Q$    \\
+  $\K^*$ & $\Q^{-1} \K$    & 1 (eliminated)  & $\V^{-1} \K$    \\
+  $\V^*$ & $\Q^{-1} \V$    & $\K^{-1} \V$     & 1 (eliminated) \\
+  $\M^*$ & $\P \M$         & $\P \M$         & $\P \M$        \\ \hline
 \end{tabular}
 \caption{How to calculate the new weight matrices from the original ones for Figure \ref{fig1}.}
 \label{tab1} \end{table} \endgroup
@@ -97,31 +100,31 @@ Figures \ref{fig3}(b) and (c) require that $e = d$, so they are only suitable fo
 The table below lists the configurations and weight counts for Pythia-6.9B and Mistral-7B. For a skipless version of Mistral-7B we would save 15\% of weights after merging the Q and P linear layers into the FFN layers. For a batch 1 system that is limited by memory bandwidth, these 15\% weight savings can speed up inference by 1.17x during the autoregressive next-token-generation phase, see the table below.
 
 \begingroup
-\renewcommand{\arraystretch}{1.5} % increase table row height by 1.5x
-\begin{center} \begin{tabular}{|l|c|c|l|}                                                                      \hline
+\renewcommand{\arraystretch}{1.2} % increase table row height
+\begin{center} \begin{tabular}{lccl}                                                                      \hline
   \textbf{Parameter} & \textbf{Pythia-6.9B} & \textbf{Mistral-7B} & \textbf{Notes}                          \\ \hline
-  Parallel attention/FFN? & parallel     & serial           & \cite{parallel}                               \\ \hline
-  MHA, MQA, or GQA?       & MHA          & GQA              & \cite{vanilla, MQA, GQA}                      \\ \hline
-  \verb+dim+ (aka $d$)    & \multicolumn{2}{c|}{4,096}      & embedding dimension                           \\ \hline
-  \verb+n_layers+         & \multicolumn{2}{c|}{32}         & number of layers                              \\ \hline
-  \verb+n_heads+          & \multicolumn{2}{c|}{32}         & number of heads                               \\ \hline
-  \verb+n_kv_heads+       & 32           & 8                & number of KV-heads                            \\ \hline
-  \verb+e+ (output dim. of K, V) & 4,096 & 1,024            & \verb+e = d * n_kv_heads / n_heads+           \\ \hline
-  FFN type                & MLP          & MLP with SwiGLU  & \cite{GLU}                                    \\ \hline
-  FFN \verb+hidden_dim+   & 16,384       & 14,336           & FFN hidden dimension                          \\ \hline
+  Parallel attention/FFN? & parallel     & serial           & \cite{parallel}                               \\
+  MHA, MQA, or GQA?       & MHA          & GQA              & \cite{vanilla, MQA, GQA}                      \\
+  \verb+dim+ (aka $d$)    & \multicolumn{2}{c}{4,096}       & embedding dimension                           \\
+  \verb+n_layers+         & \multicolumn{2}{c}{32}          & number of layers                              \\
+  \verb+n_heads+          & \multicolumn{2}{c}{32}          & number of heads                               \\
+  \verb+n_kv_heads+       & 32           & 8                & number of KV-heads                            \\
+  \verb+e+ (output dim. of K, V) & 4,096 & 1,024            & \verb+e = d * n_kv_heads / n_heads+           \\
+  FFN type                & MLP          & MLP with SwiGLU  & \cite{GLU}                                    \\
+  FFN \verb+hidden_dim+   & 16,384       & 14,336           & FFN hidden dimension                          \\
   \verb+vocab_size+       & 50,400       & 32,000           & vocabulary size                               \\ \hline
 
-  \multicolumn{4}{|l|}{\textbf{Number of weights (calculated from above parameters):}}                      \\ \hline
-  Q+P weights per layer   & \multicolumn{2}{c|}{33,554,432} & \verb+2 * dim * dim+                          \\ \hline
-  K+V weights per layer   & 33,554,432   &   8,388,608      & \verb+2 * dim * dim / n_heads * n_kv_heads+   \\ \hline
-  FFN weights per layer   & 134,217,728  & 176,160,768      & \verb+(2 or 3) * dim * hidden_dim+            \\ \hline
-  Input+output embed.     & 412,876,800  & 262,144,000      & \verb+2 * dim * vocab_size+                   \\ \hline
-  \multicolumn{1}{|r|}{\textbf{Total weights:}} & 6.9B & 7.2B &                                             \\ \hline
+  \multicolumn{4}{l}{\textbf{Number of weights (calculated from above parameters):}}                        \\ \hline
+  Q+P weights per layer   & \multicolumn{2}{c}{33,554,432}  & \verb+2 * dim * dim+                          \\
+  K+V weights per layer   & 33,554,432   &   8,388,608      & \verb+2 * dim * dim / n_heads * n_kv_heads+   \\
+  FFN weights per layer   & 134,217,728  & 176,160,768      & \verb+(2 or 3) * dim * hidden_dim+            \\
+  Input+output embed.     & 412,876,800  & 262,144,000      & \verb+2 * dim * vocab_size+                   \\
+  \multicolumn{1}{r}{\textbf{Total weights:}} & 6.9B & 7.2B &                                               \\ \hline
 
-  \multicolumn{4}{|l|}{\textbf{Weight savings and speedup after removing Q and P:}}                         \\ \hline
-  Total w/o Q+P weights:                           & 5.8B           & 6.2B   & total after removing Q and P \\ \hline
-  \multicolumn{1}{|r|}{\textbf{Weight savings:}}   & \textbf{16\%}  & \textbf{15\%}  &                      \\ \hline
-  \multicolumn{1}{|r|}{\textbf{Possible speedup:}} & \textbf{1.19x} & \textbf{1.17x} & assumes batch size 1 \\ \hline
+  \multicolumn{4}{l}{\textbf{Weight savings and speedup after removing Q and P:}}                           \\ \hline
+  Total w/o Q+P weights:                           & 5.8B           & 6.2B   & total after removing Q and P \\
+  \multicolumn{1}{r}{\textbf{Weight savings:}}     & \textbf{16\%}  & \textbf{15\%}  &                      \\
+  \multicolumn{1}{r}{\textbf{Possible speedup:}}   & \textbf{1.19x} & \textbf{1.17x} & assumes batch size 1 \\ \hline
 \end{tabular} \end{center}
 \endgroup
 
@@ -129,9 +132,11 @@ The table below lists the configurations and weight counts for Pythia-6.9B and M
 Refer to \cite{tricks} for Python code that demonstrates the numerical equivalency of the weight reduction illustrated in Figures \ref{fig1}(b) and \ref{fig2}(b). The code also confirms that all square matrices of Mistral-7B are invertible.
 
 \section{Conclusion}
-A novel approach to optimizing skipless transformers by eliminating the query (Q) and post-attention projection (P) linear layers is presented. This method offers savings in computational cost, memory, and energy consumption by reducing the number of weights.
+A novel approach to optimizing skipless transformers by eliminating the query (Q) and post-attention projection (P) linear layers is presented. This mathematical equivalent weight fusion offers savings in computational cost, memory, and energy consumption by reducing the number of weights.
 
-Recently published skipless transformers such as \cite{skipless2, skipless} could be retrofitted post-training with the simplifications presented here. Skipless transformers with normalization layers could first eliminate the normalization layers by fine-tuning as described in \cite{remove-norm, remove-norm2} and then apply the weight fusion described in our work.
+Recently published skipless transformers such as \cite{skipless2, skipless} could be retrofitted post-training with the lossless weight fusion presented here. Skipless transformers with normalization layers could first eliminate the normalization layers by fine-tuning as described in \cite{remove-norm, remove-norm2} and then apply the weight fusion described in our work.
+
+Our work extends a recent trend in neural network design toward architectural parsimony, in which unnecessary components are removed to create more efficient models. Notable examples include RMSNorm’s simplification of LayerNorm by removing mean centering \cite{rms}, PaLM’s elimination of bias parameters \cite{PaLM}, and decoder-only transformers’ omission of the encoder stack \cite{genWiki}. This trend is rooted in the revolutionary shift initiated by the original Transformer model, which replaced traditional recurrence and convolutions with a more streamlined architecture \cite{vanilla}.
 
 Because skipless transformers are not very popular right now, future work should investigate whether removing P and Q (or K or V) is also beneficial for transformers with normalization and skip connections as illustrated in Figure \ref{fig4}. Adding normalization and skip connections again could simplify and speed up training relative to skipless transformers.
 

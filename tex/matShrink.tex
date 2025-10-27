@@ -1,10 +1,11 @@
 % To generate PDF, type ./run matShrink.tex
 
 \documentclass{article}
-\usepackage{arxiv}
-\usepackage[numbers]{natbib} % for author-year citation style: \usepackage{natbib}
 
-\usepackage{tablefootnote}
+\usepackage[preprint, nonatbib]{neurips_2025}
+%\usepackage[nonatbib]{neurips_2025}         % for submission
+%\usepackage[final, nonatbib]{neurips_2025}  % final version
+\usepackage{neurips_2025_mods}  % my mods for neurips_2025.sty
 
 % shortcuts
 \newcommand{\WW}[1]{W_\text{#1}}                    % for W_\text{...}
@@ -12,15 +13,17 @@
 \newcommand{\mc}[2]{\multicolumn{#1}{c}{#2}}        % table multicolumn
 \def\fline{\Xhline{2\arrayrulewidth}}               % fat-line for table
 
-\title{[work in progress]: \\ Matrix-shrink for transformers without loss of accuracy}
+\title{MatShrink: Lossless weight compression for back-to-back linear layers}
+%\title{MatShrink: Lossless compression for back-to-back weight matrices}
+%\title{[Work-in-progress]: Matrix-shrink for transformers without loss of accuracy}
 
-\author{Nils Graef\thanks{\texttt{info@openmachine.ai}}, TBD \\
+\author{Nils Graef\thanks{\texttt{info@openmachine.ai}}, \, Siddharth Mohan \\
   \href{https://openmachine.ai}{OpenMachine}}
 
 \begin{document} \maketitle
 
 \begin{abstract}
-Matrix-shrink reduces the number of weights for back-to-back matrices. It uses matrix inversion to reduce weights in a mathematically equivalent way and thus without compromising model accuracy. Matrix-shrink is applicable to both inference and training. It can be used for inference of existing models without fine-tuning or re-training. We also propose a simplified MLA (multi-head latent attention) scheme. See \citep{tricks} for code and more transformer tricks.
+Matrix-shrink (MatShrink) reduces the number of weights for back-to-back matrices. It uses matrix inversion to reduce weights in a mathematically equivalent way and thus without compromising model accuracy. Matrix-shrink is applicable to both inference and training. It can be used for inference of existing models without fine-tuning or re-training. We also propose a simplified MLA (multi-head latent attention) scheme. See \citep{tricks} for code and more transformer tricks.
 \end{abstract}
 
 For two back-to-back weight matrices $W_A$ and $W_B$, Fig. \ref{fig1} illustrates how we can reduce the size of $W_B$ in a mathematically equivalent way by using matrix inversion.
