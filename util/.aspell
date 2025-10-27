@@ -1,4 +1,4 @@
-personal_ws-1.1 en 312 
+personal_ws-1.1 en 322 
 ADDs
 AMS
 AMSTeX
@@ -34,6 +34,7 @@ Explainer
 FFN
 FFNs
 FlashNorm
+FlashNorm's
 GLU
 GPT
 GPT's
@@ -78,6 +79,7 @@ MetricX
 MiniCPM
 Mixtral
 MoE
+Mohan
 Moondream
 Mozer
 NLP
@@ -133,6 +135,7 @@ SVG
 SWA
 SciPy
 Shazeer
+Siddharth
 SmolLM
 SmolVLM
 SoCs
@@ -178,17 +181,20 @@ bilinear
 biomedLM
 bitnet
 booktabs
+cccc
 chebyshev
 chronos
 codeGemma
 concat
 config
+convolutional
 cpp
 crowdsourcing
 curation
 datapath
 dclm
 dec
+decompositions
 deepseek
 embeddings
 eps
@@ -217,8 +223,11 @@ layerNorm
 lccc
 lccccc
 lcccccc
+lccccccc
 lcccccccc
+lccccccccccc
 lcccccl
+lccl
 llamafile
 llava
 llcccccccc
@@ -237,6 +246,7 @@ metagene
 metricX
 miniCPMv
 minimax
+mla
 mnp
 multinomial
 natbib

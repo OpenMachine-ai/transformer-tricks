@@ -31,4 +31,4 @@ sed -i "" "s,../doc/fig/,./,g" "$DIR"/"$file".tex
 # archive is flat and has only one directory to the tex file (right now the
 # archive includes the directory 'foo_submit')
 
-tar -czvf "$DIR".tar.gz "$DIR"
+tar -czvf "$DIR".tar.gz -C "$DIR" .

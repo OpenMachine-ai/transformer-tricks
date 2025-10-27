@@ -32,7 +32,7 @@
 \begin{document} \maketitle
 
 \begin{abstract}
-\citet{simplified} detailed a skipless transformer without the V and P (post-attention projection) linear layers, which reduces the total number of weights. However, this scheme is only applicable to MHA (multi-head attention) \cite{vanilla}, but not for MQA (multi-query attention) \cite{MQA} and GQA (grouped-query attention) \cite{GQA}. The latter schemes are used by many popular LLMs such as Llama 2, Mistral, Mixtral, PaLM, and Gemma \cite{Llama2, mistral, mixtral, PaLM, gemma}. Therefore, this micro-paper \cite{micro-paper} proposes mathematically equivalent versions that are suitable for MQA and GQA. For example, removing Q and P from a skipless version of Mistral-7B would remove 15\% of its weights, and thus reduce its compute and memory complexity. Watch our explainer video \citep{remove-video} and see \citep{tricks, slimAttn, precompute} for code and more transformer tricks.
+\citet{simplified} detailed a skipless transformer without the V and P (post-attention projection) linear layers, which reduces the total number of weights. However, this scheme is only applicable to MHA (multi-head attention) \cite{vanilla}, but not for MQA (multi-query attention) \cite{MQA} and GQA (grouped-query attention) \cite{GQA}. The latter schemes are used by many popular LLMs such as Llama 2, Mistral, Mixtral, PaLM, and Gemma \cite{Llama2, mistral, mixtral, PaLM, gemma}. Therefore, this micro-paper \cite{micro-paper} proposes mathematically equivalent versions that are suitable for MQA and GQA. For example, removing Q and P from a skipless version of Mistral-7B would remove 15\% of its weights, and thus reduce its compute and memory complexity. Watch our explainer video \citep{remove-video} and see \citep{tricks, precompute} for code and more transformer tricks.
 \end{abstract}
 
 \section{Vanilla transformer without skip connections}
@@ -96,6 +96,9 @@ Similar to the parallel transformer \cite{parallel}, Figure \ref{fig3} shows par
 
 Figures \ref{fig3}(b) and (c) require that $e = d$, so they are only suitable for MHA, but not for MQA and GQA. Figure \ref{fig3}(a) is suitable for MHA, MQA, and GQA. Figure \ref{fig3}(c) is identical to the simplified transformer proposed in \cite{simplified}.
 
+\section{Related work}
+In addition to \cite{simplified}, our work is related to the lossless weight compression for back-to-back linear layers presented in \cite{matShrink}, and FlashNorm's weight fusion \cite{flashNorm}.
+
 \section{Examples}
 The table below lists the configurations and weight counts for Pythia-6.9B and Mistral-7B. For a skipless version of Mistral-7B we would save 15\% of weights after merging the Q and P linear layers into the FFN layers. For a batch 1 system that is limited by memory bandwidth, these 15\% weight savings can speed up inference by 1.17x during the autoregressive next-token-generation phase, see the table below.
 
@@ -136,7 +139,7 @@ A novel approach to optimizing skipless transformers by eliminating the query (Q
 
 Recently published skipless transformers such as \cite{skipless2, skipless} could be retrofitted post-training with the lossless weight fusion presented here. Skipless transformers with normalization layers could first eliminate the normalization layers by fine-tuning as described in \cite{remove-norm, remove-norm2} and then apply the weight fusion described in our work.
 
-Our work extends a recent trend in neural network design toward architectural parsimony, in which unnecessary components are removed to create more efficient models. Notable examples include RMSNorm’s simplification of LayerNorm by removing mean centering \cite{rms}, PaLM’s elimination of bias parameters \cite{PaLM}, and decoder-only transformers’ omission of the encoder stack \cite{genWiki}. This trend is rooted in the revolutionary shift initiated by the original Transformer model, which replaced traditional recurrence and convolutions with a more streamlined architecture \cite{vanilla}.
+Our work extends a recent trend in neural network design toward architectural parsimony, in which unnecessary components are removed to create more efficient models. Notable examples include RMSNorm’s simplification of LayerNorm by removing mean centering \cite{rms}, PaLM’s elimination of bias parameters \cite{PaLM}, decoder-only transformers’ omission of the encoder stack \cite{genWiki}, FlashNorm's elimination of normalization weights \cite{flashNorm}, and Slim Attention's elimination of the V-cache \cite{slimAttn}. This trend is rooted in the revolutionary shift initiated by the original Transformer model, which replaced traditional recurrence and convolutions with a more streamlined architecture \cite{vanilla}.
 
 Because skipless transformers are not very popular right now, future work should investigate whether removing P and Q (or K or V) is also beneficial for transformers with normalization and skip connections as illustrated in Figure \ref{fig4}. Adding normalization and skip connections again could simplify and speed up training relative to skipless transformers.
 
