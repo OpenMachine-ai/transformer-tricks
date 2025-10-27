@@ -10,37 +10,14 @@
 % to compile a camera-ready version, add the [final] option, e.g.:
 %     \usepackage[final, nonatbib]{neurips_2025}
 
-\usepackage[utf8]{inputenc} % allow utf-8 input
-\usepackage[T1]{fontenc}    % use 8-bit T1 fonts
-%% I removed this: \usepackage{hyperref}       % hyperlinks
-\usepackage{url}            % simple URL typesetting
-\usepackage{booktabs}       % professional-quality tables
-\usepackage{amsfonts}       % blackboard math symbols
-\usepackage{nicefrac}       % compact symbols for 1/2, etc.
-\usepackage{microtype}      % microtypography
-\usepackage{xcolor}         % colors
-
-%% I added the following packages
-\usepackage[hidelinks,colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue]{hyperref}
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{graphicx}
-\usepackage{makecell}
-\usepackage{multirow}
-%\usepackage{tablefootnote}
-\usepackage{enumitem}
-\usepackage{pythonhighlight}  % for python listings
-\usepackage[numbers]{natbib}
-\usepackage{caption}
-\captionsetup[figure]{skip=5pt}  % reduce the space between figure and caption
-%\captionsetup[table]{skip=10pt}
+\usepackage{neurips_2025_mods}  % my mods for neurips_2025.sty
 
 % shortcuts
 \newcommand{\mat}[1]{\mathbf{#1}}     % shortcut for matrix
 \newcommand{\RMS}[1]{\text{RMS}(#1)}  % shortcut for RMS(x)
 \def\rms{\text{RMS}(\vec{a})}         % RMS(a)
 \def\f1n{\frac{1}{n}}                 % 1/n
-\def\sas{\sum_{i=1}^n a_i^2}          % sum over a_i squared
+\def\sas{\sum_{i=1}^n a_i^2}           % sum over a_i squared
 \def\W*{\mat{W}^\ast}                 % matrix W*
 \def\V*{\mat{V}^\ast}                 % matrix V*
 \def\mW{\mat{W}}                      % matrix W
