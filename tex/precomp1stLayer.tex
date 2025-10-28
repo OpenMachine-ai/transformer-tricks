@@ -1,31 +1,30 @@
-% To generate PDF, type ./run precomp1stLayer
+% To generate PDF, type ./run precomp1stLayer.tex
 
 \documentclass{article}
 \usepackage{arxiv}
-\usepackage[numbers]{natbib} % for author-year citation style: \usepackage{natbib}
+\usepackage[numbers]{natbib}
 
 \title{Transformer tricks: Precomputing the first layer}
 
-\author{Nils Graef \\ \href{https://openmachine.ai}{OpenMachine},
-  South San Francisco, CA 94080, \texttt{info@openmachine.ai}}
+\author{Nils Graef\thanks{\texttt{info@openmachine.ai}} \\
+  \href{https://openmachine.ai}{OpenMachine}}
 
 \begin{document} \maketitle
 
 \begin{abstract}
 This micro-paper \cite{micro-paper} describes a trick to speed up inference of transformers with RoPE \citep{RoPE} (such as LLaMA, Mistral, PaLM, and Gemma \citep{gemma}). For these models, a large portion of the first transformer layer can be precomputed, which results in slightly lower latency and lower cost-per-token.
-Because this trick optimizes only one layer, the relative savings depend on the total number of layers. For example, the maximum savings for a model with only 4 layers (such as Whisper tiny \citep{Whisper}) is limited to 25\%, while a 32-layer model is limited to 3\% savings. See \citep{tricks} for code and more transformer tricks. \\
+Because this trick optimizes only one layer, the relative savings depend on the total number of layers. For example, the maximum savings for a model with only 4 layers (such as Whisper tiny \citep{Whisper}) is limited to 25\%, while a 32-layer model is limited to 3\% savings. See \citep{tricks, slimAttn, flashNorm, remove, matShrink} for code and more transformer tricks. \\
 The next two sections detail the precompute for transformers with parallel attention/FFN \citep{parallel} (such as GPT-J, Pythia, and PaLM \citep{parallel, Pythia, PaLM}) and without (such as Llama 2, Mistral, and Mixtral \citep{LLaMA, Llama2, Mistral, Mixtral}).
 \end{abstract}
 
 \section{Precompute for parallel transformers}
-Figure \ref{fig1}(a) shows the first layer of a transformer with RoPE and parallel attention/FFN. Because the inputs of Q, K, V, and FFN only depend on the embedding, we can precompute their outputs and store them in memory instead of the input embeddings, see Figure \ref{fig1}(b).
 
 \begin{figure}[h!] \centering  % the [h!] tries to place the picture right here
   \includegraphics[scale=0.86]{../doc/fig/precomp1stLayer_fig1.pdf}
   \caption{First layer of parallel transformer (a) without precompute; and (b) with precompute of FFN and linear layers Q, K, and V.}
 \label{fig1} \end{figure}
 
-Figure \ref{fig1} uses the following dimensions, based on the type of attention such as multi-head attention (MHA) \citep{vanilla}, multi-query attention (MQA) \citep{MQA}, and grouped-query attention (GQA) \citep{GQA}:
+Figure \ref{fig1}(a) shows the first layer of a transformer with RoPE and parallel attention/FFN. Because the inputs of Q, K, V, and FFN only depend on the embedding, we can precompute their outputs and store them in memory instead of the input embeddings, see Figure \ref{fig1}(b). Figure \ref{fig1} uses the following dimensions, based on the type of attention such as multi-head attention (MHA) \citep{vanilla}, multi-query attention (MQA) \citep{MQA}, and grouped-query attention (GQA) \citep{GQA}:
 
 \begin{itemize}[topsep=-1pt, itemsep=-1pt]
   \item $d$: embedding dimension.
@@ -44,12 +43,12 @@ The benefits of precompute include:
 \end{itemize}
 
 \begingroup \renewcommand{\arraystretch}{1.3} % increase table row height by 1.3x
-\begin{center} \begin{tabular}{r|l|l}
+\begin{center} \begin{tabular}{rll} \hline
   & \textbf{Without precompute}            & \textbf{With precompute}    \\ \hline
     & \makecell[l]{1) For each token, read $d$ embedding values          \\
       2) Plus, for each batch, read weights for Q, K, V, FFN}
     & \makecell[l]{For each token, read $2(d+e)$ \\  precomputed values} \\ \hline
-  \makecell[l]{Reads per batch: \\ ($B$ is batch-size)} & $B \cdot d + \verb+num_weights_Q_K_V_FFN+$ & $B \cdot 2(d+e)$
+  \makecell[l]{Reads per batch: \\ ($B$ is batch-size)} & $B \cdot d + \verb+num_weights_Q_K_V_FFN+$ & $B \cdot 2(d+e)$ \\ \hline
 \end{tabular} \end{center} \endgroup
 % TODO: https://stackoverflow.com/questions/56197968/how-can-i-make-a-list-with-itemize-in-a-cell-of-table
 
@@ -62,7 +61,7 @@ Notes on batch size:
 However, precomputing the first layer can increase (or decrease) the total memory size, which depends on the vocabulary size and the number of eliminated weights as shown in the table below. For example, the total memory size of Mistral-7B only increases by 2\%, see section \ref{sec:examples} for more details.
 
 \begingroup \renewcommand{\arraystretch}{1.3} % increase table row height by 1.3x
-\begin{center} \begin{tabular}{l|l}
+\begin{center} \begin{tabular}{ll} \hline
   \textbf{Without precompute}                      & \textbf{With precompute} \\ \hline
   1) Store embeddings: $d \cdot \verb+vocab_size+$ & Store precomputed values: $2(d+e) \cdot \verb+vocab_size+$ \\
   2) Store weights for Q, K, V, and FFN            &                          \\ \hline

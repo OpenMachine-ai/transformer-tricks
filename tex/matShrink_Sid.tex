@@ -39,14 +39,14 @@ Matrix-shrink reduces the number of weights for back-to-back matrices. It uses m
 
 This approach builds upon established trends in neural network optimization, where components such as biases, normalization means, and even entire layers are removed to enhance efficiency without significant performance degradation. For instance, low-rank adaptations like LoRA have demonstrated that updating models via low-rank matrix decomposition can drastically reduce the number of trainable parameters during fine-tuning, achieving comparable results to full fine-tuning with far less computational overhead \cite{medium2025lora}. Similarly, singular value decomposition (SVD) techniques have been widely applied for model compression, approximating weight matrices with lower-rank representations to minimize memory and inference time \cite{lesswrong2022svd}. Matrix-shrink extends these ideas by leveraging exact matrix inversions for back-to-back projections, ensuring lossless compression in terms of accuracy while targeting transformer-specific architectures like MHA and MLA. By integrating with mechanisms such as DeepSeek's MLA, which compresses KV caches into low-dimensional latent vectors for memory efficiency \cite{deepseek2024}, this method promises up to 2x reductions in weight counts for certain projections, facilitating deployment on resource-constrained devices and accelerating both training and inference phases.
 
-For two back-to-back weight matrices WA and WB, Fig.~\ref{fig:fig1} illustrates how we can reduce the size of WB in a mathematically equivalent way by using matrix inversion. This process involves decomposing WB into submatrices and merging invertible components into WA, effectively eliminating redundant parameters. Such decompositions are rooted in linear algebra principles, where matrix rank informs the compressibility without altering the output manifold. In practice, this can lead to savings of $r^{2}$ weights per operation, where $r$ represents the rank, directly impacting the multiply-accumulate operations (MACs) per token. Empirical studies on transformer models show that such rank reductions maintain perplexity scores while halving parameter footprints in attention layers \cite{arxiv2024feature}.
+For two back-to-back weight matrices $W_A$ and $W_B$, Fig.~\ref{fig:fig1} illustrates how we can reduce the size of $W_B$ in a mathematically equivalent way by using matrix inversion. This process involves decomposing $W_B$ into submatrices and merging invertible components into $W_A$, effectively eliminating redundant parameters. Such decompositions are rooted in linear algebra principles, where matrix rank informs the compressibility without altering the output manifold. In practice, this can lead to savings of $r^{2}$ weights per operation, where $r$ represents the rank, directly impacting the multiply-accumulate operations (MACs) per token. Empirical studies on transformer models show that such rank reductions maintain perplexity scores while halving parameter footprints in attention layers \cite{arxiv2024feature}.
 \end{abstract}
 
 % Placeholder for Figure 1
 \begin{figure}[h]
 \centering
-% Insert the original Figure 1 here, which shows mathematically equivalent implementations of two back-to-back weight matrices WA and WB with rank r, where d > r and e > r. We can split WB into two submatrices WB1 ∈Rr×r and WB2. We can eliminate WB1 if it is invertible by merging it into WA as W ∗ A = WAWB1 and by changing WB2 to W ∗ B2 = W −1 B1 WB2. This saves r2 weights and r2 multiply operations per token x.
-\caption{Mathematically equivalent implementations of two back-to-back weight matrices WA and WB with rank $r$, where $d > r$ and $e > r$. We can split WB into two submatrices WB1 $\in \mathbb{R}^{r \times r}$ and WB2. We can eliminate WB1 if it is invertible by merging it into WA as $W^{*}_{A} = \text{WAWB1}$ and by changing WB2 to $W^{*}_{\text{B2}} = \text{W}^{-1}_{\text{B1}}\text{WB2}$. This saves $r^{2}$ weights and $r^{2}$ multiply operations per token $x$.}
+% Insert the original Figure 1 here, which shows mathematically equivalent implementations of two back-to-back weight matrices $W_A$ and $W_B$ with rank r, where d > r and e > r. We can split $W_B$ into two submatrices WB1 ∈Rr×r and WB2. We can eliminate WB1 if it is invertible by merging it into $W_A$ as W ∗ A = WAWB1 and by changing WB2 to W ∗ B2 = W −1 B1 WB2. This saves r2 weights and r2 multiply operations per token x.
+\caption{Mathematically equivalent implementations of two back-to-back weight matrices $W_A$ and $W_B$ with rank $r$, where $d > r$ and $e > r$. We can split $W_B$ into two submatrices $W_{B1}$ $\in \mathbb{R}^{r \times r}$ and $W_{B2}$. We can eliminate $W_{B1}$ if it is invertible by merging it into $W_A$ as $W^{*}_{A} = W_A W_{B1}$ and by changing $W_{B2}$ to $W^{*}_{B2} = W^{-1}_{B1} W_{B2}$. This saves $r^2$ weights and $r^{2}$ multiply operations per token $x$.}
 \label{fig:fig1}
 \end{figure}
 
@@ -62,13 +62,13 @@ This selective targeting ensures compatibility with various transformer variants
 
 \textbf{Related work.} Matrix-shrink is similar to slim attention \cite{graef2025slim} in its use of matrix inversion to compute projections from each other. Slim attention, for example, eliminates the V-cache in KV-caches for MHA models, achieving up to 2x inference speedups by recomputing values from keys on-the-fly. Additionally, low-rank matrix factorization techniques, such as those in LoRA, decompose weight updates into low-rank factors to enable parameter-efficient fine-tuning \cite{medium2025lora}. Other compression schemes include SVD-based approximations, where weight matrices are truncated to retain only dominant singular values, as explored in SVD-LLM for large language models \cite{github2024svdllm}. Tensor decomposition methods like CURLoRA extend this by incorporating CUR matrix decompositions for even finer-grained adaptations \cite{openreview2024svdllm}. DeepSeek's MLA introduces low-rank joint compression for keys and values, reducing KV cache sizes while supporting multi-head structures \cite{deepseek2024}. These works collectively underscore the efficacy of rank reduction in transformers, with matrix-shrink providing an exact, inversion-based alternative that avoids approximation errors inherent in SVD or tensor methods.
 
-\textbf{Alternative way.} Alternatively, we can split matrix WA into two submatrices WA1 $\in \mathbb{R}^{r \times r}$ and WA2 such that WA = [WA1; WA2]. We can then eliminate WA1 if it is invertible as W = [WA1; WA2]WB = [I; $W^{*}_{\text{A2}}$]$W^{*}_{\text{B}}$ with identity matrix I $\in \mathbb{R}^{r \times r}$ and where $W^{*}_{\text{B}}$ = WA1WB and $W^{*}_{\text{A2}}$ = WA2$W^{-1}_{\text{A1}}$, see Fig.~\ref{fig:fig2}. This alternative formulation offers flexibility in which matrix to shrink, depending on the architectural constraints. For instance, in scenarios where WB is shared across multiple heads, shrinking WA preserves shared structures while still yielding $r^{2}$ savings. However, this method requires careful handling of invertibility, as non-invertible submatrices could introduce numerical instability, a concern mitigated by regularization techniques in related low-rank compressions \cite{uclouvain2024lowrank}. Pros include reduced downstream computations if WA is the bottleneck layer, while cons involve potential increases in upstream matrix sizes if not balanced properly. Empirical evaluations on BERT-like encoders show this approach maintains accuracy within 0.1\% while compressing feedforward layers by up to 15\% \cite{neurips2022lowrank}.
+\textbf{Alternative way.} Alternatively, we can split matrix $W_A$ into two submatrices $W_{A1}$ $\in \mathbb{R}^{r \times r}$ and $W_{A2}$ such that $W_A = [WA1; WA2]$. We can then eliminate $W_{A1}$ if it is invertible as $W = [WA1; WA2] W_B = [I; W^{*}_{\text{A2}}$]$W^{*}_{\text{B}}$ with identity matrix I $\in \mathbb{R}^{r \times r}$ and where $W^{*}_{\text{B}} = W_{A1} W_B$ and $W^{*}_{\text{A2}}$ = WA2$W^{-1}_{\text{A1}}$, see Fig.~\ref{fig:fig2}. This alternative formulation offers flexibility in which matrix to shrink, depending on the architectural constraints. For instance, in scenarios where $W_B$ is shared across multiple heads, shrinking $W_A$ preserves shared structures while still yielding $r^{2}$ savings. However, this method requires careful handling of invertibility, as non-invertible submatrices could introduce numerical instability, a concern mitigated by regularization techniques in related low-rank compression \cite{uclouvain2024lowrank}. Pros include reduced downstream computations if $W_A$ is the bottleneck layer, while cons involve potential increases in upstream matrix sizes if not balanced properly. Empirical evaluations on BERT-like encoders show this approach maintains accuracy within 0.1\% while compressing feedforward layers by up to 15\% \cite{neurips2022lowrank}.
 
 % Placeholder for Figure 2
 \begin{figure}[h]
 \centering
-% Insert the original Figure 2 here, which shows alternative way of shrinking WA instead of WB.
-\caption{Alternative way of shrinking WA instead of WB.}
+% Insert the original Figure 2 here, which shows alternative way of shrinking $W_A$ instead of $W_B$.
+\caption{Alternative way of shrinking $W_A$ instead of $W_B$.}
 \label{fig:fig2}
 \end{figure}
 
@@ -94,7 +94,7 @@ For many models that use RoPE, we can also apply this trick as follows: Many imp
 \centering
 \begin{tabular}{lccccccc}
 \toprule
-Model & $d$ & $d_k$ & $h$ & weights & $d \times (d_kh)$ & savings & $d^{2}kh$ savings \% \\
+Model & $d$ & $d_k$ & $h$ & weights & $d \times (d_k h)$ & savings & $d^{2} k h$ savings \% \\
 \midrule
 Whisper-tiny & 384 & 64 & 6 & 147K & 25K & 17\% \\
 CodeGemma-7B & 3,072 & 256 & 16 & 12.6M & 1.0M & 8\% \\
@@ -135,14 +135,14 @@ Applying matrix-shrink to the KV-latent projections not only reduces weight matr
 We are using the following parameter names similar to \cite{deepseek2024}:
 
 \begin{itemize}
-\item For Q (query): 
+\item For Q (query):
   \begin{itemize}
     \item $r_Q$: rank of Q-latent projection
     \item $W_{DQ}$: down-projection for Q
     \item $W_{UQ}$: up-projection for Q-part without RoPE (aka NoPE)
     \item $W_{QR}$: up-projection for Q-part with RoPE
   \end{itemize}
-\item For KV (key-value): 
+\item For KV (key-value):
   \begin{itemize}
     \item $r_{KV}$: rank of KV-latent projection
     \item $W_{KR}$: projection for K-part with RoPE (has its own cache, used for all queries as MQA)
@@ -205,7 +205,7 @@ Matrix-shrink is not limited to MHA and MLA only. It’s also applicable to GQA 
 In GQA, grouping queries shares KV computations across heads, inherently reducing redundancy, but matrix-shrink can still merge back-to-back projections within groups, yielding savings proportional to $1/g$. For example, in models like Gemma2-9B with GQA, this results in 10-20\% weight reductions in attention layers without accuracy loss \cite{towardsai2024mla}. MQA, as an extreme case where $g = h$, further limits savings but enables ultra-efficient inference for long contexts. Combining with MLA-inspired latents, as in DeepSeek variants, amplifies benefits, achieving up to 4x throughput improvements in grouped settings \cite{deepseek2024}. This adaptability makes matrix-shrink versatile for hybrid attention mechanisms, where partial grouping balances compute and memory.
 
 \section{Matrix-shrink for SVD}
-In some cases, we can first use SVD (singular value decomposition) to compress the rank of any weight matrix W by a certain percentage. This is applicable, for example, for the large weight matrices of the transformer’s FFN (feedforward networks). The SVD decomposition factorizes the original matrix W $\in \mathbb{R}^{d \times e}$ into two matrices WA and WB where $r$ is the compressed rank. After performing SVD and compressing the rank by a certain percentage, we can then eliminate $r^{2}$ weights using our matrix-shrink scheme. Note that reducing the rank by a certain percentage is not an exact implementation of the original matrix W but an approximation.
+In some cases, we can first use SVD (singular value decomposition) to compress the rank of any weight matrix W by a certain percentage. This is applicable, for example, for the large weight matrices of the transformer’s FFN (feedforward networks). The SVD decomposition factorizes the original matrix W $\in \mathbb{R}^{d \times e}$ into two matrices $W_A$ and $W_B$ where $r$ is the compressed rank. After performing SVD and compressing the rank by a certain percentage, we can then eliminate $r^{2}$ weights using our matrix-shrink scheme. Note that reducing the rank by a certain percentage is not an exact implementation of the original matrix W but an approximation.
 
 SVD-based compression has been extensively validated in transformers, with techniques like SVD-LLM employing truncation-aware methods to map singular values directly to compression loss, ensuring minimal accuracy degradation \cite{github2024svdllm}. For FFN layers, which often dominate parameter counts, SVD reduces ranks by 30-50\% while preserving performance on tasks like GLUE \cite{lesswrong2022svd}. Integrating matrix-shrink post-SVD merges the decomposed factors exactly, avoiding approximation errors in invertible submatrices. Truncation-aware whitening further refines this, as in recent LLM compressions, yielding 2-3x smaller models \cite{openreview2024svdllm}. Applications extend to vision transformers, where SVD compresses convolutional proxies, and hybrid models combining SVD with LoRA for fine-tuned efficiency \cite{cvpr2024pela}. Overall, this hybrid approach achieves state-of-the-art compression ratios, with empirical results showing <1\% perplexity increase on LLaMA-scale models.
 
