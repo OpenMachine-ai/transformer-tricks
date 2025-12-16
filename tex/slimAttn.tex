@@ -175,26 +175,30 @@ Note that for batch-size $B$, the arithmetic intensity of the vanilla transforme
 
 Table \ref{tab3} shows the arithmetic intensity (now defined as OPs per memory byte) of various SoCs, TPUs, and GPUs, which vary from 93 to 583. A system is memory bound (i.e. limited by memory bandwidth) if the arithmetic intensity of the executed program is below the chip’s arithmetic intensity. Here, the maximum arithmetic intensity of slim attention is $2h+2$, see Table \ref{tab2}, where $h$ is the number of attention-heads, which ranges between 16 and 64 for the models listed in Table \ref{tab1}. So the peak arithmetic intensity (up to 130 for $h = 64$) is usually less than the system’s intensity (except for Apple's M4 Max), which means that the system is still memory bound during the token generation phase. Therefore, slim attention speeds up the processing by up to 2x as it reduces the context memory reads by half. Furthermore, slim attention enables processing all heads in parallel as a single matrix-matrix multiplication instead of multiple vector-matrix multiplications, which is usually more efficient and faster on many machines. And slim attention is also compatible with Flash Attention \citep{flash-attention}, which performs softmax and value accumulation in parallel.
 
-\section{Support for non-square weight matrices}
-\begin{table}[h!] \centering \begin{tabular}{lccccc} \fline
+\section{Support for non-square KV weight matrices}
+\begin{table}[h!] \centering
+\caption{Models with non-square KV weight matrices where $e > d$}
+\begin{tabular}{lccccc} \fline
   Model & $d$ & $d_k$ & $h$ & $e = d_k h$ & aspect ratio $r = e/d$ \\ \hline
   CodeGemma-7B  & 3,072  & 256  & 16   & 4,096   & 1.3 \\
   T5-3B         & 1,024  & 128  & 32   & 4,096   & 4   \\
   T5-11B        & 1,024  & 128  & 128  & 16,384  & 16  \\ \fline
-\end{tabular} \end{table}
+\end{tabular} \label{tab4} \end{table}
 
-Some transformers with MHA use non-square weight matrices for their K and V projections. Specifically, these models do not satisfy $d = d_k h$. The table above shows three such models where $e = d_k h > d$. Let’s also define the aspect ratio $r$ as $r = e/d$. For example, Google’s T5-11B model has a large aspect ratio of $r = 16$. There are two options to reduce the KV-cache by 2x or more, which are compared in the table below and summarized as follows:
+Some transformers with MHA use non-square weight matrices for their K and V projections. Specifically, these models do not satisfy $d = d_k h$. Table \ref{tab4} shows three such models where $e = d_k h > d$. Let’s also define the aspect ratio $r$ as $r = e/d$. For example, Google’s T5-11B model has a large aspect ratio of $r = 16$. There are two options to reduce the KV-cache by 2x or more, which are compared in table \ref{tab5} and summarized as follows:
 \begin{itemize}[topsep=-1pt]
   \item \textbf{Option 1}: Because the K weight matrix is non-square, inverting this matrix is not straight forward. And the resulting matrix $W_{KV}$ \eR{e}{e}, which has $r$-times more parameters than $W_V$ \eR{d}{e}.
   \item \textbf{Option 2}: Instead of storing  V in cache and then calculating V from K, we can store the smaller $d$-element vectors X before the projection and then on-the-fly calculate both projections (V and K) from X. The cache is now $r$-times smaller than option 1, and $2r$ times smaller than the baseline, for example 32 times smaller for the T5-11B model. However, this comes at a slightly higher computational cost.
 \end{itemize}
-\begin{table}[h!] \centering \begin{tabular}{lccc} \fline
+\begin{table}[h!] \centering
+\caption{Comparison of options for supporting non-square KV weight matrices}
+\begin{tabular}{lccc} \fline
                             & Baseline & Option 1 & Option 2                         \\ \hline
   Cache reduction factor    & 1        & 2        & $2r$                             \\
   Size of $W_V$ or $W_{KV}$ & $d e$    & \makecell{$e^2$ ($r$-times larger)} & $d e$ \\
   Computational complexity  & baseline & higher   & even higher                      \\
   Support for RoPE?         & Yes      & Yes      & No                               \\ \fline
-\end{tabular} \end{table}
+\end{tabular} \label{tab5} \end{table}
 
 \textbf{Option 1}: The standard matrix inverse is defined only for square matrices, and the inversion functions in NumPy and SciPy are limited to such matrices. We want to compute the inverse of $W_K$ \eR{d}{e} with $e > d$ such that $W_K W_K^{-1} = I$, where $I$ is the identity matrix and $W_K^{-1}$ is the so-called right inverse of $W_K$. We compute $W_K^{-1}$ by using a trick that inverts the term $W_K W_K^\top$ instead of $W_K$ as follows:
 \begin{equation*}
@@ -223,20 +227,22 @@ This scheme also works for projection layers with biases (as used by the Whisper
 However, this scheme doesn’t work if there is a positional encoding such as RoPE located between the projection layers and the dot-product calculation. But option 2 fully supports other relative position encoding (PE) schemes such as RPE of the T5 model, Alibi, Kerple and FIRE \citep{FIRE} which add a variable bias to the softmax arguments (instead of modifying the queries and keys before the dot-product calculation). See for example the FIRE paper \citep{FIRE}, which shows that FIRE and even NoPE can outperform RoPE for long context.
 
 \section{Support for encoder-decoder transformers} \label{sec:enc-dec}
-In general, calculating K from V is not only possible for self-attention (see Fig. \ref{fig1}) but also for cross-attention. In this section, we present two context memory options for encoder-decoder transformers such as Whisper (speech-to-text), language translation models such as Google’s T5, and time series forecasting models such as Amazon’s Chronos models. One option is not limited to MHA only, but is also applicable to MQA and GQA. The table below compares the options, which are summarized as follows:
+In general, calculating K from V is not only possible for self-attention (see Fig. \ref{fig1}) but also for cross-attention. In this section, we present two context memory options for encoder-decoder transformers such as Whisper (speech-to-text), language translation models such as Google’s T5, and time series forecasting models such as Amazon’s Chronos models. One option is not limited to MHA only, but is also applicable to MQA and GQA. Table \ref{tab6} compares the options, which are summarized as follows:
 \begin{itemize}[topsep=-1pt]
   \item The \textbf{baseline} implementation uses complete KV-caches for both self-attention and cross-attention of the decoder stack, which we refer to as self KV-cache and cross KV-cache, resp.
   \item \textbf{Option 1} is an optimized implementation where the V-caches for both self-attention and cross-attention are eliminated, which reduces the total cache size by 2x.
   \item \textbf{Option 2} eliminates the entire cross KV-cache and also eliminates the V-cache of the self-attention.
 \end{itemize}
-\begin{table}[h!] \centering \begin{tabular}{lccc} \fline
+\begin{table}[h!] \centering
+  \caption{Comparison of options for supporting encoder-decoder transformers}
+  \begin{tabular}{lccc} \fline
                              & Baseline & Option 1 & Option 2 \\ \hline
   Self KV-cache size         & 100\%    & 50\%     & 50\%     \\
   Cross KV-cache size        & 100\%    & 50\%     & 0        \\
   \makecell[l]{Need to read cross-$W_K$ and $W_V$ \\ during the generate-phase?} & No & $W_{KV}$ only & $W_K$ and $W_V$ \\
   Support for RoPE?          & Yes      & Yes      & No       \\
   Complexity of cross-phase  & full     & half     & 0        \\ \fline
-\end{tabular} \end{table}
+\end{tabular} \label{tab6} \end{table}
 
 The \textbf{baseline} implementation consists of the following three phases:
 \begin{itemize}[topsep=-1pt]
@@ -258,14 +264,16 @@ The \textbf{baseline} implementation consists of the following three phases:
 
 \begin{figure}[h!] \centering
   \includegraphics[scale=0.71]{../doc/fig/slimAttn_fig5.pdf}
-  \caption{Slim attention with a single X-cache that is shared among all cross-attention layers for the generate-phase of encoder-decoder transformers.}
+  \caption{Slim attention with a single E-cache (encoder cache) that is shared among all cross-attention layers for the generate-phase of encoder-decoder transformers.}
 \label{fig5} \end{figure}
 
 \textbf{Time-to-first-token (TTFT)}: Options 1 and 2 speed up or eliminate the cross-phase. Specifically, option 1 speeds up the cross-phase by 2x. And option 2 completely eliminates the cross-phase. This speeds up the time-to-first-token latency (TTFT). And in certain cases, the overall compute complexity can be reduced compared to the baseline. For cases where the number of encoder-tokens is larger than the decoder-tokens (such as for Whisper or for text summarization) and for large $d$ dimensions, these options can reduce the overall complexity.
 
-The table below lists the cache size savings and speedups during the generate-phase for all 5 Whisper models, assuming a fixed encoder context length of $p = 1500$, a decoder output context length of 448, and a vocab\_size of 51,865. Option 2 reduces the cache sizes by 8.7x, assuming that the entire encoder output (matrix E) is kept in on-chip SRAM (the E-cache), which speeds up the generate-phase by over 5x for a memory bound system with batch size 64. Note that the speedups listed in the table are in addition to speeding up the cross-phase (i.e. 2x cross-phase speedup for option 1, and entire elimination of the cross-phase for option 2).
+Table \ref{tab7} lists the cache size savings and speedups during the generate-phase for all 5 Whisper models, assuming a fixed encoder context length of $p = 1500$, a decoder output context length of 448, and a vocab\_size of 51,865. Option 2 reduces the cache sizes by 8.7x, assuming that the entire encoder output (matrix E) is kept in on-chip SRAM (the E-cache), which speeds up the generate-phase by over 5x for a memory bound system with batch size 64. Note that the speedups listed in the table are in addition to speeding up the cross-phase (i.e. 2x cross-phase speedup for option 1, and entire elimination of the cross-phase for option 2).
 
-\begin{table} \centering \begin{tabular}{lcccccl} \fline
+\begin{table} \centering
+  \caption{Cache size savings and speedups of generate phase for Whisper models}
+  \begin{tabular}{lcccccl} \fline
   & \mc{5}{\thead{Whisper models}} & \\
   & \thead{tiny} & \thead{base} & \thead{small} & \thead{medium} & \thead{large} & \thead[l]{Notes} \\ \hline
   Params     & 38M   & 73M   & 242M  & 764M   & 1.5B  & number of parameters                   \\
@@ -296,7 +304,7 @@ The table below lists the cache size savings and speedups during the generate-ph
   Option 2         & 1.1  & 2.2  & 6.5  & 18.1  & 32.5  & option 2 cache + $1/64 \cdot$ params \\
   Option 1 speedup & 1.9x & 1.9x & 1.9x & 1.9x  & 1.8x  & speedup vs. baseline                 \\
   Option 2 speedup & \textbf{5.6x} & \textbf{5.8x} & \textbf{5.8x} & \textbf{5.6x} & \textbf{5.3x} & speedup vs. baseline \\ \fline
-\end{tabular} \end{table}
+\end{tabular} \label{tab7} \end{table}
 
 \section{Conclusion}
 Slim attention offers a simple trick for halving the context memory of existing MHA transformer models without sacrificing accuracy. Slim attention is a post-training, exact implementation of existing models, so it doesn't require any fine-tuning or training from scratch.
@@ -337,23 +345,27 @@ for layer in range(config.num_hidden_layers):
 
 \section{MHA complexity}
 This section derives the number of OPs (two-operand operations) for the column labeled ``MHA complexity'' of Table \ref{tab2}, which is the MHA-complexity per token during the generate-phase. Recall that multiplying two matrices (MatMul) with dimensions $m \times n$ and $n \times p$ entails computing $m p$ dot-products of length $n$, where each dot-product takes $n$ MULs (two-operand multiply operations) and $n-1$ ADDs (two-operand add operations). In total, the entire MatMul requires $mnp$ MULs and $mp(n-1)$ ADDs, so $mp(2n-1)$ OPs, which is approximately $2mnp$ OPs.
-\begin{table}[h!] \centering \begin{tabular}{lccc} \fline
+\begin{table}[h!] \centering
+  \caption{OPs per attention head for MHA during the generate phase}
+  \begin{tabular}{lccc} \fline
                          & Term & Dimensions of MatMul   & OPs per attention-head                    \\ \hline
   Softmax argument       & $Q_i K_i^\top$                & $(1 \times d_k)(d_k \times n)$   & $2nd_k$ \\
   Weighted sum of $V_i$  & $\text{softmax}() \cdot V_i$  & $(1 \times n)(n \times d_k)$    & $2nd_k$ \\
   Weighted sum of $K$    & $\text{softmax}() \cdot K$    & $(1 \times n)(n \times d)$      & $2nd$   \\ \fline
-\end{tabular} \end{table}
+\end{tabular} \label{tab8} \end{table}
 
-The table above specifies the number of OPs per attention-head for computing the softmax arguments and the weighted sums. This is for the generate-phase where all MatMuls are actually vector-matrix products (instead of matrix-matrix products).
+Table \ref{tab8} specifies the number of OPs per attention-head for computing the softmax arguments and the weighted sums. This is for the generate-phase where all MatMuls are actually vector-matrix products (instead of matrix-matrix products).
 
-The table below shows the total number of MHA OPs across all attention-heads for the three cases of Table \ref{tab2} (i.e. for Vanilla, unoptimized Fig. \ref{fig3}(b), and optimized Fig. \ref{fig3}(c)). Note that $d_k = d / h$.
-\begin{table}[h!] \centering \begin{tabular}{lccc} \fline
+Table \ref{tab9} shows the total number of MHA OPs across all attention-heads for the three cases of Table \ref{tab2} (i.e. for Vanilla, unoptimized Fig. \ref{fig3}(b), and optimized Fig. \ref{fig3}(c)). Note that $d_k = d / h$.
+\begin{table}[h!] \centering
+  \caption{Total OPs for MHA during the generate phase}
+  \begin{tabular}{lccc} \fline
                                   & \mc{2}{OPs per attention-head}   &                            \\
                                   & softmax argument & weighted sum  & Total OPs                  \\ \hline
   Vanilla, see Fig. \ref{fig2}(b) & $2nd_k$          & $2nd_k$       & $h(2nd_k + 2nd_k) = 4nd$    \\
   Unoptimized, Fig. \ref{fig3}(b) & $2nd_k$          & $2nd_k$       & $4nd$                       \\
   Optimized, Fig. \ref{fig3}(c)   & $2nd_k$          & $2nd$         & $h(2nd_k + 2nd) = 2nd(h+1)$ \\ \fline
-\end{tabular} \end{table}
+\end{tabular} \label{tab9} \end{table}
 
 \section{Alternative scheme: \emph{all you need is V-cache}}
 Instead of calculating V from K, it's also possible to calculate K from V and thereby eliminate the K-cache (instead of the V-cache). This alternative scheme is illustrated in Fig. \ref{fig6}, where $W_{VK} = W_V^{-1} W_K$. However, this scheme does not support RoPE.
@@ -411,14 +423,14 @@ Slim attention is not limited to MHA only. In general, slim attention reduces th
 For Gemma2-9B and PaliGemma2-10B, which utilize GQA instead of MHA, $c = 2*2048/3584 = 1.14$. In this case where the compression factor $c$ is smaller than 2 and larger than 1, the application of slim attention is not straight forward. The figure below shows how we can implement slim attention for this case, where $e = h_{KV} d_K$ is the projection dimension of the $d \times e$ weight matrices and $d/2 < e < d$. For Gemma2-9B, $e = 2048$ and $d = 3584$. Note that $W_K^\ast$ has $d^2$ parameters, while the original $W_K$ has only $d e$ parameters, which is a disadvantage.
 \begin{figure}[h!] \centering
   \includegraphics[scale=1.0]{../doc/fig/slimAttn_fig7.pdf}
-  %\caption{TODO}
+  \caption{Computing V from K for the case where the KV-cache width $2e$ is larger than $d$}
 \label{fig7} \end{figure}
 
 \section{Further optimization for encoder-decoder transformers}
 This section details a further optimization, which is a hybrid of options 1 and 2 of section \ref{sec:enc-dec}, where one layer of the decoder stack uses option 1 and the other layers use a modified version of option 2 as follows: Say the first layer implements option 1, which entails calculating and storing the cross K-cache for the first layer, i.e. $K = E W_K$. The trick is now to use this K-cache instead of the E-cache for all the other layers and then we can calculate E from K as $E = K W_{K\_layer1}^{-1}$. So the other layers will now use K instead of E, which means that they need to use modified versions of their $W_K$ and $W_V$ weight matrices, which are offline computed as $W_{V\_new} = W_{K\_layer1}^{-1} W_{V\_old}$ and $W_{K\_new} = W_{K\_layer1}^{-1} W_{K\_old}$. The savings of this hybrid versus option 2 are not huge: It only speeds up the first layer because we only need to read one of the two cross weight matrices for the first layer for each generated token (i.e. we only need to read $W_{KV\_layer1}$ instead of reading both $W_{K\_layer1}$ and $W_{V\_layer1}$). So this hybrid makes only sense for shallow models, e.g. Whisper tiny which only has 4 layers.
 
 \section{More MHA models}
-The table below lists additional transformer models with MHA, similar to Table \ref{tab1}. See HuggingFace for more details on these models.
+Table \ref{tab10} lists additional transformer models with MHA, similar to Table \ref{tab1}. See HuggingFace for more details on these models.
 
 % shortcuts (only letters are allowed in macro names, no numbers and dashes)
 \def\METAGENE   {\href{https://huggingface.co/metagene-ai/METAGENE-1}                   {METAGENE-1 }}
@@ -448,7 +460,8 @@ The table below lists additional transformer models with MHA, similar to Table \
 \def\BLOOM      {\href{https://huggingface.co/bigscience/bloom}                         {BLOOM }}
 
 \begin{table}[h!] \centering
-\begin{tabular}{lllccc} \fline
+  \caption{Additional transformer models with MHA}
+  \begin{tabular}{lllccc} \fline
   \thead[l]{Year} & \thead[l]{Publisher} & \thead[l]{Model} & \thead{Params} & \thead{$d$} & \thead{layers} \\ \hline
   2025 & Metagene        & \METAGENE \citep{metagene}       & 6.5B           & 4096        & 32             \\
   2025 & Ai2             & \OLMoE \citep{olmoe}             & 6.9B           & 2048        & 16             \\
@@ -475,7 +488,7 @@ The table below lists additional transformer models with MHA, similar to Table \
   2023 & Mosaic ML       & \MPTseven                        & 7B             & 4096        & 32             \\
   2023 & Mosaic ML       & \MPTthirty                       & 30B            & 7168        & 48             \\
   2022 & BigScience      & \BLOOM \citep{bloom}             & 176B           & 14,336      & 70             \\ \fline
-\end{tabular} \end{table}
+\end{tabular} \label{tab10} \end{table}
 
 % TODO, add more:
 %  https://huggingface.co/facebook/musicgen-stereo-melody-large
