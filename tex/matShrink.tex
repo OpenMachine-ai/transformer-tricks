@@ -43,7 +43,7 @@ Specifically, $W_A$ is a $d \times r$ matrix, $W_B$ is an $r \times e$ matrix wi
 
 Inverting the submatrix $W_{B1}$ requires that this submatrix is invertible, which is often the case because it is extremely rare for large matrices to be non-invertible. In the rare case that $W_{B1}$ is non-invertible, we can first permute the columns of the original matrix $W_B$ such that the first $r$ columns of the permuted matrix form an invertible submatrix $W_{B1}$.
 
-For completeness, if $e = r$, then the entire matrix $W_{B2}$ is eliminated. In general, if $e \leq r$, then the two matrices $W_A$ and $W_B$ are fused into a single matrix $W^\ast = W_A \cdot W_B$ with only $d e$ weights (instead of $d r + r e$ weights for the original matrices $W_A$ and $W_B$). This type of weight fusion is utilized in \cite{remove}.
+For completeness, if $e = r$, then the entire matrix $W_{B2}$ is eliminated. In general, if $e \leq r$, then the two matrices $W_A$ and $W_B$ are fused into a single matrix $W^\ast = W_A \cdot W_B$ with only $d e$ weights (instead of $d r + r e$ weights for the original matrices $W_A$ and $W_B$). This type of weight fusion is utilized in \cite{remove, marko}.
 
 \textbf{Alternative way.} Alternatively, we can split matrix $W_A$ into two submatrices $W_{A1}$ \eR{r}{r} and $W_{A2}$ such that $W_A = [W_{A1}; W_{A2}]$. We can then eliminate $W_{A1}$ as $W = \left[ W_{A1}; W_{A2} \right] W_B = \left[ I; W_{A2}^\ast \right] W_B^\ast$ with identity matrix $I$ \eR{r}{r} and where $W_B^\ast = W_{A1} W_B$ and $W_{A2}^\ast = W_{A2} W_{A1}^{-1}$, see Fig. \ref{fig2}. This also saves $r^2$ weights and $r^2$ multiply operations per token $x$.
 \begin{figure}[h!] \centering
@@ -77,7 +77,7 @@ For MHA, we can apply the MatShrink scheme to each head. Specifically:
   \item For the vanilla MHA with $h$ heads, each head has dimension $d_k = d / h$, and $d = d_\text{model}$.
   \item So for the dimensions $r$ and $e$ of Fig. \ref{fig1}, we have  $r = d / h$ and $e = d$.
   \item This saves $r^2 = d^2 / h^2$ weights for each head, so $d^2 / h$ weights in total.
-  \item Note: for single-head attention (where $h = 1$), we can save $2 d^2$ weights (i.e. we can merge the V and O weight matrices into a single $d \times d$ matrix; and the Q and K weight matrices into a single $d \times d$ matrix (if there is no RoPE).
+  \item Note that for single-head attention (where $h = 1$), we can save $2 d^2$ weights: Specifically, we can merge the V and O weight matrices into a single $d \times d$ matrix; and the Q and K weight matrices into a single $d \times d$ matrix (if there is no RoPE).
 \end{itemize}
 Table \ref{tab1} lists the configurations of various MHA transformer models, the number of weights for their attention projections, and the weight savings provided by MatShrink.
 \begin{table}[h!] \centering
