@@ -64,9 +64,10 @@ def fold_norm_into_projs(norm, projs, convention='auto'):
   return convention
 
 
-class _RmsScalarKeeper(nn.Module):
-  """Drop-in replacement for a bypassed RMSNorm: passes the input through unchanged but
-  records the per-token scalar s = 1/sqrt(mean(x^2) + eps) for downstream hooks."""
+class _BypassedNorm(nn.Module):
+  """Drop-in replacement for a cancelled RMSNorm: passes the input through unchanged.
+  With keep_scalar=True it also records the per-token scalar s = 1/sqrt(mean(x^2) + eps)
+  for downstream hooks (used by mla_partial_cancel)."""
 
   def __init__(self, eps, keep_scalar=True):
     super().__init__()
@@ -142,12 +143,12 @@ def cancel_pre_attention_norms(model, convention='auto', layers=None, force=Fals
                      f'use mla_partial_cancel() for MLA models or force=True to override')
   for ly in layers:
     at = ly.self_attn
-    if isinstance(ly.input_layernorm, _RmsScalarKeeper):
+    if isinstance(ly.input_layernorm, _BypassedNorm):
       raise ValueError('input_layernorm already cancelled; transforms must be applied once')
     projs = [p for p in (getattr(at, 'q_proj', None), getattr(at, 'k_proj', None),
                          getattr(at, 'v_proj', None)) if p is not None]
     fold_norm_into_projs(ly.input_layernorm, projs, convention)
-    ly.input_layernorm = _RmsScalarKeeper(_get_norm_eps(ly.input_layernorm), keep_scalar=False)
+    ly.input_layernorm = _BypassedNorm(_get_norm_eps(ly.input_layernorm), keep_scalar=False)
   return report
 
 
@@ -159,23 +160,25 @@ def mla_partial_cancel(model, convention='auto', layers=None, rope_dims=None):
   only where the eligibility criterion fails: the decoupled RoPE-key slice (the last
   rope_dims columns of kv_a_proj_with_mqa's output), plus the whole query projection
   when the model has no q_a_layernorm (e.g. DeepSeek-V2-Lite). The RMS reduction itself
-  is kept; the norm weight tensor and the hidden-width multiply are removed."""
+  is kept; the norm weight tensor and the hidden-width multiply are removed.
+  Returns a per-layer report of what was folded and where the scalar is re-applied."""
   layers = decoder_layers(model) if layers is None else layers
   if rope_dims is None:
     rope_dims = model.config.qk_rope_head_dim
-  for ly in layers:
+  report = []
+  for i, ly in enumerate(layers):
     at = ly.self_attn
     kv_a = getattr(at, 'kv_a_proj_with_mqa', None)
     assert kv_a is not None and getattr(at, 'kv_a_layernorm', None) is not None, \
         'mla_partial_cancel expects kv_a_proj_with_mqa and kv_a_layernorm'
-    if isinstance(ly.input_layernorm, _RmsScalarKeeper):
+    if isinstance(ly.input_layernorm, _BypassedNorm):
       raise ValueError('input_layernorm already cancelled; transforms must be applied once')
     q_latent = getattr(at, 'q_a_proj', None)
     q_needs_scalar = q_latent is None or getattr(at, 'q_a_layernorm', None) is None
     q_in = q_latent if q_latent is not None else getattr(at, 'q_proj', None)
     assert q_in is not None, 'could not locate the query input projection'
     fold_norm_into_projs(ly.input_layernorm, [q_in, kv_a], convention)
-    keeper = _RmsScalarKeeper(_get_norm_eps(ly.input_layernorm), keep_scalar=True)
+    keeper = _BypassedNorm(_get_norm_eps(ly.input_layernorm), keep_scalar=True)
     ly.input_layernorm = keeper
 
     def kpe_hook(mod, inp, out, s=keeper, r=rope_dims):
@@ -184,3 +187,7 @@ def mla_partial_cancel(model, convention='auto', layers=None, rope_dims=None):
     kv_a.register_forward_hook(kpe_hook)
     if q_needs_scalar:
       q_in.register_forward_hook(lambda mod, inp, out, s=keeper: out * s.s)
+    report.append({'layer': i, 'folded': ['q_a_proj' if q_latent is not None else 'q_proj',
+                                          'kv_a_proj_with_mqa'],
+                   'rope_slice_scalar': rope_dims, 'q_scalar_hook': q_needs_scalar})
+  return report

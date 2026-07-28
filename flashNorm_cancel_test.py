@@ -191,7 +191,8 @@ def main():
     ref = TinyMLALayer(q_lora=q_lora).double()
     out_ref = ref(x)
     m = copy.deepcopy(ref)
-    fc.mla_partial_cancel(None, convention='plain', layers=[m], rope_dims=4)
+    rep = fc.mla_partial_cancel(None, convention='plain', layers=[m], rope_dims=4)
+    assert rep[0]['q_scalar_hook'] == (not q_lora) and rep[0]['rope_slice_scalar'] == 4
     check(f'mla partial cancel, {tag}', max_rel(m(x), out_ref), 5e-5)
     x2 = torch.randn(3, 5, 16, dtype=D)  # fresh input: catches a keeper caching stale s
     check(f'mla partial cancel, {tag}, second forward on fresh input',
@@ -200,7 +201,7 @@ def main():
     fc.fold_norm_into_projs(naive.input_layernorm,
                             [naive.self_attn.q_a_proj if q_lora else naive.self_attn.q_proj,
                              naive.self_attn.kv_a_proj_with_mqa], convention='plain')
-    naive.input_layernorm = fc._RmsScalarKeeper(1e-6, keep_scalar=False)
+    naive.input_layernorm = fc._BypassedNorm(1e-6, keep_scalar=False)
     err = max_rel(naive(3.0 * x), ref(3.0 * x))
     print(f'PASS  naive MLA bypass diverges as expected ({tag}): max rel err {err:.3e}')
     assert err > 1e-3, 'naive MLA bypass should change outputs'
