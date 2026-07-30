@@ -28,7 +28,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           # the library deps from pyproject, plus jupytext for the notebook check
-          pip install transformers accelerate datasets jupytext
+          pip install transformers accelerate datasets jupytext nbdime
 
       - name: Import smoke test
         run: python -c "import transformer_tricks as tt; print(tt.weight('Q', 3))"
@@ -46,9 +46,10 @@ jobs:
         run: util/check_notebooks
 
       - name: Package builds
+        # reuses util/push_pypi so the packaging file list lives in one place;
+        # PUSH_PYPI_BUILD_ONLY stops it before the twine upload
+        env:
+          PUSH_PYPI_BUILD_ONLY: '1'
         run: |
           pip install build
-          # push_pypi builds from a staging dir containing just these files
-          rm -rf /tmp/pypi && mkdir -p /tmp/pypi
-          cp LICENSE README.md pyproject.toml transformer_tricks.py /tmp/pypi/
-          python -m build --outdir /tmp/pypi/dist /tmp/pypi
+          cd util && ./push_pypi

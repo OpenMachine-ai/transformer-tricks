@@ -1,40 +1,43 @@
 #!/bin/bash
 
-# verify that notebooks/ matches the .py sources they are generated from,
-# i.e. that someone ran util/gen_notebooks after editing the .py file
+# verify that notebooks/ is up to date with the .py sources it is generated from
 # usage: util/check_notebooks  (run from the root dir of this repo)
 #
-# jupytext assigns a fresh random id to every cell on each run, so ids are
-# stripped before comparing. Everything else must match exactly.
+# Runs util/gen_notebooks so this script never duplicates the generation logic,
+# then diffs the result against what is committed and puts the originals back.
+# Comparison is nbdiff -I (nbdime): content-aware, and -I ignores the cell ids
+# that jupytext regenerates on every run. Needs: pip install nbdime jupytext
 
 set -u
-tmp=$(mktemp -d)
-trap 'rm -rf "$tmp"' EXIT
+
+if ! command -v nbdiff > /dev/null; then
+  echo "check_notebooks: nbdiff not found, install it with 'pip install nbdime'"
+  exit 2
+fi
+
+backup=$(mktemp -d)
+cp notebooks/*.ipynb "$backup"/
+# always put the committed notebooks back, however we exit
+trap 'cp "$backup"/*.ipynb notebooks/ 2> /dev/null; rm -rf "$backup"' EXIT
+
+util/gen_notebooks > /dev/null 2>&1
+
 status=0
-
-strip_ids() {
-  python3 -c "
-import json, sys
-nb = json.load(open(sys.argv[1]))
-for cell in nb.get('cells', []):
-  cell.pop('id', None)
-print(json.dumps(nb, indent=1, sort_keys=True))
-" "$1"
-}
-
-for fname in slimAttn_paper flashNorm_example; do
-  jupytext "$fname".py -o "$tmp/$fname".ipynb --quiet 2>/dev/null
-  strip_ids "notebooks/$fname.ipynb" > "$tmp/$fname.committed.json"
-  strip_ids "$tmp/$fname.ipynb"      > "$tmp/$fname.regenerated.json"
-  if diff -u "$tmp/$fname.committed.json" "$tmp/$fname.regenerated.json" \
-       > "$tmp/$fname.diff"; then
-    echo "ok:    notebooks/$fname.ipynb matches $fname.py"
-  else
+for committed in "$backup"/*.ipynb; do
+  name=$(basename "$committed")
+  # nbdiff always exits 0, so a notebook is stale when it prints anything
+  # past its 3-line header
+  diff_out=$(nbdiff -I --no-color "$committed" "notebooks/$name" 2> /dev/null \
+             | tail -n +4)
+  if [ -n "$diff_out" ]; then
     status=1
-    echo "STALE: notebooks/$fname.ipynb does not match $fname.py"
+    echo "STALE: notebooks/$name does not match its .py source"
     echo "       regenerate it by running: util/gen_notebooks"
-    sed -n '1,40p' "$tmp/$fname.diff"
+    echo "$diff_out" | sed -n '1,40p'
   fi
 done
 
+if [ "$status" = 0 ]; then
+  echo "ok: every generated notebook matches its .py source"
+fi
 exit $status
