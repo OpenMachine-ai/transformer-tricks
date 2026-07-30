@@ -1,0 +1,85 @@
+#!/bin/bash
+
+# verify that notebooks/ is up to date with the .py sources it is generated from
+# usage: util/check_notebooks  (run from the root dir of this repo)
+#
+# Runs util/gen_notebooks so this script never duplicates the generation logic,
+# then diffs the result against what is committed and puts the originals back.
+# Comparison is nbdiff -I (nbdime): content-aware, and -I ignores the cell ids
+# that jupytext regenerates on every run. Needs: pip install nbdime jupytext
+#
+# Fails CLOSED. If the tooling is missing, generation fails, or the differ
+# errors, this exits non-zero instead of reporting success -- a check that goes
+# green when its own tooling is broken is worse than no check at all.
+
+set -u
+
+command -v jupytext > /dev/null || {
+  echo "check_notebooks: jupytext not found, install it with 'pip install jupytext'"
+  exit 2
+}
+command -v nbdiff > /dev/null || {
+  echo "check_notebooks: nbdiff not found, install it with 'pip install nbdime'"
+  exit 2
+}
+
+shopt -s nullglob
+found=(notebooks/*.ipynb)
+if [ ${#found[@]} -eq 0 ]; then
+  echo "check_notebooks: no notebooks found in notebooks/, nothing to verify"
+  exit 2
+fi
+
+backup=$(mktemp -d)
+cp notebooks/*.ipynb "$backup"/ || {
+  echo "check_notebooks: could not back up notebooks/"
+  exit 2
+}
+# always put the committed notebooks back, however we exit
+trap 'cp "$backup"/*.ipynb notebooks/ 2> /dev/null; rm -rf "$backup"' EXIT
+
+marker="$backup/.marker"
+touch "$marker"
+
+if ! util/gen_notebooks > "$backup/gen.log" 2>&1; then
+  echo "check_notebooks: util/gen_notebooks failed, so nothing was verified"
+  sed -n '1,20p' "$backup/gen.log"
+  exit 2
+fi
+
+# Only the notebooks gen_notebooks just wrote are generated from a .py source.
+# Finding them by mtime keeps the list of generated files in gen_notebooks
+# alone, and skips the hand-authored notebooks, which are not derived from
+# anything and which nbdiff warns about because they carry no cell ids.
+regenerated=$(find notebooks -name '*.ipynb' -newer "$marker" | sort)
+if [ -z "$regenerated" ]; then
+  echo "check_notebooks: util/gen_notebooks wrote no notebooks, so nothing was verified"
+  exit 2
+fi
+
+status=0
+for nb in $regenerated; do
+  name=$(basename "$nb")
+  # nbdiff exits 0 whether or not it finds a difference, so staleness is "did
+  # it print anything past its 3-line header". Its stderr is captured rather
+  # than discarded, so a crash in the differ surfaces instead of reading as a
+  # clean pass.
+  diff_out=$(nbdiff -I --no-color "$backup/$name" "$nb" \
+             2> "$backup/nbdiff.err" | tail -n +4)
+  if [ -s "$backup/nbdiff.err" ]; then
+    echo "check_notebooks: nbdiff errored on $name, so it was not verified"
+    sed -n '1,10p' "$backup/nbdiff.err"
+    exit 2
+  fi
+  if [ -n "$diff_out" ]; then
+    status=1
+    echo "STALE: notebooks/$name does not match its .py source"
+    echo "       regenerate it by running: util/gen_notebooks"
+    echo "$diff_out" | sed -n '1,40p'
+  fi
+done
+
+if [ "$status" = 0 ]; then
+  echo "ok: every generated notebook matches its .py source"
+fi
+exit $status
