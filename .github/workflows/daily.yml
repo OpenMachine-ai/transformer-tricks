@@ -1,0 +1,38 @@
+# The "daily builds" half of issue #3. This one downloads SmolLM-135M and
+# SmolLM-360M and runs flashify + inference + perplexity end to end, so it is
+# far too slow for every push. It runs on a schedule and on demand instead.
+name: Daily
+
+on:
+  schedule:
+    - cron: '17 6 * * *'   # 06:17 UTC daily
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  model-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install transformers accelerate datasets
+
+      - name: Cache HuggingFace downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: hf-${{ runner.os }}-smollm
+
+      - name: flashNorm end-to-end (downloads models, runs perplexity)
+        run: python3 flashNorm_test.py

@@ -13,9 +13,15 @@ rm -rf pypi
 mkdir pypi
 cp ../LICENSE ../README.md ../pyproject.toml ../transformer_tricks.py pypi
 
-# build and upload
+# build, then upload unless we were only asked to build
+# (CI sets PUSH_PYPI_BUILD_ONLY=1 so it can verify the package still builds
+#  without publishing anything)
 cd pypi
 python3 -m build
+if [ "${PUSH_PYPI_BUILD_ONLY:-0}" = "1" ]; then
+  echo "PUSH_PYPI_BUILD_ONLY=1 -- built but not uploading"
+  exit 0
+fi
 python3 -m twine upload dist/*
 
 #rm -rf pypi
