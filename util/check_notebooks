@@ -1,0 +1,40 @@
+#!/bin/bash
+
+# verify that notebooks/ matches the .py sources they are generated from,
+# i.e. that someone ran util/gen_notebooks after editing the .py file
+# usage: util/check_notebooks  (run from the root dir of this repo)
+#
+# jupytext assigns a fresh random id to every cell on each run, so ids are
+# stripped before comparing. Everything else must match exactly.
+
+set -u
+tmp=$(mktemp -d)
+trap 'rm -rf "$tmp"' EXIT
+status=0
+
+strip_ids() {
+  python3 -c "
+import json, sys
+nb = json.load(open(sys.argv[1]))
+for cell in nb.get('cells', []):
+  cell.pop('id', None)
+print(json.dumps(nb, indent=1, sort_keys=True))
+" "$1"
+}
+
+for fname in slimAttn_paper flashNorm_example; do
+  jupytext "$fname".py -o "$tmp/$fname".ipynb --quiet 2>/dev/null
+  strip_ids "notebooks/$fname.ipynb" > "$tmp/$fname.committed.json"
+  strip_ids "$tmp/$fname.ipynb"      > "$tmp/$fname.regenerated.json"
+  if diff -u "$tmp/$fname.committed.json" "$tmp/$fname.regenerated.json" \
+       > "$tmp/$fname.diff"; then
+    echo "ok:    notebooks/$fname.ipynb matches $fname.py"
+  else
+    status=1
+    echo "STALE: notebooks/$fname.ipynb does not match $fname.py"
+    echo "       regenerate it by running: util/gen_notebooks"
+    sed -n '1,40p' "$tmp/$fname.diff"
+  fi
+done
+
+exit $status

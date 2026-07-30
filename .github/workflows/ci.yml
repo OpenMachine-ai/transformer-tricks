@@ -1,0 +1,54 @@
+# Fast checks on every push and pull request. Nothing here downloads a model
+# or hits the network beyond pip, so it finishes in a couple of minutes.
+# The heavy model tests live in daily.yml.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'   # matches requires-python in pyproject.toml
+          cache: pip
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          # the library deps from pyproject, plus jupytext for the notebook check
+          pip install transformers accelerate datasets jupytext
+
+      - name: Import smoke test
+        run: python -c "import transformer_tricks as tt; print(tt.weight('Q', 3))"
+
+      - name: Offline unit tests
+        run: |
+          # explicit list: flashNorm_test.py downloads models and is run by daily.yml
+          ran=0
+          for t in get_param_test.py; do
+            if [ -f "$t" ]; then echo "running $t"; python3 "$t"; ran=1; fi
+          done
+          if [ "$ran" = 0 ]; then echo "no offline tests present yet"; fi
+
+      - name: Notebooks match their .py sources
+        run: util/check_notebooks
+
+      - name: Package builds
+        run: |
+          pip install build
+          # push_pypi builds from a staging dir containing just these files
+          rm -rf /tmp/pypi && mkdir -p /tmp/pypi
+          cp LICENSE README.md pyproject.toml transformer_tricks.py /tmp/pypi/
+          python -m build --outdir /tmp/pypi/dist /tmp/pypi
