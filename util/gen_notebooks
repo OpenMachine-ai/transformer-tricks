@@ -7,6 +7,6 @@
 # masked by a later one succeeding (util/check_notebooks relies on this)
 set -e
 
-for fname in slimAttn_paper flashNorm_example; do
+for fname in slimAttn_paper slimAttn_whisper flashNorm_example; do
   jupytext "$fname".py -o notebooks/"$fname".ipynb
 done
