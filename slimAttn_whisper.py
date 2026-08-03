@@ -61,7 +61,10 @@ def head_residual(Wk, Wv, heads):
 # measure each cross-attention layer
 #-------------------------------------------------------------------------------
 name = sys.argv[1] if len(sys.argv) > 1 else 'small'
-model = WhisperForConditionalGeneration.from_pretrained(f'openai/whisper-{name}').eval()
+# large-v3 ships fp16 weights while the feature extractor emits float32, so
+# load everything float32 and let the math below promote to float64.
+model = WhisperForConditionalGeneration.from_pretrained(
+    f'openai/whisper-{name}', dtype=torch.float32).eval()
 fe = WhisperFeatureExtractor.from_pretrained(f'openai/whisper-{name}')
 
 X = real_activations(model, fe)
