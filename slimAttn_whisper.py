@@ -1,5 +1,6 @@
 # Precision study for "Slim Attention" on Whisper cross-attention.
-# Usage: python3 slimAttn_whisper.py [model]   e.g. tiny, base, small (default)
+# Usage: python3 slimAttn_whisper.py [model]    per-layer detail for one model
+#        python3 slimAttn_whisper.py --sweep    which option survives which dtype
 #
 # Slim attention caches one of K or V and recomputes the other:
 #   Option 1: cache K, V = K @ inv(Wk) @ Wv
@@ -7,6 +8,10 @@
 # Both halve the cache. This measures which one survives fp16 per layer, using
 # real encoder activations rather than random keys, because the two options
 # respond to real speech in opposite directions.
+#
+# --sweep adds Option 3 (cache X, recompute both K and V). It needs no inverse,
+# so it has no conditioning to lose, and it is the only option that survives
+# bf16. Option 1 turns out never to survive fp16 at any model size.
 
 # %pip install --quiet transformer_tricks datasets soundfile
 import io
@@ -56,6 +61,39 @@ def head_residual(Wk, Wv, heads):
     res.append(((A @ torch.linalg.lstsq(A, B).solution - B).norm() / B.norm()).item())
   return sum(res) / len(res)
 
+
+def sweep(models=('tiny', 'base', 'small', 'medium', 'large-v3'), bad=0.05):
+  """Layers under `bad` relative error, per option per dtype, per model."""
+  dtypes = {'fp32': torch.float32, 'fp16': torch.float16, 'bf16': torch.bfloat16}
+  print(f'layers under {bad:.0%} relative error, X from a real encoder pass\n')
+  print(f'{"model":>9} {"dtype":>6} {"opt1":>7} {"opt2":>7} {"opt3":>7}')
+  for name in models:
+    m = WhisperForConditionalGeneration.from_pretrained(
+        f'openai/whisper-{name}', dtype=torch.float32).eval()
+    fe = WhisperFeatureExtractor.from_pretrained(f'openai/whisper-{name}')
+    X = real_activations(m, fe)
+    attn = [mod for n_, mod in m.named_modules() if n_.endswith('encoder_attn')]
+    for dname, dt in dtypes.items():
+      ok = [0, 0, 0]
+      for mod in attn:
+        Wk = mod.k_proj.weight.detach().double()
+        Wv = mod.v_proj.weight.detach().double()
+        K, V = X @ Wk.T, X @ Wv.T
+        e1 = ((K.to(dt) @ torch.linalg.solve(Wk.T, Wv.T).to(dt)).double() - V).norm() / V.norm()
+        e2 = ((V.to(dt) @ torch.linalg.solve(Wv.T, Wk.T).to(dt)).double() - K).norm() / K.norm()
+        Xd = X.to(dt)   # option 3: no inverse, just the two original projections
+        e3 = max(((Xd @ Wk.T.to(dt)).double() - K).norm() / K.norm(),
+                 ((Xd @ Wv.T.to(dt)).double() - V).norm() / V.norm())
+        for i, e in enumerate((e1, e2, e3)):
+          ok[i] += e < bad
+      n_ = len(attn)
+      print(f'{name:>9} {dname:>6} {ok[0]:>4}/{n_:<2} {ok[1]:>4}/{n_:<2} {ok[2]:>4}/{n_:<2}')
+    print()
+
+
+if len(sys.argv) > 1 and sys.argv[1] == '--sweep':
+  sweep()
+  sys.exit()
 
 #-------------------------------------------------------------------------------
 # measure each cross-attention layer
