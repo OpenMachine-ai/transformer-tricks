@@ -20,11 +20,26 @@ def fake_download(repo_id, allow_patterns=None, local_dir=None, **kw):
     save_file(tensors, os.path.join(local_dir, name), metadata={'repo': repo_id})
 
 
-tt.repo_exists, tt.snapshot_download = lambda r: r in REPOS, fake_download
 TMP = tempfile.mkdtemp(prefix='get_param_test_')
 atexit.register(shutil.rmtree, TMP, True)
 
 
+def fake_hub(fn):
+  """Swap in the fake hub for one test, then put the real calls back. Patching
+  at module scope instead would leave them swapped for anything else running in
+  the same process, e.g. a bare `pytest` that also collects flashNorm_test."""
+  def wrapped():
+    real = tt.repo_exists, tt.snapshot_download
+    tt.repo_exists, tt.snapshot_download = lambda r: r in REPOS, fake_download
+    try:
+      fn()
+    finally:
+      tt.repo_exists, tt.snapshot_download = real
+  wrapped.__name__, wrapped.__doc__ = fn.__name__, fn.__doc__
+  return wrapped
+
+
+@fake_hub
 def test_second_repo_is_not_contaminated():
   """The reported bug. Sharing one download dir leaves A's two shards in place
   when B arrives, so the glob returns all three and B silently gains A's."""
@@ -34,6 +49,7 @@ def test_second_repo_is_not_contaminated():
   assert set(tt.get_param('org/a', tmp_dir=TMP)) == {'a.0', 'a.1'}
 
 
+@fake_hub
 def test_metadata_comes_from_the_requested_repo():
   """get_meta reads files[0], which under a shared dir was whichever shard the
   glob happened to return first, so the answer was arbitrary rather than
@@ -44,6 +60,7 @@ def test_metadata_comes_from_the_requested_repo():
   assert meta['repo'] == 'org/b', meta
 
 
+@fake_hub
 def test_empty_dir_raises():
   """Was {} for get_meta=False and IndexError on files[0] for get_meta=True.
   Both are worse than saying so."""
