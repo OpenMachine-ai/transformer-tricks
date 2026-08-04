@@ -18,11 +18,18 @@ import io
 import sys
 import torch
 import soundfile as sf
+import transformer_tricks as tt
 from datasets import load_dataset, Audio
 from transformers import WhisperForConditionalGeneration, WhisperFeatureExtractor
 
 FP16_MAX = 65504.0  # largest finite fp16; W above this is not representable
 BAD = 0.05          # relative error we treat as a failed reconstruction
+
+# where Whisper keeps cross-attention, for tt.weight(). Its decoder layers hold
+# both self_attn and encoder_attn; slim attention only concerns the latter.
+STACK, XATTN = 'model.decoder.layers', 'encoder_attn'
+
+tt.quiet_hf()
 
 #-------------------------------------------------------------------------------
 # defs
@@ -72,12 +79,13 @@ def sweep(models=('tiny', 'base', 'small', 'medium', 'large-v3'), bad=0.05):
         f'openai/whisper-{name}', dtype=torch.float32).eval()
     fe = WhisperFeatureExtractor.from_pretrained(f'openai/whisper-{name}')
     X = real_activations(m, fe)
-    attn = [mod for n_, mod in m.named_modules() if n_.endswith('encoder_attn')]
+    param = m.state_dict()  # views of the loaded weights, so no second copy
+    n_ = m.config.decoder_layers
     for dname, dt in dtypes.items():
       ok = [0, 0, 0]
-      for mod in attn:
-        Wk = mod.k_proj.weight.detach().double()
-        Wv = mod.v_proj.weight.detach().double()
+      for layer in range(n_):
+        Wk = param[tt.weight('K', layer, stack=STACK, attn=XATTN)].double()
+        Wv = param[tt.weight('V', layer, stack=STACK, attn=XATTN)].double()
         K, V = X @ Wk.T, X @ Wv.T
         e1 = ((K.to(dt) @ torch.linalg.solve(Wk.T, Wv.T).to(dt)).double() - V).norm() / V.norm()
         e2 = ((V.to(dt) @ torch.linalg.solve(Wv.T, Wk.T).to(dt)).double() - K).norm() / K.norm()
@@ -86,7 +94,6 @@ def sweep(models=('tiny', 'base', 'small', 'medium', 'large-v3'), bad=0.05):
                  ((Xd @ Wv.T.to(dt)).double() - V).norm() / V.norm())
         for i, e in enumerate((e1, e2, e3)):
           ok[i] += e < bad
-      n_ = len(attn)
       print(f'{name:>9} {dname:>6} {ok[0]:>4}/{n_:<2} {ok[1]:>4}/{n_:<2} {ok[2]:>4}/{n_:<2}')
     print()
 
@@ -106,19 +113,19 @@ model = WhisperForConditionalGeneration.from_pretrained(
 fe = WhisperFeatureExtractor.from_pretrained(f'openai/whisper-{name}')
 
 X = real_activations(model, fe)
+torch.manual_seed(0)  # so the random baseline is reproducible run to run
 Xrand = torch.randn_like(X) * X.std() + X.mean()  # matched mean and std
 
 print(f'whisper-{name}: {tuple(X.shape)} real encoder activations\n')
 print(f'{"layer":>5} {"cond(Wk)":>9} {"max|Wkv|":>9} {"opt1":>7} {"opt1rnd":>8} '
       f'{"cond(Wv)":>9} {"max|Wvk|":>9} {"opt2":>7} {"opt2rnd":>8}  {"use":>7} {"head":>5}')
 
-rescued = neither = total = 0
-for mod_name, mod in model.named_modules():
-  if not mod_name.endswith('encoder_attn'):
-    continue
-  total += 1
-  Wk = mod.k_proj.weight.detach().double()
-  Wv = mod.v_proj.weight.detach().double()
+param = model.state_dict()  # views of the loaded weights, so no second copy
+rescued = neither = 0
+total = model.config.decoder_layers
+for layer in range(total):
+  Wk = param[tt.weight('K', layer, stack=STACK, attn=XATTN)].double()
+  Wv = param[tt.weight('V', layer, stack=STACK, attn=XATTN)].double()
 
   w1, e1 = reconstruct(Wk, Wv, X)       # Option 1: cache K, recompute V
   w2, e2 = reconstruct(Wv, Wk, X)       # Option 2: cache V, recompute K
@@ -132,10 +139,9 @@ for mod_name, mod in model.named_modules():
   rescued += bad1 and not bad2
   neither += bad1 and bad2
 
-  layer = mod_name.replace('model.decoder.layers.', '').replace('.encoder_attn', '')
   print(f'{layer:>5} {torch.linalg.cond(Wk):9.1e} {w1:9.1e} {e1:7.3f} {e1r:8.3f} '
         f'{torch.linalg.cond(Wv):9.1e} {w2:9.1e} {e2:7.3f} {e2r:8.3f}  {use:>7} '
-        f'{head_residual(Wk, Wv, mod.num_heads):5.2f}')
+        f'{head_residual(Wk, Wv, model.config.decoder_attention_heads):5.2f}')
 
 print(f'\nOption 2 rescues {rescued}/{total} layers that Option 1 loses; '
       f'{neither}/{total} survive neither.')

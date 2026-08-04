@@ -26,18 +26,25 @@ def quiet_hf():
   # https://huggingface.co/docs/huggingface_hub/en/package_reference/environment_variables
 
 
-def weight(name, layer=0):
-  """get dictionary key of specific weight (such as Q from layer 0)"""
-  layer_str = 'model.layers.' + str(layer) + '.'
+def weight(name, layer=0, stack='model.layers', attn='self_attn'):
+  """get dictionary key of specific weight (such as Q from layer 0)
+
+  The defaults name a decoder-only model such as Llama. 'stack' and 'attn'
+  redirect the attention projections so encoder-decoder models can be named too,
+  e.g. Whisper cross-attention K is
+    weight('K', layer, stack='model.decoder.layers', attn='encoder_attn')
+  Only QKV, Q, K, V and O move with 'attn'. The MLP and norm keys keep Llama's
+  names, and so does o_proj, which Whisper spells out_proj."""
+  layer_str = stack + '.' + str(layer) + '.'
   match name:
     # weights of each layer
     case 'Inorm': key = layer_str + 'input_layernorm.weight'
     case 'Anorm': key = layer_str + 'post_attention_layernorm.weight'
-    case 'QKV'  : key = layer_str + 'self_attn.qkv_proj.weight'
-    case 'Q'    : key = layer_str + 'self_attn.q_proj.weight'
-    case 'K'    : key = layer_str + 'self_attn.k_proj.weight'
-    case 'V'    : key = layer_str + 'self_attn.v_proj.weight'
-    case 'O'    : key = layer_str + 'self_attn.o_proj.weight'
+    case 'QKV'  : key = layer_str + attn + '.qkv_proj.weight'
+    case 'Q'    : key = layer_str + attn + '.q_proj.weight'
+    case 'K'    : key = layer_str + attn + '.k_proj.weight'
+    case 'V'    : key = layer_str + attn + '.v_proj.weight'
+    case 'O'    : key = layer_str + attn + '.o_proj.weight'
     case 'GU'   : key = layer_str + 'mlp.gate_up_proj.weight'
     case 'G'    : key = layer_str + 'mlp.gate_proj.weight'
     case 'U'    : key = layer_str + 'mlp.up_proj.weight'

@@ -1,4 +1,4 @@
-transformer-tricks>=0.4.1
+transformer-tricks>=0.5.0
 jupytext>=1.16.4
 autopep8>=2.3.1
 twine>=6.1.0
