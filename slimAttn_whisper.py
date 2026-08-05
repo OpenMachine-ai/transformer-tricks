@@ -122,8 +122,7 @@ print(f'{"layer":>5} {"cond(Wk)":>9} {"max|Wkv|":>9} {"opt1":>7} {"opt1rnd":>8} 
 
 param = model.state_dict()  # views of the loaded weights, so no second copy
 rescued = neither = 0
-total = model.config.decoder_layers
-for layer in range(total):
+for layer in range(model.config.decoder_layers):
   Wk = param[tt.weight('K', layer, stack=STACK, attn=XATTN)].double()
   Wv = param[tt.weight('V', layer, stack=STACK, attn=XATTN)].double()
 
@@ -143,8 +142,9 @@ for layer in range(total):
         f'{torch.linalg.cond(Wv):9.1e} {w2:9.1e} {e2:7.3f} {e2r:8.3f}  {use:>7} '
         f'{head_residual(Wk, Wv, model.config.decoder_attention_heads):5.2f}')
 
-print(f'\nOption 2 rescues {rescued}/{total} layers that Option 1 loses; '
-      f'{neither}/{total} survive neither.')
+n_layers = model.config.decoder_layers
+print(f'\nOption 2 rescues {rescued}/{n_layers} layers that Option 1 loses; '
+      f'{neither}/{n_layers} survive neither.')
 print('opt1 is worse on real speech than on random keys, opt2 is better, so the')
 print('per-layer choice has to be calibrated on real activations.')
 print('The head column is the per-head least-squares residual: near 1 everywhere,')
