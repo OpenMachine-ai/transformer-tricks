@@ -56,17 +56,26 @@ def weight(name, layer=0, stack='model.layers', attn='self_attn'):
   return key
 
 
-def get_param(repo, get_meta=False):
+def get_param(repo, get_meta=False, tmp_dir='get_param_tmp'):
   """download all *.safetensors files from repo (or local dir) and return a single
-  param dict, and optionally also return the metadata"""
+  param dict, and optionally also return the metadata.
+
+  Each repo downloads into its own subdirectory of tmp_dir. Sharing one
+  directory silently merges models: the glob below collects every *.safetensors
+  present, so a second call inherits the shards the first one left behind and
+  folds them into the param dict. diff_safetensors is hit hardest, because it
+  calls get_param on two repos back to back and its whole job is telling them
+  apart."""
 
   # download and get list of files
   if repo_exists(repo):
-    dir = 'get_param_tmp'
+    dir = os.path.join(tmp_dir, *repo.split('/'))  # one subdir per repo
     snapshot_download(repo_id=repo, allow_patterns='*.safetensors', local_dir=dir)
   else:  # if repo doesn't exist on HuggingFace, then 'repo' specifies local dir
     dir = repo
-  files = glob.glob(dir + '/*.safetensors')
+  files = sorted(glob.glob(dir + '/*.safetensors'))  # sorted so files[0] is stable
+  if not files:
+    raise FileNotFoundError(f"no *.safetensors files found for '{repo}' in '{dir}'")
 
   # get parameters
   param = {}
