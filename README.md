@@ -76,6 +76,25 @@ A runnable notebook version of this recipe is at [`notebooks/flashify_and_publis
 
 ---
 
+## Cancel redundant norms (Proposition 3)
+
+An RMSNorm followed by a bias-free linear layer followed by another RMSNorm makes the first norm redundant: after folding its gain into the linear layer, scale invariance of the second norm cancels the first norm's division. In QKV-normalized models such as Gemma 4 (which re-normalizes queries, keys, and values per head), this removes the entire pre-attention RMSNorm from every decoder layer.
+
+```python
+import flashNorm_cancel as fc  # from a repo checkout; not yet in the PyPI wheel
+from transformers import AutoModelForCausalLM
+
+model = AutoModelForCausalLM.from_pretrained('google/gemma-4-E2B')
+print(fc.audit_pre_attention_cancellation(model))  # per-layer eligibility report
+fc.cancel_pre_attention_norms(model)               # fold gains, remove the division
+```
+
+The cancellation is exact for unregularized RMS and epsilon-approximate in practice. Validated on Gemma-4-E2B and Gemma-4-12B in fp32: max logit deviation at the rounding level of the exact weight fold itself, perplexity changes under 0.001%, greedy generations unchanged, HellaSwag unchanged (bf16 spot check).
+
+Important: eligibility must be checked, not assumed. In MLA models (DeepSeek-V2 family, MiniCPM3) the decoupled RoPE-key slice bypasses the latent norm, so full cancellation is invalid there (it breaks the model badly). Use `fc.mla_partial_cancel(model)` instead, which keeps the per-token RMS scalar but applies it only to the small RoPE slice, still eliminating the norm weights and the full-width multiply. Models that normalize only queries and keys (e.g. Gemma 3, no value norm) are not eligible, and `cancel_pre_attention_norms` refuses them by default. Run `python flashNorm_cancel_test.py` for a fast synthetic verification of all these cases.
+
+---
+
 ## Documentation
 Follow the links below for documentation of the python code in this directory:
 - [Slim attention](https://github.com/OpenMachine-ai/transformer-tricks/blob/main/doc/slimAttn.md)
