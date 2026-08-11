@@ -91,7 +91,7 @@ print(fc.audit_pre_attention_cancellation(model))  # per-layer eligibility repor
 fc.cancel_pre_attention_norms(model)               # fold gains, remove the division
 ```
 
-The cancellation is exact for unregularized RMS and epsilon-approximate in practice. Validated on Gemma-4-E2B and Gemma-4-12B in fp32: max logit deviation at the rounding level of the exact weight fold itself, perplexity changes under 0.001%, greedy generations unchanged, HellaSwag unchanged (bf16 spot check).
+The cancellation is exact for unregularized RMS and epsilon-approximate in practice. Validated on Gemma-4-E2B and Gemma-4-12B in fp32: max logit deviation at the rounding level of the exact weight fold itself, WikiText-2 perplexity changes under 0.001%, greedy generations unchanged, HellaSwag unchanged (bf16 spot check).
 
 A ready-made folded checkpoint is published as [open-machine/gemma-4-E2B-FlashNorm](https://huggingface.co/open-machine/gemma-4-E2B-FlashNorm) (gains of `input_layernorm` and `pre_feedforward_layernorm` folded, loads in stock Transformers); `cancel_pre_attention_norms` applies to it directly.
 
