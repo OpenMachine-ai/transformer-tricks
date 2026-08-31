@@ -115,6 +115,40 @@ For MHA, the weight matrices $W_K$ and $W_V$ are usually square matrices \eR{d}{
 \label{eq6} \end{equation}
 and $W_{KV,i}$ \eR{d}{d_v}. Fig. \ref{fig1} illustrates the modified attention scheme that calculates V from K according to equation (\ref{eq6}). For inference, $W_{KV} = W_K^{-1} W_V$ can be precomputed offline and stored in the parameter file instead of $W_V$. This requires that $W_K$ is invertible (i.e. non-singular). In general, any square matrix can be inverted if its determinant is non-zero. It’s extremely unlikely that a large matrix has a determinant that is exactly 0.
 
+Invertibility is necessary but not sufficient once the reconstruction runs at
+finite precision. What separates a usable inverse from an unusable one is the
+condition number rather than the determinant: $W_K$ can sit far from singular and
+still be too ill-conditioned to reconstruct V through. In Whisper large-v3's
+decoder cross-attention $\kappa(W_K)$ has a median of $1.4 \cdot 10^7$ and reaches
+$5.2 \cdot 10^9$, while $\det W_K$ is nowhere near zero. Reconstructing V from K in
+every layer there gives a relative logit error of $0.54$ at fp32, which destroys
+the model at full precision.
+
+The same refactoring runs in the other direction, and that is what makes the
+scheme usable on such a model. Writing $X = V W_V^{-1}$ and substituting into
+equation (\ref{eq4}) gives a V-cache in place of the K-cache,
+\begin{equation}
+  K = V \left( W_V^{-1} W_K \right) = V W_{VK}
+\label{eq6b} \end{equation}
+which halves the context memory exactly as equation (\ref{eq6}) does. For a model
+whose V projection carries a bias $b_V$, subtract it first, as $K = (V - b_V)
+W_{VK}$, or remove it beforehand by the transformation in the appendix; on Whisper
+the unsubtracted form is not close, it is wrong by more than 100\%.
+
+On large-v3 $\kappa(W_V)$ peaks at $4.5 \cdot 10^6$, three orders below
+$\kappa(W_K)$, and caching V rather than K brings the relative logit error from
+$0.54$ down to $0.0059$. Which direction wins is a property of the individual
+layer, and the mix shifts with model size: the V-cache is the better choice in 3
+of whisper-tiny's 4 decoder layers, 9 of 12 in small, 21 of 24 in medium, and 31
+of 32 in large-v3. So the direction is worth deciding per layer rather than per
+model: cache whichever of K or V leaves the better conditioned matrix to invert.
+
+Conditioning orders the two directions reliably, but it overstates the error by
+orders of magnitude and should not be used to size it. At fp32 on large-v3
+$\kappa \epsilon$ is $619$ for the K-cache and $0.53$ for the V-cache, while the
+per-layer choice measures $0.0059$.
+See \texttt{slimAttn\_whisper.py} in \citep{tricks} for the per-layer numbers.
+
 \textbf{Related work.} Slim attention is somewhat similar to DeepSeek’s multi-head latent attention (MLA) \citep{deepseek-v2}. Unlike MLA, slim attention is an exact post-training implementation of existing MHA models (including models with RoPE).
 
 \section{K-cache is all you need}
