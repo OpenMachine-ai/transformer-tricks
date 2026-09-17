@@ -254,10 +254,9 @@ tokens-per-second throughput, attributing this to a lack of kernel fusion. Flash
 reduces the number of kernel launches by eliminating the normalization weight
 application as a separate step, and additionally enables parallelism between the
 vector and matrix units that kernel fusion alone cannot achieve.
-Operation-reordering and epilogue-fusion systems such as the operation fusion of
-\citet{opFusion}, CODA~\citep{coda}, and Mirage~\citep{mirage} realize the same
-deferral at the kernel level while leaving the stored model unchanged;
-Appendix~\ref{app:additional-notes} relates them to FlashNorm.
+Operation-reordering and epilogue-fusion systems (\citet{opFusion}, CODA~\citep{coda},
+Mirage~\citep{mirage}) realize the same deferral at the kernel level while leaving the
+stored model unchanged; Appendix~\ref{app:additional-notes} relates them to FlashNorm.
 
 \paragraph{Weight folding and parameter elimination.}
 The idea of absorbing one layer's parameters into a neighboring layer appears in
@@ -384,13 +383,11 @@ By Proposition~\ref{prop:rms-cancel}, the pre-attention RMSNorm cancels and can 
 dropped entirely, saving one full RMSNorm per each transformer block.
 
 \paragraph{Eligibility condition.}
-Proposition~\ref{prop:rms-cancel} removes the scalar $1/\mathrm{RMS}(\mathbf{a})$ only
-because the second RMSNorm re-normalizes it away. The pre-attention RMSNorm can
-therefore be dropped only if \emph{every} consumer of its output reaches a downstream
-RMSNorm through a bias-free, positively homogeneous path (a bias-free linear layer or
-a slice of one); any consumer that bypasses the downstream norm would silently change
-scale. QK-only-normalized models (e.g., Gemma~3, which has no value norm) are
-therefore not eligible.
+The pre-attention RMSNorm can be dropped only if \emph{every} consumer of its output
+reaches a downstream RMSNorm through a bias-free, positively homogeneous path (a
+bias-free linear layer or a slice of one); a consumer that bypasses the downstream norm
+would silently change scale, so QK-only-normalized models (e.g., Gemma~3, which has no
+value norm) are not eligible.
 
 \paragraph{Pre-attention RMSNorm with MLA latent normalization.}
 The sequence for MLA with latent normalization is:
@@ -433,7 +430,8 @@ $\mathbf{g}$ can be folded into the linear layer as per Proposition~\ref{prop:we
 Note that deferred normalization (Proposition~\ref{prop:commute}) does not apply
 when a bias is present; the scalar $1/\mathrm{RMS}(\mathbf{a})$ must be applied
 before adding $\mathbf{c}^*$, which still allows for parallel execution of matrix
-multiplication and RMS calculation.
+multiplication and RMS calculation. LayerNorm's mean centering can likewise be folded
+into the preceding linear layer, see Appendix~\ref{app:mean-centering}.
 
 \begin{figure}[h!] \centering  % the [h!] tries to place the picture right here
   \includegraphics[scale=0.8]{../doc/fig/flashNorm_figA.pdf}
@@ -441,31 +439,6 @@ multiplication and RMS calculation.
     between normalization weights $\mathbf{g}$ and linear layer. (b) Optimized version with new
     bias term $\mathbf{c}^* = \mathbf{c} + \boldsymbol{\beta}\mathbf{W}$ at the output.}
 \label{figA} \end{figure}
-
-\subsection{Folding Mean Centering into a Preceding Linear Layer}
-LayerNorm applies mean centering before RMSNorm. If mean centering is preceded by a
-linear layer with weights $\mathbf{V} \in \mathbb{R}^{m \times n}$, the centering
-can be absorbed into $\mathbf{V}$ without retraining, see Fig. \ref{figB}: The mean $\mu$ is
-calculated from the linear layer outputs $y_j$ as
-$\mu = \frac{1}{n} \sum_j y_j$ where $y_j = \sum_i x_i V_{i,j}$.
-Let $s_i = \sum_j V_{i,j}$ be the row sum of row $i$, we can then
-calculate $\mu$ directly from the inputs $x_i$ as
-\begin{equation*}
-  \mu = \frac{1}{n} \sum_{j=1}^n \sum_{i=1}^m x_i V_{i,j} = \frac{1}{n} \sum_{i=1}^m x_i \left[ \sum_{j=1}^n V_{i,j} \right] = \frac{1}{n} \sum_{i=1}^m x_i s_i .
-\end{equation*}
-The mean-centered outputs are now
-\begin{equation*}
-  a_j = y_j - \mu = \sum_{i=1}^m x_i V_{i,j} - \frac{1}{n} \sum_{i=1}^m x_i s_i
-       = \sum_{i=1}^m x_i \underbrace{\left( V_{i,j} - \frac{s_i}{n} \right)}_{V^*_{i,j}},
-\end{equation*}
-so the modified weights $V^*_{i,j} = V_{i,j} - s_i/n$ absorb the mean centering
-entirely, see Fig. \ref{figB}(b). This provides a lossless recipe for converting a
-LayerNorm model to RMSNorm without retraining; see Appendix~\ref{app:additional-notes}
-for the residual-stream completeness condition.
-\begin{figure}[h!] \centering  % the [h!] tries to place the picture right here
-  \includegraphics[scale=0.8]{../doc/fig/flashNorm_figB.pdf}
-  \caption{Elimination of mean centering: (a) Original weight matrix $\mV$ followed by mean centering. (b) Optimized version where the mean centering is merged into the modified weight matrix $\V*$.}
-\label{figB} \end{figure}
 
 \section{Extensions}
 
@@ -577,7 +550,7 @@ Llama-3.1-8B & HellaSwag acc (0-shot)      & $0.6071$  & $0.6072$  & $+0.0001$ \
 \end{tabular}
 \end{table}
 
-\paragraph{Norm cancellation.} We validate Proposition~\ref{prop:rms-cancel} post-hoc on Gemma-4-E2B and Gemma-4-12B (pre-attention norm removed) and the corrected MLA transform on MiniCPM3-4B and DeepSeek-V2-Lite (Appendix~\ref{app:cancel}, Table~\ref{tab:cancel}). In fp32, cancellation changes wikitext token perplexity by less than $0.001\%$ on both Gemma-4 models, within the rounding envelope of the mathematically exact fold-only control, and leaves all 12 greedy continuations unchanged; on the MLA models the corrected transform is likewise within the fold-only envelope, whereas naively deleting the norm raises perplexity from 8.8 to 189 (MiniCPM3) and from 7.5 to 618 (DeepSeek-V2-Lite). A matched decode ablation on Llama-3.2-1B (Table~\ref{tab:attribution}) attributes the end-to-end gain of a weightless fused norm kernel to kernel fusion ($+26\%$) rather than to eliding the per-channel multiply ($<1\%$); folding's benefit is parameter elimination and enabling the cancellation.
+\paragraph{Norm cancellation.} We validate Proposition~\ref{prop:rms-cancel} post-hoc on Gemma-4-E2B and Gemma-4-12B (norm removed) and the corrected MLA transform on MiniCPM3-4B and DeepSeek-V2-Lite (Appendix~\ref{app:cancel}, Table~\ref{tab:cancel}). In fp32, cancellation changes wikitext token perplexity by less than $0.001\%$ on both Gemma-4 models, within the rounding envelope of the exact fold-only control, and leaves all 12 greedy continuations unchanged; the corrected MLA transform is likewise within that envelope, whereas naively deleting the norm raises perplexity from 8.8 to 189 (MiniCPM3) and from 7.5 to 618 (DeepSeek-V2-Lite). A matched decode ablation on Llama-3.2-1B (Table~\ref{tab:attribution}) attributes the end-to-end gain of a weightless fused norm kernel to kernel fusion ($+26\%$) rather than to eliding the per-channel multiply ($<1\%$).
 
 To validate the parallel execution described in Fig.~\ref{fig8}, we benchmarked the norm-then-project operation on an NVIDIA T4 GPU (65~TFLOPS FP16, 320~GB/s). We compare sequential execution (RMSNorm $\rightarrow$ GEMM) against FlashNorm with adaptive dispatch: when the GEMM is compute-bound (many tokens), the GEMM runs on tensor cores and $1/\mathrm{RMS}(\mathbf{a})$ runs on vector cores in parallel via separate CUDA streams; when memory-bound (few tokens), FlashNorm falls back to sequential execution to avoid stream overhead. Table~\ref{tab:overlap} shows the results at SmolLM2-135M scale, and Table~\ref{tab:overlap7b} at Llama-7B scale.
 
@@ -605,19 +578,8 @@ FlashNorm is orthogonal to weight quantization. In fact, folding normalization
 weights into $\mathbf{W}^*$ before quantization can improve quantization quality
 by absorbing per-channel scale factors directly into the weight distribution,
 a technique already used in practice (e.g., SmoothQuant~\citep{smoothQuant}). We leave a systematic
-study of this interaction to future work.
-
-\paragraph{Activation dynamic range.}
-For implementations utilizing low-precision fixed-point activations, FlashNorm's deferred
-normalization may trigger overflows during matrix multiplication, as noted in \citep{MXNorm}.
-However, the majority of contemporary frameworks employ floating-point activations alongside
-either fixed-point or floating-point weights, which inherently mitigates this risk.
-
-\paragraph{Simplification as a primary benefit.}
-Beyond raw speed, FlashNorm simplifies model implementations in a manner analogous
-to RMSNorm's simplification over LayerNorm, or PaLM's removal of linear-layer
-biases~\citep{PaLM}. Fewer parameter tensors mean smaller checkpoint
-files, simpler loading logic, and reduced risk of implementation bugs.
+study of this interaction to future work. Activation dynamic range under fixed-point or
+FP8 activations is discussed in Appendix~\ref{app:additional-notes}.
 
 \section{Conclusion}
 We presented FlashNorm, a mathematically exact reformulation of RMSNorm-then-project
@@ -660,9 +622,21 @@ study of the interaction with weight quantization methods.
 
 The FlashNorm transformation is mathematically exact (Propositions~\ref{prop:weightless} and~\ref{prop:commute}), and under fp32 inference produces identical greedy generation across all three model scales. Under lossy inference precisions (fp16/bf16 in HuggingFace Transformers at larger scales, or vLLM's PagedAttention at any precision), precomputed merged weights can produce a one-token argmax divergence at tight decision points, which downstream greedy decoding then amplifies. The effect is more visible at larger model scales where argmax decisions are tighter. This is a general consequence of precomputing weight-folded tensors for lossy-inference kernels and is not specific to FlashNorm. A native fused \texttt{RMSNorm+QKV} kernel that defers $\mathbf{g}$ to runtime, rather than precomputing it into $\mathbf{W^\ast}$, eliminates the framework dependency and is the primary direction for ongoing work.
 
+\paragraph{Simplification as a primary benefit.}
+Beyond raw speed, FlashNorm simplifies model implementations in a manner analogous
+to RMSNorm's simplification over LayerNorm, or PaLM's removal of linear-layer
+biases~\citep{PaLM}. Fewer parameter tensors mean smaller checkpoint
+files, simpler loading logic, and reduced risk of implementation bugs.
+
 \paragraph{Extended comparison to prior weightless / removal lines.} OLMo's non-parametric LayerNorm~\citep{olmo2} is a training-time architectural choice: the model is trained from the start without learnable normalization weights, so there is no transformation of an existing checkpoint. \citet{remove-norm2} target post-hoc LayerNorm removal in GPT-2 XL via an empirically tuned ablation procedure that recovers benchmark quality but is not a closed-form algebraic identity. FlashNorm Proposition~\ref{prop:weightless} differs in three ways relevant to deployment: (i) it is exact in real arithmetic and bit-identical when the fold is performed at the same precision as the runtime, so no quality recovery procedure is required; (ii) it applies to any pretrained RMSNorm checkpoint without modification of training; and (iii) Proposition~\ref{prop:commute} additionally exposes parallel execution of the RMS scalar with the matmul (Corollary~\ref{cor:parallel}), which the prior lines do not address.
 
 \paragraph{Relationship to kernel-level deferral and fusion systems.} \citet{opFusion} defer the Softmax and LayerNorm scaling factors past the subsequent linear layer so that they can be computed concurrently with the matrix multiplication, the same reordering as Proposition~\ref{prop:commute}, presented as a kernel-scheduling technique. CODA~\citep{coda} expresses the memory-bound operations of a transformer block as GEMM epilogues and, for a GEMM--RMSNorm--GEMM chain, delays the row-wise scale into the second GEMM's epilogue, again the identity of Proposition~\ref{prop:commute}. Mirage~\citep{mirage} searches for such fused kernels automatically and verifies candidates on random inputs. All three keep the stored model unchanged. FlashNorm is complementary: it is a closed-form checkpoint-level transformation that removes parameter tensors (Proposition~\ref{prop:weightless}) and, where the condition of Section~\ref{sec:rms-cancel} holds, removes a normalization from the graph entirely; a folded checkpoint reduces the epilogue work such kernels perform, and for Gemma-4-style models the cancellation removes one norm per block that no kernel then needs to compute.
+
+\paragraph{Activation dynamic range.}
+For implementations utilizing low-precision fixed-point activations, FlashNorm's deferred
+normalization may trigger overflows during matrix multiplication, as noted in \citep{MXNorm}.
+However, the majority of contemporary frameworks employ floating-point activations alongside
+either fixed-point or floating-point weights, which inherently mitigates this risk.
 
 \paragraph{Activation dynamic range under FP8.} The deferred-scaling form of Proposition~\ref{prop:commute} alters the dynamic range of intermediate values: $\mathbf{a}\mathbf{W}^*$ can be substantially larger than $(\mathbf{a}/\mathrm{RMS}(\mathbf{a}))\mathbf{W}^*$ for outlier-prone activations. At FP16/BF16 storage with FP32 accumulators (the default in modern inference servers), the unnormalized intermediate fits within range for the activation distributions encountered in practice. FP8 is a separate concern: the E4M3 layout has a maximum representable value of approximately 448, and large-LLM activations are known to contain outliers exceeding this in absolute magnitude after the matmul. FP8 deployments therefore require either a higher-precision accumulator, per-channel scaling of $\mathbf{W}^*$, or a return to the standard (non-deferred) scaling order.
 
@@ -754,6 +728,31 @@ Weightless call, A$'$ $\to$ B               & $-0.0\%$  & $+0.8\%$ \\
 \end{table}
 
 This ablation shows that the end-to-end decode gain reported for the weightless kernel swap in Appendix~\ref{app:rmsnorm-fraction} is a kernel-fusion effect; folding's contribution to end-to-end throughput is parameter elimination, the weightless kernel path, and enabling the cancellation of Section~\ref{sec:rms-cancel}, not a reduction in arithmetic.
+
+\section{Folding Mean Centering into a Preceding Linear Layer}\label{app:mean-centering}
+LayerNorm applies mean centering before RMSNorm. If mean centering is preceded by a
+linear layer with weights $\mathbf{V} \in \mathbb{R}^{m \times n}$, the centering
+can be absorbed into $\mathbf{V}$ without retraining, see Fig. \ref{figB}: The mean $\mu$ is
+calculated from the linear layer outputs $y_j$ as
+$\mu = \frac{1}{n} \sum_j y_j$ where $y_j = \sum_i x_i V_{i,j}$.
+Let $s_i = \sum_j V_{i,j}$ be the row sum of row $i$, we can then
+calculate $\mu$ directly from the inputs $x_i$ as
+\begin{equation*}
+  \mu = \frac{1}{n} \sum_{j=1}^n \sum_{i=1}^m x_i V_{i,j} = \frac{1}{n} \sum_{i=1}^m x_i \left[ \sum_{j=1}^n V_{i,j} \right] = \frac{1}{n} \sum_{i=1}^m x_i s_i .
+\end{equation*}
+The mean-centered outputs are now
+\begin{equation*}
+  a_j = y_j - \mu = \sum_{i=1}^m x_i V_{i,j} - \frac{1}{n} \sum_{i=1}^m x_i s_i
+       = \sum_{i=1}^m x_i \underbrace{\left( V_{i,j} - \frac{s_i}{n} \right)}_{V^*_{i,j}},
+\end{equation*}
+so the modified weights $V^*_{i,j} = V_{i,j} - s_i/n$ absorb the mean centering
+entirely, see Fig. \ref{figB}(b). This provides a lossless recipe for converting a
+LayerNorm model to RMSNorm without retraining; see Appendix~\ref{app:additional-notes}
+for the residual-stream completeness condition.
+\begin{figure}[h!] \centering  % the [h!] tries to place the picture right here
+  \includegraphics[scale=0.8]{../doc/fig/flashNorm_figB.pdf}
+  \caption{Elimination of mean centering: (a) Original weight matrix $\mV$ followed by mean centering. (b) Optimized version where the mean centering is merged into the modified weight matrix $\V*$.}
+\label{figB} \end{figure}
 
 \section{FlashNorm for FFNs with ReLU}
 For bias-free FFNs with ReLU, the scale-invariance
