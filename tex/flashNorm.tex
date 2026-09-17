@@ -56,15 +56,16 @@ operations to execute in parallel.
 %no approximation and requires no retraining.
 The same techniques extend to LayerNorm and  Dynamic Tanh (DyT).
 And due to RMS scale invariance, a linear layer between two RMSNorms makes the
-first one redundant, removing the pre-attention RMSNorm in QKV-normalized models
-(e.g., Gemma~4) and in MLA-models
-with latent normalization (e.g., DeepSeek-V2, Mistral Small 4).
+first one redundant whenever every consumer of its output is re-normalized downstream,
+removing the pre-attention RMSNorm in QKV-normalized models (e.g., Gemma~4); in
+MLA-models with latent normalization (e.g., DeepSeek-V2, Mistral Small 4) its weights
+and full-width scaling are removed while a per-token scalar is retained on the
+decoupled RoPE-key path.
 On an NVIDIA T4 GPU, FlashNorm achieves \textbf{33--35\%}
 lower latency on the norm-then-project operation in the compute-bound (prefill)
 regime at SmolLM2-135M scale, and \textbf{12--14\%} at Llama-7B scale.
-On an NVIDIA A100, FlashNorm achieves a \textbf{13\%} end-to-end speedup
-at decode on Llama-3.2-1B in HuggingFace Transformers.
-We verify zero-loss weight folding on three models.
+We verify zero-loss weight folding on three models and validate the norm
+cancellation on Gemma-4-E2B, Gemma-4-12B, MiniCPM3-4B, and DeepSeek-V2-Lite.
 Beyond inference speed, FlashNorm simplifies model implementations by
 reducing parameter tensor count.
 Watch our explainer video \citep{flashNorm-video} and see
@@ -125,16 +126,20 @@ DyT~\citep{DyT}, GLU-variant FFNs~\citep{GLU}, and RoPE-based attention~\citep{R
         matrix multiplication (Proposition~\ref{prop:commute}) and derive
         the exact conditions under which deferred normalization holds.
   \item We show that RMS scale invariance allows an RMSNorm--linear--RMSNorm
-        sequence to drop the first RMSNorm entirely (Proposition~\ref{prop:rms-cancel}),
+        sequence to drop the first RMSNorm entirely (Proposition~\ref{prop:rms-cancel})
+        whenever every consumer of its output is re-normalized downstream,
         eliminating the pre-attention RMSNorm in models with QKV-normalization \citep{qkv-norm}
-        such as Gemma~4 \citep{gemma4} and in MLA-models with latent normalization
-        (e.g., DeepSeek-V2 \citep{deepseek-v2},
-        Mistral Small 4 \citep{mistral4}, OpenMythos \citep{openMythos}).
+        such as Gemma~4 \citep{gemma4}; in MLA-models with latent normalization
+        (e.g., DeepSeek-V2 \citep{deepseek-v2}, Mistral Small 4 \citep{mistral4})
+        the decoupled RoPE-key path bypasses the latent norm, so we give a corrected
+        partial transform that retains a per-token scalar on that path only.
   \item We present FlashNorm as a unified framework covering RMSNorm, LayerNorm,
         DyT, GLU-FFNs, and attention with RoPE.
   \item We verify zero-loss weight-folding on SmolLM2-135M, Llama-3.2-1B, and
         Llama-3.1-8B across wikitext, MMLU, and HellaSwag (Table~\ref{tab:quality}),
-        and report operation-level speedups on T4, A100, and H100.
+        validate the cancellation on Gemma-4-E2B, Gemma-4-12B, MiniCPM3-4B, and
+        DeepSeek-V2-Lite (Table~\ref{tab:cancel}), and report operation-level
+        speedups on T4, A100, and H100.
   \item And we identify the kernel-engineering work required to extend to
         compute-bound regimes and provide a reference design.
 \end{itemize}
@@ -159,6 +164,10 @@ tokens-per-second throughput, attributing this to a lack of kernel fusion. Flash
 reduces the number of kernel launches by eliminating the normalization weight
 application as a separate step, and additionally enables parallelism between the
 vector and matrix units that kernel fusion alone cannot achieve.
+Operation-reordering and epilogue-fusion systems such as the operation fusion of
+\citet{opFusion}, CODA~\citep{coda}, and Mirage~\citep{mirage} realize the same
+deferral at the kernel level while leaving the stored model unchanged;
+Appendix~\ref{app:additional-notes} relates them to FlashNorm.
 
 \paragraph{Weight folding and parameter elimination.}
 The idea of absorbing one layer's parameters into a neighboring layer appears in
@@ -284,21 +293,38 @@ pre-attention RMSNorm $\to$ QKV-projection $\to$ QKV-RMSNorm.
 By Proposition~\ref{prop:rms-cancel}, the pre-attention RMSNorm cancels and can be
 dropped entirely, saving one full RMSNorm per each transformer block.
 
-\paragraph{Eliminating pre-attention RMSNorm with MLA latent normalization.}
+\paragraph{Eligibility condition.}
+Proposition~\ref{prop:rms-cancel} removes the scalar $1/\mathrm{RMS}(\mathbf{a})$ only
+because the second RMSNorm re-normalizes it away. The pre-attention RMSNorm can
+therefore be dropped only if \emph{every} consumer of its output reaches a downstream
+RMSNorm through a bias-free, positively homogeneous path (a bias-free linear layer or
+a slice of one); any consumer that bypasses the downstream norm would silently change
+scale. QK-only-normalized models (e.g., Gemma~3, which has no value norm) are
+therefore not eligible.
+
+\paragraph{Pre-attention RMSNorm with MLA latent normalization.}
 The sequence for MLA with latent normalization is:
 pre-attention RMSNorm $\to$ down-projection into latent space $\to$ latent RMSNorm,
-which matches the pattern of Proposition~\ref{prop:rms-cancel} exactly.
-The pre-attention RMSNorm therefore cancels and can be eliminated.
-This optimization applies to all the MLA models we inspected, including
-DeepSeek-V2 \citep{deepseek-v2}, Mistral Small 4 \citep{mistral4}, and
-OpenMythos \citep{openMythos}.
+which matches Proposition~\ref{prop:rms-cancel} on the latent path. However, the
+decoupled RoPE key is a slice of the same down-projection that bypasses the latent
+norm (in DeepSeek-V2 \citep{deepseek-v2}, Mistral Small 4 \citep{mistral4}, and
+MiniCPM3 \citep{miniCPM3}), and DeepSeek-V2-Lite additionally projects queries without
+a latent norm. Full elimination is therefore not exact for MLA. Instead, we fold
+$\mathbf{g}$ into the down-projection (Proposition~\ref{prop:weightless}), drop the
+full-width elementwise multiply, and retain the per-token scalar only on the bypassing
+slice (32--64 of the projection's output channels). Naively deleting the norm is
+catastrophic (Table~\ref{tab:cancel}).
 
 \paragraph{Epsilon caveat.}
 The scale-invariance $\mathrm{RMS}(s\cdot\mathbf{a}) = s\cdot\mathrm{RMS}(\mathbf{a})$ does
 not hold exactly for the $\varepsilon$-regularized variant
 $\mathrm{RMS}_\varepsilon(\mathbf{a}) = \sqrt{\varepsilon + \frac{1}{n}\sum a_i^2}$.
-The discrepancy is negligible in practice: $\varepsilon$ only has material effect when the
-activation energy is near zero, where it limits up-scaling, see appendix.
+Proposition~\ref{prop:rms-cancel} is therefore exact for unregularized RMS and
+$\varepsilon$-approximate otherwise; Appendix~\ref{app:epsilon} gives the exact
+per-token discrepancy factor and its measured size, which is negligible unless the
+activation energy approaches $\varepsilon$. Propositions~\ref{prop:weightless}
+and~\ref{prop:commute} are unaffected, since a per-token scalar commutes with the
+matrix multiplication whether or not it contains $\varepsilon$.
 \begin{figure}[h!] \centering
   \includegraphics[scale=0.8]{../doc/fig/flashNorm_fig6.pdf}
   \caption{Weightless RMSNorm followed by a linear layer and a second RMSNorm:
@@ -465,6 +491,8 @@ Llama-3.1-8B & HellaSwag acc (0-shot)      & $0.6071$  & $0.6072$  & $+0.0001$ \
 \end{tabular}
 \end{table}
 
+\paragraph{Norm cancellation.} We validate Proposition~\ref{prop:rms-cancel} post-hoc on Gemma-4-E2B and Gemma-4-12B (pre-attention norm removed) and the corrected MLA transform on MiniCPM3-4B and DeepSeek-V2-Lite (Appendix~\ref{app:cancel}, Table~\ref{tab:cancel}). In fp32, cancellation changes wikitext token perplexity by less than $0.001\%$ on both Gemma-4 models, within the rounding envelope of the mathematically exact fold-only control, and leaves all 12 greedy continuations unchanged; on the MLA models the corrected transform is likewise within the fold-only envelope, whereas naively deleting the norm raises perplexity from 8.8 to 189 (MiniCPM3) and from 7.5 to 618 (DeepSeek-V2-Lite). A matched decode ablation on Llama-3.2-1B (Table~\ref{tab:attribution}) attributes the end-to-end gain of a weightless fused norm kernel to kernel fusion ($+26\%$) rather than to eliding the per-channel multiply ($<1\%$); folding's benefit is parameter elimination and enabling the cancellation.
+
 To validate the parallel execution described in Fig.~\ref{fig8}, we benchmarked the norm-then-project operation on an NVIDIA T4 GPU (65~TFLOPS FP16, 320~GB/s). We compare sequential execution (RMSNorm $\rightarrow$ GEMM) against FlashNorm with adaptive dispatch: when the GEMM is compute-bound (many tokens), the GEMM runs on tensor cores and $1/\mathrm{RMS}(\mathbf{a})$ runs on vector cores in parallel via separate CUDA streams; when memory-bound (few tokens), FlashNorm falls back to sequential execution to avoid stream overhead. Table~\ref{tab:overlap} shows the results at SmolLM2-135M scale, and Table~\ref{tab:overlap7b} at Llama-7B scale.
 
 \begin{table}[h!] \centering
@@ -511,8 +539,11 @@ that (1) eliminates normalization weights by folding them into the subsequent li
 layer, and (2) defers the RMS operation to after the matrix multiplication,
 enabling parallel execution.
 We further showed (3) that RMS scale invariance allows an RMSNorm--linear--RMSNorm sequence
-to drop the first RMSNorm entirely, removing the pre-attention RMSNorm in models
-with QKV-normalization (e.g., Gemma~4) or MLA latent normalization (e.g., DeepSeek, Mistral, OpenMythos).
+to drop the first RMSNorm entirely when every consumer of its output is re-normalized,
+removing the pre-attention RMSNorm in models with QKV-normalization (e.g., Gemma~4);
+in MLA models with latent normalization (e.g., DeepSeek-V2, Mistral Small 4) a per-token
+scalar must be retained on the decoupled RoPE-key path, and we validate this corrected
+transform on MiniCPM3-4B and DeepSeek-V2-Lite and the full cancellation on Gemma-4.
 GPU benchmarks confirm 33--35\% operation-level latency reduction at
 the SmolLM2-135M scale and 12--14\% at the Llama-7B scale
 in the compute-bound prefill regime, with identical outputs verified on
@@ -540,6 +571,8 @@ We would like to thank Dmitry Belenko for helpful feedback on this work.
 The FlashNorm transformation is mathematically exact (Propositions~\ref{prop:weightless} and~\ref{prop:commute}), and under fp32 inference produces identical greedy generation across all three model scales. Under lossy inference precisions (fp16/bf16 in HuggingFace Transformers at larger scales, or vLLM's PagedAttention at any precision), precomputed merged weights can produce a one-token argmax divergence at tight decision points, which downstream greedy decoding then amplifies. The effect is more visible at larger model scales where argmax decisions are tighter. This is a general consequence of precomputing weight-folded tensors for lossy-inference kernels and is not specific to FlashNorm. A native fused \texttt{RMSNorm+QKV} kernel that defers $\mathbf{g}$ to runtime, rather than precomputing it into $\mathbf{W^\ast}$, eliminates the framework dependency and is the primary direction for ongoing work.
 
 \paragraph{Extended comparison to prior weightless / removal lines.} OLMo's non-parametric LayerNorm~\citep{olmo2} is a training-time architectural choice: the model is trained from the start without learnable normalization weights, so there is no transformation of an existing checkpoint. \citet{remove-norm2} target post-hoc LayerNorm removal in GPT-2 XL via an empirically tuned ablation procedure that recovers benchmark quality but is not a closed-form algebraic identity. FlashNorm Proposition~\ref{prop:weightless} differs in three ways relevant to deployment: (i) it is exact in real arithmetic and bit-identical when the fold is performed at the same precision as the runtime, so no quality recovery procedure is required; (ii) it applies to any pretrained RMSNorm checkpoint without modification of training; and (iii) Proposition~\ref{prop:commute} additionally exposes parallel execution of the RMS scalar with the matmul (Corollary~\ref{cor:parallel}), which the prior lines do not address.
+
+\paragraph{Relationship to kernel-level deferral and fusion systems.} \citet{opFusion} defer the Softmax and LayerNorm scaling factors past the subsequent linear layer so that they can be computed concurrently with the matrix multiplication, the same reordering as Proposition~\ref{prop:commute}, presented as a kernel-scheduling technique. CODA~\citep{coda} expresses the memory-bound operations of a transformer block as GEMM epilogues and, for a GEMM--RMSNorm--GEMM chain, delays the row-wise scale into the second GEMM's epilogue, again the identity of Proposition~\ref{prop:commute}. Mirage~\citep{mirage} searches for such fused kernels automatically and verifies candidates on random inputs. All three keep the stored model unchanged. FlashNorm is complementary: it is a closed-form checkpoint-level transformation that removes parameter tensors (Proposition~\ref{prop:weightless}) and, where the condition of Section~\ref{sec:rms-cancel} holds, removes a normalization from the graph entirely; a folded checkpoint reduces the epilogue work such kernels perform, and for Gemma-4-style models the cancellation removes one norm per block that no kernel then needs to compute.
 
 \paragraph{Activation dynamic range under FP8.} The deferred-scaling form of Proposition~\ref{prop:commute} alters the dynamic range of intermediate values: $\mathbf{a}\mathbf{W}^*$ can be substantially larger than $(\mathbf{a}/\mathrm{RMS}(\mathbf{a}))\mathbf{W}^*$ for outlier-prone activations. At FP16/BF16 storage with FP32 accumulators (the default in modern inference servers), the unnormalized intermediate fits within range for the activation distributions encountered in practice. FP8 is a separate concern: the E4M3 layout has a maximum representable value of approximately 448, and large-LLM activations are known to contain outliers exceeding this in absolute magnitude after the matmul. FP8 deployments therefore require either a higher-precision accumulator, per-channel scaling of $\mathbf{W}^*$, or a return to the standard (non-deferred) scaling order.
 
@@ -584,7 +617,53 @@ Tokens & PyTorch\,+\,cuBLAS & vLLM\,+\,cuBLAS & FlashNorm & vs PyTorch & vs vLLM
 
 Because the mathematics is exact in both directions, FlashNorm admits two complementary use cases: as a post-hoc transformation applied to existing trained checkpoints (the setting measured in this paper), and as a default normalization-plus-linear building block adopted from scratch in new model architectures. In the latter case the per-channel weight tensor $\mathbf{g}$ is absent from the model by construction, which reduces parameter count and removes the framework-integration work required to serve post-hoc-transformed checkpoints through existing fused kernels.
 
-A CUTLASS 3.x Sm90 fused \texttt{RMSNorm+linear} kernel built on NVIDIA's production \texttt{CollectiveBuilder} and Epilogue Visitor Tree templates (Appendix~\ref{app:h100-cutlass}) confirms that the fusion pattern transfers to production-grade Sm90 infrastructure. Against the HuggingFace baseline the prototype wins on all 18 shapes; against the optimized FlashInfer baseline it wins on 10 of 18 (all SmolLM2 and Llama-3.2-1B decode shapes), with the remaining 8 losses attributable to a single non-specialized tile choice in the prototype. Closing that gap requires shape-specialized tile dispatch and a custom \texttt{CollectiveMainloop} that fuses the RMS accumulation into the matmul's existing tile load, both routine kernel-team work inside production inference frameworks.
+A CUTLASS 3.x Sm90 fused \texttt{RMSNorm+linear} kernel built on NVIDIA's production \texttt{CollectiveBuilder} and Epilogue Visitor Tree templates (Appendix~\ref{app:h100-cutlass}) confirms that the fusion pattern transfers to production-grade Sm90 infrastructure. Against the HuggingFace baseline the prototype wins on all 18 shapes; against the optimized FlashInfer baseline it wins on 10 of 18 (all SmolLM2 and Llama-3.2-1B decode shapes), with the remaining 8 losses attributable to a single non-specialized tile choice in the prototype (see also the reproduction note in Appendix~\ref{app:h100-cutlass}). Closing that gap requires shape-specialized tile dispatch and a custom \texttt{CollectiveMainloop} that fuses the RMS accumulation into the matmul's existing tile load, both routine kernel-team work inside production inference frameworks.
+
+\section{Norm cancellation validation and speedup attribution}\label{app:cancel}
+
+\paragraph{Setup.} All runs use one NVIDIA H100 SXM (80\,GB) with PyTorch 2.11 and Transformers 5.14 (MiniCPM3 under Transformers 4.46), with checkpoints pinned by revision. For each model we build a ladder from the unmodified checkpoint: \emph{fold-only} applies Proposition~\ref{prop:weightless} to the pre-attention norm and is exact by proof, so it serves as the rounding control; \emph{cancelled} additionally removes the pre-attention norm (Gemma-4) or applies the corrected MLA transform of Section~\ref{sec:rms-cancel}, retaining the per-token scalar only on the RoPE-key slice (MiniCPM3) or on the RoPE-key slice and the query path (DeepSeek-V2-Lite, which has no query latent norm); \emph{naive deletion} removes the norm outright and serves as the negative control for MLA. Metrics against the unmodified model: wikitext-2 token perplexity over 48 contexts of 1024 tokens (16 contexts for DeepSeek-V2-Lite), maximum absolute logit difference over the last 8 positions of 32 contexts (16 for DeepSeek-V2-Lite), and greedy continuation of 12 prompts for 48 tokens.
+
+\begin{table}[h!] \centering
+\caption{Post-hoc norm cancellation. Token perplexity (ppl) on wikitext-2, maximum absolute logit difference $\max|\Delta|$ against the unmodified model, and the number of the 12 prompts whose 48-token greedy continuation is unchanged. For Gemma-4 the cancelled variant is the full removal of the pre-attention norm (naive deletion is the same operation); for the MLA models it is the corrected partial transform.}
+\label{tab:cancel}
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{l l r r r r r r r}
+\hline
+ & & \multicolumn{4}{c}{Token perplexity} & \multicolumn{2}{c}{$\max|\Delta|$} & \\
+Model & dtype & Baseline & Fold-only & Cancelled & Naive deletion & Fold-only & Cancelled & Greedy \\
+\hline
+Gemma-4-E2B      & fp32 & 47.9350 & 47.9351 & 47.9353 & = cancelled & $5.6{\times}10^{-4}$ & $6.8{\times}10^{-4}$ & 12/12 \\
+Gemma-4-12B      & fp32 & 10.5807 & 10.5807 & 10.5806 & = cancelled & $8.9{\times}10^{-2}$ & $2.3{\times}10^{-2}$ & 12/12 \\
+MiniCPM3-4B      & fp32 & 8.8354  & 8.8354  & 8.8354  & 188.90      & $0$                  & $1.4{\times}10^{-4}$ & 12/12 \\
+DeepSeek-V2-Lite & bf16 & 7.4758  & 7.4781  & 7.4796  & 618.41      & $2.38$               & $2.31$               & -- \\
+\hline
+\end{tabular}}
+\end{table}
+
+At bf16, the mathematically exact fold alone produces maximum logit differences of about $2.6$ on Gemma-4-E2B with occasional mid-generation greedy divergences (the lossy-precision effect discussed in Appendix~\ref{app:additional-notes}), and the cancelled variant lies within that floor ($2.3$); on HellaSwag (all 10{,}042 examples, bf16) normalized accuracy is $73.63\%$ for the unmodified model and $73.71\%$ after cancellation (standard error $0.44\%$). fp32 therefore carries the exactness claim; bf16 deviations are dominated by the rounding of any weight rewrite, not by the cancellation.
+
+\paragraph{Speedup attribution.} To separate the effect of eliding the per-channel multiply (Proposition~\ref{prop:weightless}) from kernel fusion, we run one folded Llama-3.2-1B checkpoint under three normalization implementations swapped at the class level: (A) the stock eager \texttt{LlamaRMSNorm.forward}; (A$'$) the fused \texttt{F.rms\_norm} kernel with the (all-ones) weight still applied; and (B) the same fused kernel called weightless wherever folding has left an all-ones weight (the final norm keeps real weights because \texttt{lm\_head} is tied to the embeddings). Decode throughput is measured over 256 forced greedy tokens, 20 trials per variant after 3 warmup runs with randomized interleaving, reporting medians, in two separate sessions on the same H100 (absolute rates vary with host clocks; the percentages are stable). A$'$ and B produce bit-identical logits and identical 256-token generations; A differs from both by at most $0.125$ in logit (bf16 rounding of the fused kernel).
+
+\begin{table}[h!] \centering
+\caption{Decode throughput (tokens/s, median of 20 trials) of one folded Llama-3.2-1B checkpoint under three normalization implementations, bf16, H100. Fusion accounts for the whole gain; the weightless call adds less than 1\%.}
+\label{tab:attribution}
+\begin{tabular}{l r r}
+\hline
+Variant & Session 1 & Session 2 \\
+\hline
+(A) eager weighted norm (stock)             & 123.1 & 107.3 \\
+(A$'$) fused \texttt{F.rms\_norm}, weighted & 154.8 & 135.6 \\
+(B) fused \texttt{F.rms\_norm}, weightless  & 154.8 & 136.7 \\
+\hline
+Fusion, A $\to$ A$'$                        & $+25.7\%$ & $+26.4\%$ \\
+Weightless call, A$'$ $\to$ B               & $-0.0\%$  & $+0.8\%$ \\
+\hline
+\end{tabular}
+\end{table}
+
+This ablation shows that the end-to-end decode gain reported for the weightless kernel swap in Appendix~\ref{app:rmsnorm-fraction} is a kernel-fusion effect; folding's contribution to end-to-end throughput is parameter elimination, the weightless kernel path, and enabling the cancellation of Section~\ref{sec:rms-cancel}, not a reduction in arithmetic.
 
 \section{FlashNorm for FFNs with ReLU}
 For bias-free FFNs with ReLU, the scale-invariance
@@ -622,16 +701,17 @@ Many implementations add a small epsilon $\varepsilon$ to the RMS value to limit
 
 $\text{RMSe}(\a)$ can be used as a drop-in-replacement for RMS. The popular HuggingFace transformer library calls this epsilon \verb+rms_norm_eps+, which is set to $10^{-5}$ for Llama3.
 
-\paragraph{Bounding the epsilon-induced scale-invariance discrepancy.}
-The deferred-normalization identity (Proposition~\ref{prop:commute}) relies on the scale-invariance $\mathrm{RMS}(s\cdot\mathbf{a}) = s\cdot\mathrm{RMS}(\mathbf{a})$, which holds exactly for the unregularized RMS but not for $\mathrm{RMSe}(\mathbf{a}) = \sqrt{\varepsilon + M(\mathbf{a})}$ with $M(\mathbf{a}) = \tfrac{1}{n}\sum_i a_i^2$. We bound the discrepancy here to support the claim that it is negligible in practice.
-
-For a scalar $c > 0$, $\mathrm{RMSe}(c\cdot\mathbf{a}) = \sqrt{\varepsilon + c^2 M(\mathbf{a})}$ whereas $c\cdot\mathrm{RMSe}(\mathbf{a}) = \sqrt{c^2 \varepsilon + c^2 M(\mathbf{a})}$. The relative error of one against the other is
+\paragraph{Exact discrepancy of the cancellation under $\varepsilon$.}
+Propositions~\ref{prop:weightless} and~\ref{prop:commute} are unaffected by $\varepsilon$: $1/\mathrm{RMSe}(\mathbf{a})$ is still a per-token scalar and commutes with the matrix multiplication. Proposition~\ref{prop:rms-cancel}, however, relies on the scale-invariance $\mathrm{RMS}(s\cdot\mathbf{a}) = s\cdot\mathrm{RMS}(\mathbf{a})$, which holds exactly for the unregularized RMS but not for $\mathrm{RMSe}(\mathbf{a}) = \sqrt{\varepsilon + M(\mathbf{a})}$ with $M(\mathbf{a}) = \tfrac{1}{n}\sum_i a_i^2$. Let $\mathbf{b} = \mathbf{a}\mathbf{W}^*$ and let both norms use the same $\varepsilon$. With the first norm retained, the second norm receives $\mathbf{c} = \mathbf{b}/\sqrt{M(\mathbf{a})+\varepsilon}$ and outputs
 \begin{equation*}
-  \left| \frac{\mathrm{RMSe}(c\cdot\mathbf{a})}{c\cdot\mathrm{RMSe}(\mathbf{a})} - 1 \right|
-  = \left| \sqrt{\frac{\varepsilon + c^2 M}{c^2 (\varepsilon + M)}} - 1 \right|
-  \leq \frac{1}{2} \cdot \frac{|1 - c^2|\,\varepsilon}{c^2 (M + \varepsilon)}
+  \frac{\mathbf{c}}{\sqrt{M(\mathbf{c})+\varepsilon}}
+  = \frac{\mathbf{b}}{\sqrt{M(\mathbf{b}) + \varepsilon\,M(\mathbf{a}) + \varepsilon^2}},
 \end{equation*}
-to first order in $\varepsilon$ (using $\sqrt{1+x} - 1 \approx x/2$ for small $x$). For typical RMSNorm with $\varepsilon = 10^{-6}$, activations satisfying $M \approx 1$, and $c$ in a moderate range (say $\tfrac{1}{2} \leq c \leq 2$), the relative error is bounded by approximately $\tfrac{3}{2}\varepsilon \approx 1.5 \times 10^{-6}$, well below fp16 representation precision. The bound degrades only when the activation energy is near zero ($M \ll \varepsilon$); in that regime the epsilon's role is to bound the magnitude of the scaling factor rather than to preserve scale-invariance, and Proposition~\ref{prop:commute} ceases to be the relevant identity.
+whereas with the first norm cancelled it outputs $\mathbf{b}/\sqrt{M(\mathbf{b})+\varepsilon}$ (both before the common downstream gain). The retained-norm output therefore equals the cancelled output times the per-token factor
+\begin{equation*}
+  \rho = \sqrt{\frac{M(\mathbf{b})+\varepsilon}{M(\mathbf{b}) + \varepsilon\,M(\mathbf{a}) + \varepsilon^2}},
+\end{equation*}
+which equals $1$ for $\varepsilon = 0$ and, to first order in $\varepsilon$, satisfies $\rho - 1 \approx \varepsilon\,(1 - M(\mathbf{a}))/(2M(\mathbf{b}))$. The factor deviates materially from $1$ only when the activation energy approaches $\varepsilon$, where the epsilon's role is to bound the magnitude of the scaling factor rather than to preserve scale-invariance. Measured on Gemma-4-E2B in fp32 ($\varepsilon = 10^{-6}$), the maximum relative error of the per-head query-norm output over all layers is $2.5\times10^{-5}$ at the model's native activation scale and $5.2\times10^{-5}$ with the first decoder layer's input scaled by $10^{-2}$, rising to $5.5\times10^{-3}$ only at a scaling of $10^{-3}$; layers with shared KV projections behave like full layers ($1.1\times10^{-5}$ vs.\ $2.5\times10^{-5}$ at native scale).
 
 \section{Eliminating $1/n$}
 This section details a small optimization that eliminates the constant term $1/n$ from the RMS calculation. First, we factor out $1/n$ as follows:
@@ -674,7 +754,7 @@ bf16                  & $38.5$ & $6{,}650$  & $1{,}640$ & $\mathbf{24.62\%}$ \\
 
 \paragraph{Findings.} RMSNorm occupies 24.62\% of decode wall-clock at bf16, an order of magnitude above its FLOP share, because the model runs 33 separate RMSNorm kernels per forward pass and each incurs a fixed kernel-launch latency on the order of $10\,\mu$s plus a memory-bandwidth pass over the full activation tensor independent of the small RMS arithmetic. Roughly half of this fraction is recoverable today via a runtime swap of \texttt{LlamaRMSNorm.forward}: on the same hardware, same decode protocol, replacing it with PyTorch's existing weightless C++ kernel \texttt{F.rms\_norm(x, shape, weight=None, eps)} yields a $\mathbf{+12.77\%}$ end-to-end speedup on the FlashNorm-folded variant
 \texttt{open-machine/Llama-3.2-1B-FlashNorm} ($50.75$ vs $45.00$\,tokens/s)\footnote{\url{https://github.com/OpenMachine-ai/transformer-tricks/blob/main/notebooks/flashNorm\_hf\_a100.ipynb}}.
-The $45.00$\,tokens/s baseline here is the FlashNorm-folded checkpoint executed under the default \texttt{LlamaRMSNorm.forward} (which still performs the per-channel multiply against the all-ones tensor that folding leaves behind); it differs from the $38.5$\,tokens/s baseline in Table~\ref{tab:rmsnorm-fraction}, which is the unfolded \texttt{unsloth/Llama-3.2-1B-Instruct} checkpoint measured in a separate Colab session for the cumulative-norm-fraction analysis. The $+12.77\%$ measurement is consequently a same-checkpoint, same-session A-vs-B comparison and isolates the contribution of the kernel-side dispatch swap from any checkpoint or session variability. The same measurement combines two independent contributions: (i) elision of the per-channel multiply (FlashNorm Proposition~\ref{prop:weightless}), and (ii) kernel fusion (replacing the multi-kernel manual variance-plus-rsqrt-plus-multiply path of \texttt{LlamaRMSNorm.forward} with a single fused C++ kernel call). The fusion contribution is independently established by public benchmarks of PyTorch's fused \texttt{torch.nn.functional.rms\_norm} kernel against the unfused PyTorch path on equivalent shapes; the multiply-elision contribution is independently established by kernel-isolated benchmarks of weightless vs. weighted RMSNorm kernels (e.g., the concurrent third-party PyPTX measurement at ${\sim}1.05\times$ on H100 fp32\footnote{\url{https://github.com/patrick-toulme/pyptx/issues/2}}). The two-source decomposition that explains the magnitude of our $+12.77\%$ end-to-end measurement is therefore consistent with the literature, with multiply elision the minority component and kernel fusion the majority.
+The $45.00$\,tokens/s baseline here is the FlashNorm-folded checkpoint executed under the default \texttt{LlamaRMSNorm.forward} (which still performs the per-channel multiply against the all-ones tensor that folding leaves behind); it differs from the $38.5$\,tokens/s baseline in Table~\ref{tab:rmsnorm-fraction}, which is the unfolded \texttt{unsloth/Llama-3.2-1B-Instruct} checkpoint measured in a separate Colab session for the cumulative-norm-fraction analysis. The $+12.77\%$ measurement is consequently a same-checkpoint, same-session A-vs-B comparison and isolates the contribution of the kernel-side dispatch swap from any checkpoint or session variability. The same measurement combines two independent contributions: (i) elision of the per-channel multiply (FlashNorm Proposition~\ref{prop:weightless}), and (ii) kernel fusion (replacing the multi-kernel manual variance-plus-rsqrt-plus-multiply path of \texttt{LlamaRMSNorm.forward} with a single fused C++ kernel call). The fusion contribution is independently established by public benchmarks of PyTorch's fused \texttt{torch.nn.functional.rms\_norm} kernel against the unfused PyTorch path on equivalent shapes; the multiply-elision contribution is independently established by kernel-isolated benchmarks of weightless vs. weighted RMSNorm kernels (e.g., the concurrent third-party PyPTX measurement at ${\sim}1.05\times$ on H100 fp32\footnote{\url{https://github.com/patrick-toulme/pyptx/issues/2}}). The two-source decomposition that explains the magnitude of our $+12.77\%$ end-to-end measurement is therefore consistent with the literature, with multiply elision the minority component; the matched ablation of Appendix~\ref{app:cancel} (Table~\ref{tab:attribution}) confirms this directly, with the multiply-elision component below 1\% and the remainder fusion and kernel fusion the majority.
 Cross-platform variance is significant: the same swap on Apple Silicon MPS yields a net slowdown due to the lack of a vendor-tuned weightless path on that platform; full numbers in the reproducibility notebook. The FlashNorm transformation is exact on every platform, but the realized speedup follows the kernel-quality landscape. The cumulative norm wall-clock is invariant under weight quantization (within $\pm 2\%$ across all three precisions: $1{,}640$, $1{,}675$, $1{,}650$\,ms), as BitsAndBytes does not quantize norm weights. The norm fraction is non-monotonic across precisions on this hardware ($24.62\% \to 8.19\% \to 9.31\%$) because BitsAndBytes inflates the linear path's wall-clock at low bit on A100 (\texttt{MatMul8bitLt} dequantize overhead makes 8-bit $3\times$ slower than bf16; NF4 is more efficient but still $2.7\times$ slower); the fraction shrinks at lower bit not because the norm becomes cheaper but because the BitsAndBytes linear becomes more expensive. On hardware-and-framework combinations with native low-bit kernels (e.g., \texttt{llama.cpp} GGUF, MLX 4-bit on Apple silicon, vLLM and TensorRT-LLM with int4 at scale), the invariant norm cost would translate to a monotonically growing fraction; direct measurement on those stacks is left to follow-up.
 
 \section{Fused Kernel on A100: Full Benchmark and Two-Source Decomposition}\label{app:a100}
@@ -801,6 +881,8 @@ Llama-3.1-8B & 4096 & 0.565 & 0.293 & 0.405 & $+$28.3\% & $-$38.1\% \\
 \end{table}
 
 All 18 shapes deliver positive speedup versus the HuggingFace path ($+$28\% to $+$82\%). Against the optimized FlashInfer plus cuBLAS baseline, V12 wins on 10 of 18 shapes: all SmolLM2-135M scales ($+$42\% to $+$52\%) and Llama-3.2-1B decode ($M \leq 256$, $+$17\% to $+$23\%). V12 loses on 8 shapes: Llama-3.2-1B compute-bound ($M \geq 1024$, $-$33\% to $-$45\%) and all Llama-3.1-8B rows ($-$20\% to $-$66\%). The honest interpretation follows from the two-source decomposition: at scales where Source~B's $15$--$25\,\mu$s fusion saving is a meaningful fraction of call time (SmolLM2 and Llama-1B decode), V12 wins decisively against both baselines; at larger Llama-family shapes, flashinfer's fused RMS kernel is already fast enough ($25$--$80\,\mu$s) that V12's fusion saving is smaller than the matmul penalty incurred by a non-specialized tile selection.
+
+\paragraph{Reproduction note.} A later rebuild of this kernel from source under CUTLASS 3.9.2, 4.0.0, and 4.2.1 with CUDA 12.4 compiled, but every build emitted ptxas warning C7510 (\texttt{wgmma.mma\_async} serialized across a function boundary in the EVT epilogue) and lost the advantage of Table~\ref{tab:h100-full}, winning only 1 of 18 shapes against either baseline, on an H100 SXM that otherwise measured 749~TFLOPS on a raw fp16 GEMM (the original build ran on an H100 PCIe). The cause was not isolated. The numbers above are therefore scoped to the documented original build; the transformation-level results of this paper do not depend on this kernel.
 The kernel source and reproducibility notebook, including the FlashInfer baseline and decomposed-timing sanity check, are in the \texttt{transformer-tricks} repository\footnote{\url{https://github.com/OpenMachine-ai/transformer-tricks/blob/main/notebooks/flashNorm\_cutlass\_kernel\_sm90.ipynb}}.
 
 \paragraph{Where the losses come from.} The 8 losing rows share a single root cause: V12 instantiates a single \texttt{CollectiveBuilder} variant with \texttt{TileShape}$=\langle 128, 128, 64 \rangle$, which is reasonable for prefill at small to medium scales but suboptimal in two regimes. First, at Llama-3.1-8B decode ($M{=}1$) the tile pads to 128 rows while only one row carries real data, wasting $127/128$ of the tensor-core work; cuBLAS has a specialized gemv heuristic that does not incur this padding. Second, at Llama-family compute-bound shapes cuBLAS selects a differently shaped tile (for instance $256{\times}128$) that achieves higher SM occupancy and cache efficiency than our $128{\times}128$ default. In both regimes the fusion saving is real but is smaller than the matmul-quality gap from a non-specialized tile. This mirrors exactly the two-source decomposition of Appendix~\ref{app:a100}: fusion savings are a fixed per-call quantity, and whether they yield a net win depends on how close the fused matmul runs to the vendor-optimal matmul at that specific shape.

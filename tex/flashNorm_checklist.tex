@@ -5,7 +5,7 @@
 \item {\bf Claims}
     \item[] Question: Do the main claims made in the abstract and introduction accurately reflect the paper's contributions and scope?
     \item[] Answer: \answerYes{} % Replace by \answerYes{}, \answerNo{}, or \answerNA{}.
-    \item[] Justification: The abstract and introduction state the two algebraic propositions, the preservation of model outputs, the three-model verification scope (SmolLM2-135M, Llama-3.2-1B, Llama-3.1-8B), and the T4 / A100 / H100 empirical scope. The reported speedups (33-35\% T4 at SmolLM2 scale, 12-14\% T4 at Llama-7B scale, 13\% realized HF end-to-end on Llama-3.2-1B at bf16) match the experiments in Section~\ref{sec:experiments} and Appendix~\ref{app:rmsnorm-fraction}.
+    \item[] Justification: The abstract and introduction state the two algebraic propositions, the preservation of model outputs, the three-model verification scope (SmolLM2-135M, Llama-3.2-1B, Llama-3.1-8B), and the T4 / A100 / H100 empirical scope. The reported speedups (33-35\% T4 at SmolLM2 scale, 12-14\% T4 at Llama-7B scale) match the experiments in Section~\ref{sec:experiments}; the norm-cancellation validation on Gemma-4-E2B, Gemma-4-12B, MiniCPM3-4B, and DeepSeek-V2-Lite and the fusion-vs-folding attribution match Appendix~\ref{app:cancel}.
     \item[] Guidelines:
     \begin{itemize}
         \item The answer \answerNA{} means that the abstract and introduction do not include the claims made in the paper.
