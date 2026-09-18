@@ -148,9 +148,8 @@ RMS normalization to the output of the matrix multiplication, enabling the two
 operations to execute in parallel.
 The same techniques extend to LayerNorm and  Dynamic Tanh (DyT).
 And due to RMS scale invariance, a linear layer between two RMSNorms makes the
-first one redundant whenever every consumer of its output is re-normalized downstream,
-removing the pre-attention RMSNorm in QKV-normalized models (e.g., Gemma~4); in
-MLA-models with latent normalization (e.g., DeepSeek-V2, Mistral Small 4) its weights
+first one redundant, removing the pre-attention RMSNorm in QKV-normalized models (e.g., Gemma~4).
+In MLA-models with latent normalization (e.g., DeepSeek-V2, Mistral Small 4) its weights
 and full-width scaling are removed while a per-token scalar is retained on the
 decoupled RoPE-key path.
 On an NVIDIA T4 GPU, FlashNorm achieves \textbf{33--35\%}
