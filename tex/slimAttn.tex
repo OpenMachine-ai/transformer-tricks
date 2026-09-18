@@ -115,39 +115,7 @@ For MHA, the weight matrices $W_K$ and $W_V$ are usually square matrices \eR{d}{
 \label{eq6} \end{equation}
 and $W_{KV,i}$ \eR{d}{d_v}. Fig. \ref{fig1} illustrates the modified attention scheme that calculates V from K according to equation (\ref{eq6}). For inference, $W_{KV} = W_K^{-1} W_V$ can be precomputed offline and stored in the parameter file instead of $W_V$. This requires that $W_K$ is invertible (i.e. non-singular). In general, any square matrix can be inverted if its determinant is non-zero. It’s extremely unlikely that a large matrix has a determinant that is exactly 0.
 
-Invertibility is necessary but not sufficient once the reconstruction runs at
-finite precision. What separates a usable inverse from an unusable one is the
-condition number rather than the determinant: $W_K$ can sit far from singular and
-still be too ill-conditioned to reconstruct V through. In Whisper large-v3's
-decoder cross-attention $\kappa(W_K)$ has a median of $1.4 \cdot 10^7$ and reaches
-$5.2 \cdot 10^9$, while $\det W_K$ is nowhere near zero. Reconstructing V from K in
-every layer there gives a relative logit error of $0.54$ at fp32, which destroys
-the model at full precision.
-
-The same refactoring runs in the other direction, and that is what makes the
-scheme usable on such a model. Writing $X = V W_V^{-1}$ and substituting into
-equation (\ref{eq4}) gives a V-cache in place of the K-cache,
-\begin{equation}
-  K = V \left( W_V^{-1} W_K \right) = V W_{VK}
-\label{eq6b} \end{equation}
-which halves the context memory exactly as equation (\ref{eq6}) does. For a model
-whose V projection carries a bias $b_V$, subtract it first, as $K = (V - b_V)
-W_{VK}$, or remove it beforehand by the transformation in the appendix; on Whisper
-the unsubtracted form is not close, it is wrong by more than 100\%.
-
-On large-v3 $\kappa(W_V)$ peaks at $4.5 \cdot 10^6$, three orders below
-$\kappa(W_K)$, and caching V rather than K brings the relative logit error from
-$0.54$ down to $0.0059$. Which direction wins is a property of the individual
-layer, and the mix shifts with model size: the V-cache is the better choice in 3
-of whisper-tiny's 4 decoder layers, 9 of 12 in small, 21 of 24 in medium, and 31
-of 32 in large-v3. So the direction is worth deciding per layer rather than per
-model: cache whichever of K or V leaves the better conditioned matrix to invert.
-
-Conditioning orders the two directions reliably, but it overstates the error by
-orders of magnitude and should not be used to size it. At fp32 on large-v3
-$\kappa \epsilon$ is $619$ for the K-cache and $0.53$ for the V-cache, while the
-per-layer choice measures $0.0059$.
-See \texttt{slimAttn\_whisper.py} in \citep{tricks} for the per-layer numbers.
+Equation (\ref{eq6}) is exact, but in practice V is calculated at finite precision, and V can lose accuracy if $W_K$ is badly conditioned, which the determinant does not reveal. The V-cache scheme of appendix \ref{sec:vcache}, which calculates K from V, is an alternative. However, that scheme does not support RoPE. Section \ref{sec:experiments} compares both schemes in float32 for the decoder cross-attention of Whisper.
 
 \textbf{Related work.} Slim attention is somewhat similar to DeepSeek’s multi-head latent attention (MLA) \citep{deepseek-v2}. Unlike MLA, slim attention is an exact post-training implementation of existing MHA models (including models with RoPE).
 
@@ -340,6 +308,35 @@ Table \ref{tab7} lists the cache size savings and speedups during the generate-p
   Option 2 speedup & \textbf{5.6x} & \textbf{5.8x} & \textbf{5.8x} & \textbf{5.6x} & \textbf{5.3x} & speedup vs. baseline \\ \fline
 \end{tabular} \label{tab7} \end{table}
 
+\section{Experiments} \label{sec:experiments}
+This section compares the K-cache scheme of equation (\ref{eq6}) with the V-cache scheme of appendix \ref{sec:vcache} for the decoder cross-attention of Whisper tiny, small, medium, and large-v3 \citep{whisper}. Whisper's V projection has a bias $b_V$ and its K projection does not. So the K-cache scheme uses ${V = K W_{KV} + b_V}$ and the V-cache scheme uses ${K = (V - b_V) W_{VK}}$. Alternatively, $b_V$ can be removed from both schemes as in appendix \ref{sec:bias}. The matrices $W_{KV}$ and $W_{VK}$ are precomputed in float64 and then converted to the precision of the model.
+
+Table \ref{tab:cond} lists the largest condition number $\kappa$ of $W_K$ and of $W_V$ (the ratio of the largest to the smallest singular value) and the largest $\lvert\det W_K\rvert$, which is below $10^{-230}$ in every model, including tiny, whose $W_K$ is the best conditioned. See \texttt{slimAttn\_whisper.py} in \citep{tricks} for the per-layer condition numbers.
+
+\begin{table}[h!] \centering
+  \caption{Condition numbers of $W_K$ and $W_V$ and determinant of $W_K$ in the cross-attention of the Whisper decoder}
+  \begin{tabular}{lcccc} \fline
+                                          & tiny             & small            & medium           & large-v3         \\ \hline
+  Largest $\kappa(W_K)$                   & $3.7 \cdot 10^4$ & $3.3 \cdot 10^7$ & $1.1 \cdot 10^7$ & $5.2 \cdot 10^9$ \\
+  Largest $\kappa(W_V)$                   & $5.4 \cdot 10^3$ & $8.0 \cdot 10^4$ & $6.2 \cdot 10^5$ & $4.5 \cdot 10^6$ \\
+  Largest $\lvert\det W_K\rvert$          & $< 10^{-231}$    & $< 10^{-473}$    & $< 10^{-760}$    & $< 10^{-744}$    \\
+  Layers with $\kappa(W_V) < \kappa(W_K)$ & 3 of 4           & 9 of 12          & 21 of 24         & 31 of 32         \\ \fline
+\end{tabular} \label{tab:cond} \end{table}
+
+Table \ref{tab:logits} lists the relative logit error, which is the largest absolute difference between the logits of the model with slim attention and the logits of the baseline, divided by the largest absolute logit of the baseline, with both maxima taken over all utterances, positions, and vocabulary entries. The encoder input is 4 dev-clean utterances from LibriSpeech \citep{librispeech}, one from each of 4 speakers, and the decoder input is Whisper's four start tokens followed by 16 tokens that the baseline generates greedily for English transcription, with end-of-text suppressed. The float64 row runs the decoder and its baseline in float64 on the same encoder output, converted to float64, and the same decoder input. The per-layer choice uses the K-cache in layers with $\kappa(W_K) < \kappa(W_V)$ and the V-cache in all other layers. For reference, replacing each cross-attention with an exact float32 implementation that uses the true K and V gives a relative logit error of about $10^{-6}$ on the same inputs.
+
+\begin{table}[h!] \centering
+  \caption{Relative logit error of slim attention in the decoder cross-attention on LibriSpeech, in float32 unless noted}
+  \begin{tabular}{lcccc} \fline
+                               & tiny                 & small                & medium               & large-v3             \\ \hline
+  K-cache in every layer       & $4.98 \cdot 10^{-4}$  & $2.24 \cdot 10^{-2}$  & $4.43 \cdot 10^{-3}$  & $1.09$                \\
+  V-cache in every layer       & $9.85 \cdot 10^{-6}$  & $5.14 \cdot 10^{-5}$  & $7.01 \cdot 10^{-5}$  & $1.54 \cdot 10^{-3}$  \\
+  Per-layer choice             & $7.62 \cdot 10^{-5}$  & $9.22 \cdot 10^{-5}$  & $1.62 \cdot 10^{-4}$  & $2.56 \cdot 10^{-3}$  \\
+  Per-layer choice, float64    & $1.95 \cdot 10^{-13}$ & $1.99 \cdot 10^{-13}$ & $1.40 \cdot 10^{-12}$ & $1.39 \cdot 10^{-11}$ \\ \fline
+\end{tabular} \label{tab:logits} \end{table}
+
+In Table \ref{tab:logits}, the error of the V-cache in every layer is about 50x (tiny) to about 700x (large-v3) smaller than the error of the K-cache in every layer. For large-v3, the K-cache in every layer has an error of 1.09, so its largest absolute logit difference exceeds the largest absolute logit of the baseline. The per-layer choice differs from the V-cache in every layer only in the 1 to 3 layers that it assigns to the K-cache, and those layers make its error 1.7x to 7.7x larger. On 4 utterances from 4 other speakers, the K-cache in every layer again has the largest error in every model, and the per-layer choice has a larger error than the V-cache in every layer in three of the four models, all but small. So a smaller condition number does not guarantee a smaller error: choosing per layer by condition number gave a larger error than the V-cache in every layer in 7 of these 8 cases. The float64 row is more than five orders of magnitude below every float32 entry, and in float64 the K-cache and the V-cache in every layer also stay below $10^{-8}$, so the float32 errors vanish with more precision.
+
 \section{Conclusion}
 Slim attention offers a simple trick for halving the context memory of existing MHA transformer models without sacrificing accuracy. Slim attention is a post-training, exact implementation of existing models, so it doesn't require any fine-tuning or training from scratch.
 
@@ -401,7 +398,7 @@ Table \ref{tab9} shows the total number of MHA OPs across all attention-heads fo
   Optimized, Fig. \ref{fig3}(c)   & $2nd_k$          & $2nd$         & $h(2nd_k + 2nd) = 2nd(h+1)$ \\ \fline
 \end{tabular} \label{tab9} \end{table}
 
-\section{Alternative scheme: \emph{all you need is V-cache}}
+\section{Alternative scheme: \emph{all you need is V-cache}} \label{sec:vcache}
 Instead of calculating V from K, it's also possible to calculate K from V and thereby eliminate the K-cache (instead of the V-cache). This alternative scheme is illustrated in Fig. \ref{fig6}, where $W_{VK} = W_V^{-1} W_K$. However, this scheme does not support RoPE.
 \begin{figure}[h!] \centering
   \includegraphics[scale=0.9]{../doc/fig/slimAttn_fig6.pdf}
@@ -433,7 +430,7 @@ Many transformers nowadays use RoPE (rotary positional embedding) \citep{RoPE}, 
 \end{align*}
 Note that the RoPE decoding uses the same trigonometric coefficients (such as $\cos{m \theta}$) as the RoPE encoding. Therefore, we only need one look-up table that can be used for both RoPE encoding and decoding.
 
-\section{Support for bias}
+\section{Support for bias} \label{sec:bias}
 Since PaLM’s removal of bias terms from all its projection layers \citep{PaLM}, most transformer models nowadays do the same. However, some models are still using biases today (especially older models that are still relevant today such as Whisper). In this section, we briefly discuss how projection layers with bias can be supported. We show how the biases of two of the four attention projection layers can be eliminated in a mathematically equivalent way.
 
 \textbf{Bias removal for V projections}: This bias can be combined with the bias of the output projection layer as follows. Recall that all value vectors $v_i$ plus their constant bias $b$ are multiplied by the attention scores $s_i$ (i.e. the softmax outputs) and summed up, such as
