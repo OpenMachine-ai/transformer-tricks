@@ -33,7 +33,17 @@
 \usepackage{caption}
 \captionsetup[figure]{skip=3pt}  % reduce the space between figure and caption
 \captionsetup[table]{skip=3pt}
+\captionsetup{font=small}
+\setlist{itemsep=1pt, topsep=2pt, parsep=0pt}
 \setlength{\intextsep}{5pt plus 2pt minus 2pt}  % space above/below in-text floats
+% tighter space around display math (the class resets these in \normalsize)
+\makeatletter
+\g@addto@macro\normalsize{%
+  \setlength{\abovedisplayskip}{5pt plus 1pt minus 2pt}%
+  \setlength{\belowdisplayskip}{5pt plus 1pt minus 2pt}%
+  \setlength{\abovedisplayshortskip}{2pt plus 1pt}%
+  \setlength{\belowdisplayshortskip}{3pt plus 1pt minus 1pt}}
+\makeatother
 %\captionsetup[table]{skip=10pt}  % default is 10pt
 \usepackage{amsthm}
 \newtheorem{proposition}{Proposition}
@@ -87,24 +97,34 @@ parallel execution. We present \textbf{FlashNorm}, an \emph{exact} reformulation
 RMSNorm followed by a linear layer that (i) eliminates the normalization weights
 by folding them into the subsequent linear layer, and (ii) defers the scalar
 RMS normalization to the output of the matrix multiplication, enabling the two
-operations to execute in parallel.
-The same techniques extend to LayerNorm and  Dynamic Tanh (DyT).
-And due to RMS scale invariance, a linear layer between two RMSNorms makes the
-first one redundant, removing the pre-attention RMSNorm in QKV-normalized models (e.g., Gemma~4).
-In MLA models with latent normalization (e.g., DeepSeek-V2, Mistral Small 4) its weights
-and full-width scaling are removed while a per-token scalar is retained on the
-decoupled RoPE-key path.
+operations to execute in parallel. Both identities hold in real arithmetic,
+including with epsilon-regularized RMS, and extend to LayerNorm and Dynamic Tanh (DyT).
+Due to RMS scale invariance, a linear layer between two RMSNorms makes the
+first one redundant whenever every consumer of its output is re-normalized
+downstream: this removes the pre-attention RMSNorm entirely in QKV-normalized
+models (e.g., Gemma~4), whereas in MLA models with latent normalization (e.g.,
+DeepSeek-V2, Mistral Small 4) its weights and full-width scaling are eliminated
+while a per-token scalar is retained on the decoupled RoPE-key path, which
+bypasses the latent norm. Cancellation is exact for unregularized RMS; for the
+epsilon-regularized case we derive and measure the exact per-token discrepancy.
+On Gemma-4-E2B and Gemma-4-12B, cancellation changes fp32 wikitext perplexity by
+less than 0.001\% and leaves greedy continuations unchanged on the tested prompts;
+on MiniCPM3-4B and DeepSeek-V2-Lite the partial transform matches the exact
+fold-only control to within rounding, whereas naive full removal raises perplexity
+by more than an order of magnitude.
 On an NVIDIA T4 GPU, FlashNorm achieves \textbf{33--35\%}
 lower latency on the norm-then-project operation in the compute-bound (prefill)
-regime at SmolLM2-135M scale, and \textbf{12--14\%} at Llama-7B scale.
-We verify zero-loss weight folding on three models and validate the norm
-cancellation on Gemma-4-E2B, Gemma-4-12B, MiniCPM3-4B, and DeepSeek-V2-Lite.
+regime at SmolLM2-135M scale, and \textbf{12--14\%} at Llama-7B scale, and we
+verify zero-loss weight folding on three models. A matched decode ablation on
+Llama-3.2-1B attributes the end-to-end gain of a weightless fused norm kernel to
+kernel fusion ($+26\%$) rather than to eliding the per-channel multiply ($<1\%$),
+so realized speedups follow kernel quality and motivate native fused kernels.
 Beyond inference speed, FlashNorm simplifies model implementations by
 reducing parameter tensor count.
 \end{abstract}
 
 \begin{figure}[h!] \centering  % the [h!] tries to place the picture right here
-  \includegraphics[scale=0.7]{../doc/fig/flashNorm_fig1.pdf}
+  \includegraphics[scale=0.6]{../doc/fig/flashNorm_fig1.pdf}
   \caption{Mathematically identical implementations of RMSNorm followed by a linear layer.
     (a) Standard: normalization weights $\mathbf{g}$ are applied element-wise before $\mathbf{W}$.
     (b) \textbf{Weightless}: $\mathbf{g}$ is folded into $\mathbf{W}^* = \mathrm{diag}(\mathbf{g})\mathbf{W}$.
@@ -322,12 +342,12 @@ pre-attention RMSNorm $\to$ QKV-projection $\to$ QKV-RMSNorm.
 By Proposition~\ref{prop:rms-cancel}, the pre-attention RMSNorm cancels and can be
 dropped entirely, saving one full RMSNorm per each transformer block.
 
-%\paragraph{Eligibility condition.}
-%The pre-attention RMSNorm can be dropped only if \emph{every} consumer of its output
-%reaches a downstream RMSNorm through a bias-free, positively homogeneous path (a
-%bias-free linear layer or a slice of one); a consumer that bypasses the downstream norm
-%would silently change scale, so QK-only-normalized models (e.g., Gemma~3, which has no
-%value norm) are not eligible.
+\paragraph{Eligibility condition.}
+The pre-attention RMSNorm can be dropped only if \emph{every} consumer of its output
+reaches a downstream RMSNorm through a bias-free, positively homogeneous path (a
+bias-free linear layer or a slice of one); a consumer that bypasses the downstream norm
+would silently change scale, so QK-only-normalized models (e.g., Gemma~3, which has no
+value norm) are not eligible.
 
 \paragraph{Pre-attention RMSNorm with MLA latent normalization.}
 The sequence for MLA with latent normalization is:
@@ -353,7 +373,7 @@ activation energy approaches $\varepsilon$. Propositions~\ref{prop:weightless}
 and~\ref{prop:commute} are unaffected, since a per-token scalar commutes with the
 matrix multiplication whether or not it contains $\varepsilon$.
 \begin{figure}[h!] \centering
-  \includegraphics[scale=0.7]{../doc/fig/flashNorm_fig6.pdf}
+  \includegraphics[scale=0.6]{../doc/fig/flashNorm_fig6.pdf}
   \caption{Weightless RMSNorm followed by a linear layer and a second RMSNorm:
     (a) unoptimized version; (b) optimized version where the first RMSNorm is
     eliminated by Proposition~\ref{prop:rms-cancel}.}
@@ -375,7 +395,7 @@ multiplication and RMS calculation.
 %LayerNorm's mean centering can likewise be folded into the preceding linear layer, see Appendix~\ref{app:mean-centering}.
 
 \begin{figure}[h!] \centering  % the [h!] tries to place the picture right here
-  \includegraphics[scale=0.7]{../doc/fig/flashNorm_figA.pdf}
+  \includegraphics[scale=0.6]{../doc/fig/flashNorm_figA.pdf}
   \caption{Elimination of bias $\boldsymbol{\beta}$: (a) Before elimination with $\boldsymbol{\beta}$
     between normalization weights $\mathbf{g}$ and linear layer. (b) Optimized version with new
     bias term $\mathbf{c}^* = \mathbf{c} + \boldsymbol{\beta}\mathbf{W}$ at the output.}
@@ -402,7 +422,7 @@ entirely, see Fig. \ref{figB}(b). This provides a lossless recipe for converting
 LayerNorm model to RMSNorm without retraining; see Appendix~\ref{app:additional-notes}
 for the residual-stream completeness condition.
 \begin{figure}[h!] \centering  % the [h!] tries to place the picture right here
-  \includegraphics[scale=0.7]{../doc/fig/flashNorm_figB.pdf}
+  \includegraphics[scale=0.6]{../doc/fig/flashNorm_figB.pdf}
   \caption{Elimination of mean centering: (a) Original weight matrix $\mV$ followed by mean centering. (b) Optimized version where the mean centering is merged into the modified weight matrix $\V*$.}
 \label{figB} \end{figure}
 
@@ -415,7 +435,7 @@ One of these scaling operations can be deferred to the FFN output, saving $f - n
 multiply operations relative to Fig. \ref{fig3}(a) as shown in Fig. \ref{fig3}(b).
 See appendix for FFNs with ReLU, ReGLU and Bilinear GLU variants.
 \begin{figure}[h!] \centering
-  \includegraphics[scale=0.7]{../doc/fig/flashNorm_fig3.pdf}
+  \includegraphics[scale=0.6]{../doc/fig/flashNorm_fig3.pdf}
   \caption{FFN with GLU variant and preceding FlashNorm: (a) unoptimized version; (b) optimized version with fewer scaling multipliers.}
 \label{fig3} \end{figure}
 
@@ -430,7 +450,7 @@ per-head scaling entirely, saving $2hH - h$ multiply operations, where $h$ is th
 dimension and $H$ is the number of heads. Additionally, the $1/\sqrt{h}$ scaled
 dot-product factor can be folded into the same scaling operation.
 \begin{figure}[h!] \centering
-  \includegraphics[scale=0.7]{../doc/fig/flashNorm_fig5.pdf}
+  \includegraphics[scale=0.6]{../doc/fig/flashNorm_fig5.pdf}
   \caption{FlashNorm for scaled dot-product attention with RoPE: (a) unoptimized version; (b) optimized version where the normalization is fused with $\cosi$ and $\sini$.}
 \label{fig5} \end{figure}
 
@@ -456,7 +476,7 @@ Several architectures employ partial RoPE or interleave RoPE and NoPE layers
 weights for the NoPE channels as
 $g_{\mathbf{QK}, i} = g_{\mathbf{Q}, i} * g_{\mathbf{K}, i}$ for $i \in [ \mathrm{NoPE} ]$.
 \begin{figure}[h!] \centering
-  \includegraphics[scale=0.7]{../doc/fig/flashNorm_fig7.pdf}
+  \includegraphics[scale=0.6]{../doc/fig/flashNorm_fig7.pdf}
   \caption{QK-norm with RoPE: (a) unoptimized version; (b) optimized version.}
 \label{fig7} \end{figure}
 
@@ -485,7 +505,7 @@ the RMS calculation proceed fully in parallel on separate units as shown in Fig.
 The scaling at the end can be performed in parallel to the matrix unit if $\mat{W}^*$ is processed in column-major order.
 Total execution: 17 cycles---a \textbf{29\% reduction} versus the sequential baseline.
 \begin{figure}[h!] \centering
-  \includegraphics[scale=0.7]{../doc/fig/flashNorm_fig8.pdf}
+  \includegraphics[scale=0.6]{../doc/fig/flashNorm_fig8.pdf}
   \caption{Exemplary timing diagrams.
     (a) Sequential: matrix unit idles 8 cycles.
     (b) Partial overlap with interleaved scaling and vector-matrix multiplication.
