@@ -114,6 +114,8 @@ We verify zero-loss weight folding on three models and validate the norm
 cancellation on Gemma-4-E2B, Gemma-4-12B, MiniCPM3-4B, and DeepSeek-V2-Lite.
 Beyond inference speed, FlashNorm simplifies model implementations by
 reducing parameter tensor count.
+FlashNorm has since been implemented in fused GEMM and attention kernels with up
+to $35\%$ speedup \citep{freeNorm}.
 %Watch our explainer video \citep{flashNorm-video} and see
 %\citep{tricks} for code.
 \end{abstract}
@@ -592,7 +594,7 @@ study of the interaction with weight quantization methods.
 
 % TODO
 %\section*{Acknowledgments}
-%We would like to thank Dmitry Belenko for helpful feedback on this work.
+%We would like to thank Dmitry Belenko for helpful feedback on this work, and Han Guo, co-author of the CODA framework \citep{coda}, for helpful discussions.
 
 \subsection*{AI use statement}
 We used large language model (LLM) assistants for the following tasks with
